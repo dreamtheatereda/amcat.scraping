@@ -19,22 +19,43 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.tools.scraping.processors import HTTPScraper
+from amcat.tools.scraping.processors import CommentScraper, Form
 from amcat.tools.scraping.objects import HTMLDocument
 from amcat.tools.scraping import toolkit as stoolkit
 
+from amcat.tools import toolkit
+from amcat.model.medium import Medium
+
+from django import forms
+
+import logging
+log = logging.getLogger(__name__)
+
 INDEX_URL = ""
 
-class TemplateScraper(HTTPScraper):
-    def __init__(self, exporter, max_threads=None):
-        super(TemplateScraper, self).__init__(exporter, max_threads=max_threads)
+class NuForm(Form):
+    date = forms.DateField()
 
-    def init(self, date):
+class NuScraper(CommentScraper):
+    options_form = NuForm
+    medium = Medium.objects.get(name="nu.nl - website")
+
+    def __init__(self, options):
+        super(NuScraper, self).__init__(options)
+
+    def init(self):
+        date = self.options['date']
+
+        print(data)
+
         return []
 
-    def get(self, page):
+    def main(self, doc):
+        return []
+
+    def comments(self, doc):
         return []
 
 if __name__ == '__main__':
-    from amcat.tools.scraping.manager import main
-    main(TemplateScraper)
+    from amcat.scripts.tools import cli
+    cli.run_cli(NuScraper)
