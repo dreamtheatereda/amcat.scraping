@@ -19,7 +19,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-"""Scraper for ikregeer tweets"""
+"""Scraper for ikregeer.nl tweets"""
 
 INDEX_URL = "http://ikregeer.nl/personen/"
 
