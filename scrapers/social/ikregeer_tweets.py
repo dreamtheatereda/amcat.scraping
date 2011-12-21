@@ -29,6 +29,8 @@ from amcat.model.medium import Medium
 
 from urlparse import urljoin
 
+import logging; log = logging.getLogger(__name__)
+
 from itertools import count
 from pprint import pprint
 from lxml import etree
@@ -42,7 +44,7 @@ class IkRegeerTwitterScraper(HTTPScraper, CommentScraper):
     options_form = IkRegeerTwitterForm
     try:
         medium = Medium.objects.get(name="Ikregeer - tweets")
-    except:
+    except Medium.DoesNotExist:
         medium = Medium(name="Ikregeer - tweets", language_id=2) #lang=nl
         medium.save()
 
@@ -59,26 +61,33 @@ class IkRegeerTwitterScraper(HTTPScraper, CommentScraper):
     def init(self):
         for url in self.get_politicians():
             for page in count(1):
-                doc = self.getdoc(url+"?view=tweets&page=%d" % (page))
-                pprint(url+"?view=tweets?page=%d" % (page))
-                yield HTMLDocument(url=url+"?view=tweets&page=%d"%(page))
+                docurl = url+"?view=tweets&page=%d" % (page)
+                doc = self.getdoc(docurl)
+                pprint(docurl)
+                yield HTMLDocument(url=docurl)
                 if not doc.cssselect("a#pg-next"): 
                     # If page has no "next page" button.
                     break
 
     def main(self, doc):
-        #print(etree.tostring(doc.doc))
         for tweet in doc.doc.cssselect("div.post-container.clearfix"):
             copy = doc.copy()
-            #pprint(etree.tostring(tweet))
+            log.debug("Parsing tweet {}".format(etree.tostring(tweet)))
             if not tweet.cssselect("div.entry-summary"):
-                pprint("SKIPPING!")
+                log.warn("SKIPPING!")
                 continue
             copy.props.headline = "" # No headline
-            copy.props.text = tweet.cssselect("div.entry-summary")[0].text
+            textnode = tweet.cssselect("div.entry-summary")[0]
+            text = unicode(textnode.xpath("string(.)"))
+            log.info("Text: {} -> {}".format(etree.tostring(textnode), text))
+            copy.props.text = text
+            if not copy.props.text:
+                raise Exception("No text from {}".format(etree.tostring(tweet.cssselect("div.entry-summary p")[0])))
             copy.props.author = tweet.cssselect("h2.entry-title")[0].text
-            copy.props.date = toolkit.readDate(
-                tweet.cssselect("div.entry-meta.entry-header")[0].text)
+            datestr = tweet.cssselect("span.published")[0].text
+            copy.props.date = toolkit.readDate(datestr)
+            log.info("Date {} -> {}".format(datestr, copy.props.date))
+                            
             yield copy
 
 if __name__ == '__main__':
