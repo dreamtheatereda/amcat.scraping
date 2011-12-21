@@ -19,6 +19,8 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
+"""Scraper voor ikregeer tweets"""
+
 INDEX_URL = "http://ikregeer.nl/personen/"
 
 from amcat.tools.scraping.processors import HTTPScraper, CommentScraper, Form
