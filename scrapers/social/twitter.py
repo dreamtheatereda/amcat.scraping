@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, print_function, absolute_import
+from __future__ import print_function, absolute_import
 ###########################################################################
 #          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
 #                                                                         #
@@ -32,7 +32,7 @@ import threading, Queue
 import pycurl, json, urllib
 
 STREAM_URL = "https://stream.twitter.com/1/statuses/filter.json"
-USER = "floorter"
+USER = "MartijnBastiaan"
 PASS = ""
 
 class TwitterForm(Form):
@@ -50,38 +50,46 @@ class TwitterScraper(Scraper):
 
     def __init__(self, options):
         super(TwitterScraper, self).__init__(options)
-	self.json_queue = Queue.Queue()
+        self.json_queue = Queue.Queue()
 
     def listen(self):
         self.conn = pycurl.Curl()
         self.conn.setopt(pycurl.USERPWD, "%s:%s" % (USER, PASS))
+
         post = {}
         if self.options['track']:
             post['track'] = self.options['track']
         if self.options['follow']:
             post['follow'] = self.options['follow']
+
         self.conn.setopt(pycurl.POSTFIELDS, urllib.urlencode(post))
         self.conn.setopt(pycurl.URL, STREAM_URL)
         self.conn.setopt(pycurl.WRITEFUNCTION, self.receive)
-        conn.perform()
+        self.conn.perform()
     
-    def recieve(self, data):
+    def receive(self, data):
         if data.strip(): # Ignore keepalive empty lines
             data = json.loads(data)
             self.json_queue.put(data)
 
     def init(self):
-	thread = threading.Thread(self.listen)
-	thread.start()
-        while True:
-            yield Document(data=self.json_queue.get(True))
+        thread = threading.Thread(target=self.listen)
+        thread.start()
 
-    def get(doc):
-        doc.props.text = doc.data['text']
-        doc.props.author = "%s (@%S)" % \
-            (doc.data['user']['name'], doc.data['user']['screen_name'])
-        doc.props.date = toolkit.readDate(doc.data['created_at'])
-	yield doc
+        while True:
+            d = Document()
+            d._data = self.json_queue.get(True)
+            yield d
+
+    def get(self, doc):
+        doc.props.text = doc._data['text']
+        doc.props.author = "%s (@%s)" % \
+            (doc._data['user']['name'], doc._data['user']['screen_name'])
+
+        dayname, month, day, time, zone, year = doc._data['created_at'].split()
+        doc.props.date = toolkit.readDate("%(dayname)s %(month)s %(day)s %(year)s %(time)s" % locals())
+
+        yield doc
 	
 
 
