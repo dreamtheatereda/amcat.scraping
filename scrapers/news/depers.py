@@ -25,7 +25,7 @@ from amcat.tools.scraping.processors import HTTPScraper, CommentScraper, Form
 from amcat.tools.scraping.objects import HTMLDocument
 
 from amcat.tools import toolkit
-from amcat.model.medium import Medium
+from amcat.models.medium import Medium
 
 from django import forms
 

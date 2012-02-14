@@ -23,7 +23,7 @@ from amcat.tools.scraping.processors import PCMScraper
 from amcat.tools.scraping.objects import HTMLDocument, IndexDocument
 from amcat.tools.scraping import toolkit as stoolkit
 
-from amcat.model.scraper import Scraper
+from amcat.models.scraper import Scraper
 
 LOGIN_URL = "https://caps.volkskrant.nl/service/login"
 INDEX_URL = "http://www.volkskrant.nl/vk-online/VK/%(year)d%(month)02d%(day)02d___/VKN01_001/"

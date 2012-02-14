@@ -19,7 +19,7 @@ except:
     from stringIO import StringIO as io
 
 from amcat.db import dbtoolkit; db=dbtoolkit.amcatDB()
-from amcat.model.article import Article, ArticleText, ArticlePost
+from amcat.models.article import Article, ArticleText, ArticlePost
 
 PROPS = ['headline', 'byline', 'section', 'date', 'pagenr',
          'url', 'externalid', 'text', 'medium']

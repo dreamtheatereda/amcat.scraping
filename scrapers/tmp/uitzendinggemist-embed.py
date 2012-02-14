@@ -22,7 +22,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.tools.scraping.processors import HTTPScraper
 from amcat.tools.scraping.objects import Document
 
-from amcat.model.medium import Medium
+from amcat.models.medium import Medium
 from amcat.tools import toolkit
 
 import re, json, locale, urllib, urlparse

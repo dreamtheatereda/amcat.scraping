@@ -23,7 +23,7 @@ from amcat.tools.scraping.processors import PCMScraper
 from amcat.tools.scraping.objects import HTMLDocument, IndexDocument
 from amcat.tools.scraping import toolkit as stoolkit
 
-from amcat.model.scraper import Scraper
+from amcat.models.scraper import Scraper
 
 LOGIN_URL = "https://login.nrc.nl/login"
 INDEX_URL = "http://digitaleeditie.nrc.nl/digitaleeditie/NH/%(year)d/%(month_minus)d/%(year)d%(month)02d%(day)02d___/1_01/"

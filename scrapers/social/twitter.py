@@ -23,7 +23,7 @@ from amcat.tools.scraping.processors import Scraper, Form
 from amcat.tools.scraping.objects import Document
 
 from amcat.tools import toolkit
-from amcat.model.medium import Medium
+from amcat.models.medium import Medium
 
 from django import forms
 

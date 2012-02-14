@@ -26,7 +26,7 @@ from amcat.tools.scraping.objects import HTMLDocument
 from amcat.tools.scraping import toolkit as stoolkit
 
 from amcat.tools import toolkit
-from amcat.model.medium import Medium
+from amcat.models.medium import Medium
 
 from lxml.html import tostring
 from urlparse import urljoin

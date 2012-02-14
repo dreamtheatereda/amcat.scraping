@@ -23,7 +23,7 @@ from amcat.tools.scraping.processors import PCMScraper
 from amcat.tools.scraping.objects import HTMLDocument, IndexDocument
 from amcat.tools.scraping import toolkit as stoolkit
 
-from amcat.model.scraper import Scraper
+from amcat.models.scraper import Scraper
 
 INDEX_URL = "http://www.trouw.nl/digitalekrant/TR/%(year)d%(month)02d%(day)02d___/TRN01_001/"
 LOGIN_URL = "https://caps.trouw.nl/service/login"
