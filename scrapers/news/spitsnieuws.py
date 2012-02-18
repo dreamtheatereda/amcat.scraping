@@ -36,11 +36,7 @@ from django import forms
 import logging
 log = logging.getLogger(__name__)
 
-class SpitsnieuwsForm(Form):
-    date = forms.DateField()
-
-class SpitsnieuwsScraper(HTTPScraper, CommentScraper):
-    options_form = SpitsnieuwsForm
+class SpitsnieuwsScraper(DatedScraper, HTTPScraper, CommentScraper):
     medium = Medium.objects.get(name="Spits - website")
 
     def __init__(self, options):
