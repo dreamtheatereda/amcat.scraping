@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 #          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
@@ -21,44 +20,32 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 INDEX_URL = "http://www.spitsnieuws.nl/archives/%(year)s%(month)02d/"
 
-from amcat.tools.scraping.processors import HTTPScraper, CommentScraper, Form
-from amcat.tools.scraping.objects import HTMLDocument
-from amcat.tools.scraping import toolkit as stoolkit
-
-from amcat.tools import toolkit
-from amcat.models.medium import Medium
-
-from lxml.html import tostring
-from urlparse import urljoin
-
-from django import forms
-
 import logging
 log = logging.getLogger(__name__)
 
-class SpitsnieuwsForm(Form):
-    date = forms.DateField()
+from amcat.scraping.scraper import DatedScraper, HTTPScraper
+from amcat.scraping.document import HTMLDocument
+from amcat.tools import toolkit
+from amcat.scraping.toolkit import todate
+from urlparse import urljoin
 
-class SpitsnieuwsScraper(HTTPScraper, CommentScraper):
-    options_form = SpitsnieuwsForm
-    medium = Medium.objects.get(name="Spits - website")
+class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
+    MEDIUM = "Spits - website"
 
-    def __init__(self, options):
-        super(SpitsnieuwsScraper, self).__init__(options)
-
-    def init(self):
+    def get_units(self):
         date = self.options['date']
         url = INDEX_URL % dict(year=date.year, month=date.month)
         
         for li in self.getdoc(url).cssselect('.ltMainContainer ul li.views-row'):
-            docdate = toolkit.readDate(li.text.strip('\n\r •:')).date()
-            if docdate == stoolkit.todate(date):
+            docdate = toolkit.readDate(li.text.strip('\n\r \u2022:')).date()
+            if docdate == todate(date):
                 href = li.cssselect('a')[0].get('href')
                 href = urljoin(INDEX_URL, href)
 
                 yield HTMLDocument(url=href)
 
-    def main(self, doc):
+    def scrape_unit(self, doc):
+        doc.doc = self.getdoc(doc.props.url)
         doc.props.headline = doc.doc.cssselect('h2.title')[0].text
         doc.props.text = doc.doc.cssselect('div.main-article-container > p')
 
@@ -86,4 +73,7 @@ class SpitsnieuwsScraper(HTTPScraper, CommentScraper):
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
+    from amcat.tools import amcatlogging
+    amcatlogging.info_module("amcat.scraping.scraper")
+    amcatlogging.info_module("amcat.scraping.document")
     cli.run_cli(SpitsnieuwsScraper)
