@@ -30,7 +30,6 @@ from amcat.scraping.toolkit import todate
 from urlparse import urljoin
 
 class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
-    MEDIUM = "Spits - website"
 
     def get_units(self):
         date = self.options['date']
