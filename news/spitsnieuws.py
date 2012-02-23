@@ -30,8 +30,9 @@ from amcat.scraping.toolkit import todate
 from urlparse import urljoin
 
 class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
-
-    def get_units(self):
+    medium_name = "Spits - website"
+    
+    def _get_units(self):
         date = self.options['date']
         url = INDEX_URL % dict(year=date.year, month=date.month)
         
@@ -43,7 +44,7 @@ class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
 
                 yield HTMLDocument(url=href)
 
-    def scrape_unit(self, doc):
+    def _scrape_unit(self, doc):
         doc.doc = self.getdoc(doc.props.url)
         doc.props.headline = doc.doc.cssselect('h2.title')[0].text
         doc.props.text = doc.doc.cssselect('div.main-article-container > p')
@@ -73,6 +74,6 @@ class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
-    amcatlogging.info_module("amcat.scraping.scraper")
-    amcatlogging.info_module("amcat.scraping.document")
+    amcatlogging.debug_module("amcat.scraping.scraper")
+    amcatlogging.debug_module("amcat.scraping.document")
     cli.run_cli(SpitsnieuwsScraper)
