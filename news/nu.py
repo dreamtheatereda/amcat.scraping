@@ -93,8 +93,11 @@ class NuScraper(GoogleScraper):
                 # URL not allowed
                 return []
 
-        datetime = art.doc.cssselect('a.infolink')[0].get('title')
-        datetime = toolkit.readDate(datetime)
+        try:
+            datetime = art.doc.cssselect('a.infolink')[0].get('title')
+            datetime = toolkit.readDate(datetime)
+        except:
+            return []
 
         if datetime.date() != self.options['date']:
             # Google api can return false positives
