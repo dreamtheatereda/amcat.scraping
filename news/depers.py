@@ -21,34 +21,14 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 INDEX_URL = "http://www.depers.nl/"
 
-from amcat.tools.scraping.processors import HTTPScraper, CommentScraper, Form
-from amcat.tools.scraping.objects import HTMLDocument
-
-from amcat.tools import toolkit
-from amcat.models.medium import Medium
-
-from django import forms
+from amcat.scraping.scraper import DatedScraper, HTTPScraper
+from amcat.scraping.document import HTMLDocument
 
 from urlparse import urljoin
-import datetime
 
-from pprint import pprint
-from lxml import etree
-
-class DePersForm(Form):
-    date = forms.DateField()
-
-class DePersScraper(HTTPScraper, CommentScraper):
+class DePersScraper(HTTPScraper, DatedScraper):
     """ Scrape the news from depers.nl."""
-    options_form = DePersForm
-    try:
-        medium = Medium.objects.get(name="De Pers - news")
-    except:
-        medium = Medium(name="De Pers - news", language_id=4) #lang=nl
-        medium.save()
-
-    def __init__(self, options):
-        super(DePersScraper, self).__init__(options)
+    medium_name = "De Pers - news"
 
     def get_categories(self):
         """ Yields the urls to all the pages contianing the categories.
@@ -57,28 +37,39 @@ class DePersScraper(HTTPScraper, CommentScraper):
         for link in doc.cssselect("div.subtabs ul li a"):
             yield urljoin(INDEX_URL, link.get("href"))
 
-    def init(self):
+    def _get_units(self):
         for url in self.get_categories():
             day_url = urljoin(url, "%04d%02d%02d.html" % (
                 self.options['date'].year,
                 self.options['date'].month,
                 self.options['date'].day
             ))
+
+            if not day_url.startswith(INDEX_URL): continue
+
             doc = self.getdoc(day_url)
-            for article in doc.cssselect("div.1box500 h2 a"):
+            for article in doc.cssselect("div.lbox500 h2 a"):
+                url = urljoin(day_url, article.get("href"))
+
+                if '/video/' in url: continue
+
                 yield HTMLDocument(
-                    url = urljoin(day_url, article.get("href"),
+                    url = urljoin(day_url, article.get("href")),
                     headline = article.text,
                     date = self.options['date']
-                ))
+                )
 
-    def main(self, doc):
-        if doc.doc.cssselect("div.1box440"):
-            doc.props.text = doc.doc.cssselect("div.1box440")[0].text_content()
+    def _scrape_unit(self, doc):
+        doc.prepare(self)
+        if doc.doc.cssselect("div.lbox440"):
+            doc.props.text = doc.doc.cssselect("div.lbox440")[0].cssselect('p')
         else:
             doc.props.text = ""
         yield doc
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
+    from amcat.tools import amcatlogging
+    amcatlogging.debug_module("amcat.scraping.scraper")
+    amcatlogging.debug_module("amcat.scraping.document")
     cli.run_cli(DePersScraper)
