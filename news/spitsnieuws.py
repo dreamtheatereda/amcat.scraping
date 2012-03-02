@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 #          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
@@ -41,15 +42,14 @@ class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
             if docdate == todate(date):
                 href = li.cssselect('a')[0].get('href')
                 href = urljoin(INDEX_URL, href)
-
                 yield HTMLDocument(url=href)
 
     def _scrape_unit(self, doc):
         doc.doc = self.getdoc(doc.props.url)
-        doc.props.headline = doc.doc.cssselect('h2.title')[0].text
+        doc.props.headline = doc.doc.cssselect('h2.title')[0].text_content()
         doc.props.text = doc.doc.cssselect('div.main-article-container > p')
 
-        footer = doc.doc.cssselect('.article-options > div')[0].text.split('|')
+        footer = doc.doc.cssselect('.article-options > div')[0].text_content().split('|')
         doc.props.author = footer[0].strip()
         doc.props.date = toolkit.readDate(" ".join(footer[1:3]))
 
