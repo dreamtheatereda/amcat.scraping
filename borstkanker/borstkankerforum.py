@@ -19,7 +19,8 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.scraper import PhpBBScraper, urlencode, HTMLDocument
+from amcat.scraping.scraper import PhpBBScraper, urlencode
+from amcat.scraping.document import HTMLDocument
 
 INDEX_URL = "http://www.borstkankerforum.nl/forum/"
 
@@ -27,10 +28,10 @@ MESSAGES_PER_THREAD = 15
 THREADS_PER_BOARD= 20
 
 class BorstkankerForumScraper(PhpBBScraper):
-    def login(self): # ???
-        super('martijnbb', 'amcat')
+    def _login(self):
+        self._login('martijnbb', 'amcat')
 
-    def _get_units(self, url=INDEX_URL, cat=None):
+    def _get_unit(self, url=INDEX_URL, cat=None):
         """
         Recursively get all boards. For every board, call get_threads,
         to get all (forum!) threads.
@@ -117,11 +118,11 @@ class BorstkankerForumScraper(PhpBBScraper):
 
             for page in range(1, pages+1):
                 yield "%s.%s" % (base_url, str(page*ppp))
-
+    '''
     def parse_post(self, el):
-        pass
+        pass'''
 
-    def get(self, page):
+    def _scrape_unit(self, page):
         
 
         return []
