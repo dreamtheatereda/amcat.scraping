@@ -19,11 +19,9 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.tools.scraping.processors import PCMScraper
-from amcat.tools.scraping.objects import HTMLDocument, IndexDocument
-from amcat.tools.scraping import toolkit as stoolkit
+from amcat.scraping.scraper import DBScraper, HTTPScraper, DatedScraper
+from amcat.scraping.document import HTMLDocument, IndexDocument
 
-from amcat.models.scraper import Scraper
 
 import re
 
@@ -35,16 +33,15 @@ INDEX_PAGE_URL = "http://krantdigitaal.ddl.x-cago.net/DDL/%(year)d%(month)02d%(d
 
 INDEX_RE = re.compile('"(DDL-.+)"')
 
-try:
-    from urllib import urlencode
-    from urlparse import urljoin
-except ImportError:
-    from urllib.parse import urlencode, urljoin
+from urllib import urlencode
+from urlparse import urljoin
 
 DEBUG = True
 
-class LimburgerScraper(PCMScraper):
-    def __init__(self, exporter, max_threads=None, editie='MA'):
+class LimburgerScraper(HTTPScraper, DBScraper):
+    medium_name = "De Limburger"
+
+    def __init__(self, *args, **kwargs):
         """
         @type editie: str
         @param editie: 'editie' to scrape:
@@ -55,17 +52,23 @@ class LimburgerScraper(PCMScraper):
          * NL: Venray / Venlo
          * ML: Weert / Roermond
         """
-        self.editie = editie
+        self.editie = 'MA'
 
-        super(LimburgerScraper, self).__init__(exporter, max_threads=max_threads)
+        super(LimburgerScraper, self).__init__(*args, **kwargs)
 
-    def login(self):
-        POST_DATA = Scraper.objects.get(class_name=LimburgerScraper.__name__).get_data()
-        login1 = self.session.open(LOGINURL, urlencode(POST_DATA))
+    def _login(self, username, password):
+        POST_DATA = {
+            'email' : username,
+            'password' : password,
+            'pub' : 'ddl',
+            'r' : 'krantdigitaal.ddl.x-cago.net'
+        }
+
+        login1 = self.opener.opener.open(LOGINURL, urlencode(POST_DATA))
 
         if "Sessie overschrijven" in login1.read():
             data = urlencode(dict(overwrite='on', pub='ddl'))
-            return self.session.open(SESSION_URL, data)
+            return self.opener.opener.open(SESSION_URL, data)
 
     def _get_codes(self, lines, edition):
         # See krantdigitaal.ddl.x-cago.net/DDL/20110712/public/index_editions_js.html
@@ -82,25 +85,21 @@ class LimburgerScraper(PCMScraper):
             else:
                 break
 
-    def init(self, date):
-        """
-        @type date: datetime.date, datetime.datetime
-        @param date: date to scrape for.
-        """
+    def _get_units(self):
         def _search(lines, code):
             for line in lines:
                 if code in line:
                     return line
 
         index_dic = {
-            'year' : date.year,
-            'month' : date.month,
-            'day' : date.day,
+            'year' : self.options['date'].year,
+            'month' : self.options['date'].month,
+            'day' : self.options['date'].day,
         }
 
         index = INDEX_URL % index_dic
         edition = "DDL_%s" % self.editie
-        lines = list(self.getdoc(index, read=False).readlines())
+        lines = list(self.opener.opener.open(index).readlines())
         codes = self._get_codes(lines, edition)
 
         index = self.getdoc(INDEX_PAGE_URL % index_dic)
@@ -110,9 +109,11 @@ class LimburgerScraper(PCMScraper):
             ref = _search(referer_codes, code).split(',')[3][3:-1]
             ref = urljoin(INDEX_PAGE_URL % index_dic, ref) + '.html'
 
-            yield IndexDocument(url=ref, date=date)
+            yield IndexDocument(url=ref, date=self.options['date'])
 
-    def get(self, ipage): # ipage --> index_page
+    def _scrape_unit(self, ipage): # ipage --> index_page
+        ipage.prepare(self)
+
         def _parsecoord(elem):
             top, left = elem.get('style').split(';')[1:3]
             top, left = int(top[4:-2]), int(top[5:-2])
@@ -123,7 +124,7 @@ class LimburgerScraper(PCMScraper):
             return (left, top, width, height)
 
         imgurl = urljoin(ipage.props.url, ipage.doc.cssselect('#pgImg')[0].get('src'))
-        ipage.bytes = self.getdoc(imgurl, lxml=False)
+        ipage.bytes = self.opener.opener.open(imgurl).read()
         ipage.page = int(ipage.props.url.split('/')[-1].split('-')[2])
         ipage.props.category = int(ipage.props.url.split('/')[-1].split('-')[1])
 
@@ -147,6 +148,7 @@ class LimburgerScraper(PCMScraper):
     def get_article(self, page):
         try:
             page.props.author = page.doc.cssselect('td.artauthor')[0].text.strip()[5:]
+            if len(page.props.author) >= 100: del page.props.author
         except IndexError:
             pass
 
@@ -156,6 +158,8 @@ class LimburgerScraper(PCMScraper):
         return page
 
 if __name__ == '__main__':
-    from amcat.tools.scraping.manager import main
-    
-    main(LimburgerScraper)
+    from amcat.scripts.tools import cli
+    from amcat.tools import amcatlogging
+    amcatlogging.debug_module("amcat.scraping.scraper")
+    amcatlogging.debug_module("amcat.scraping.document")
+    cli.run_cli(LimburgerScraper)
