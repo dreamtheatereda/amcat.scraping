@@ -19,34 +19,35 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.tools.scraping.processors import PCMScraper
-from amcat.tools.scraping.objects import HTMLDocument, IndexDocument
-from amcat.tools.scraping import toolkit as stoolkit
-
-from amcat.models.scraper import Scraper
+from amcat.scraping.scraper import HTTPScraper, DBScraper
+from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping import toolkit as stoolkit
 
 LOGIN_URL = "https://login.nrc.nl/login"
 INDEX_URL = "http://digitaleeditie.nrc.nl/digitaleeditie/NH/%(year)d/%(month_minus)d/%(year)d%(month)02d%(day)02d___/1_01/"
 
-try:
-    from urllib import urlencode
-    from urlparse import urljoin
-except ImportError:
-    from urllib.parse import urlencode, urljoin
+from urlparse import urljoin
+from urllib import urlencode
 
+class NRCHandelsbladScraper(HTTPScraper, DBScraper):
+    medium_name = "NRC Handelsblad"
 
-class NRCHandelsbladScraper(PCMScraper):
-    def __init__(self, exporter, max_threads=None):
-        self.login_url = LOGIN_URL
-        self.login_data = Scraper.objects.get(class_name=NRCHandelsbladScraper.__name__).get_data()
+    def _login(self, username, password):
+        page = self.getdoc(LOGIN_URL)
 
-        super(NRCHandelsbladScraper, self).__init__(exporter, max_threads=max_threads)
+        form = stoolkit.parse_form(page)
+        form['username'] = username
+        form['password'] = password
 
-    def init(self, date):
+        self.opener.opener.open(LOGIN_URL, urlencode(form))
+
+    def _get_units(self):
         """
         @type date: datetime.date, datetime.datetime
         @param date: date to scrape for.
         """
+        date = self.options.get('date')
+
         index = INDEX_URL % {
             'year' : date.year,
             'month' : date.month,
@@ -56,14 +57,15 @@ class NRCHandelsbladScraper(PCMScraper):
 
         sections = self.getdoc(index).cssselect('#Sections a.thumbnail-link')
         for s in sections:
-            break
             url = urljoin(index, s.get('href'))
             yield IndexDocument(url=url, date=date)
 
-    def get(self, ipage): # ipage --> index_page
+    def _scrape_unit(self, ipage): # ipage --> index_page
         ipage.doc = self.getdoc(ipage.props.url)
-        ipage.bytes = self.getdoc(urljoin(ipage.props.url, 'page.jpg'), lxml=False)
         ipage.page = int(ipage.props.url.split('_')[-1].split('/')[0])
+        
+        imgurl = urljoin(ipage.props.url, 'page.jpg')
+        ipage.bytes = self.opener.opener.open(imgurl).read()
 
         for a in ipage.doc.cssselect('#Articles a'):
             page = HTMLDocument(date=ipage.props.date)
@@ -78,6 +80,7 @@ class NRCHandelsbladScraper(PCMScraper):
         yield ipage
 
     def get_article(self, page):
+        page.prepare(self)
         page.props.text = page.doc.cssselect('.column-left')[0]
         page.props.headline = page.doc.cssselect('h2')[0].text
 
@@ -88,6 +91,8 @@ class NRCHandelsbladScraper(PCMScraper):
         return page
 
 if __name__ == '__main__':
-    from amcat.tools.scraping.manager import main
-
-    main(NRCHandelsbladScraper)
+    from amcat.scripts.tools import cli
+    from amcat.tools import amcatlogging
+    amcatlogging.debug_module("amcat.scraping.scraper")
+    amcatlogging.debug_module("amcat.scraping.document")
+    cli.run_cli(NRCHandelsbladScraper)
