@@ -22,8 +22,8 @@ from __future__ import unicode_literals, print_function
 import pcm
 
 class TrouwScraper(pcm.PCMScraper):
-    medium_name = "Trouw"
-    domain = "trouw.nl"
+    medium_name = "Algemeen Dagblad"
+    domain = "ad.nl"
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
