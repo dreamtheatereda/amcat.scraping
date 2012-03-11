@@ -22,7 +22,10 @@ from __future__ import print_function, absolute_import
 import datetime
 import urllib2
 import urllib
+import base64
 import uuid
+
+from urllib import quote
 
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
@@ -37,7 +40,9 @@ from pyamf.flex import messaging
 import logging; log = logging.getLogger(__name__)
 
 # Login page
-LOGINURL = "https://caps.volkskrant.nl/service/login"
+LOGINURL = "https://caps.volkskrant.nl/service/login?service=http%3A%2F%2Fkrant.volkskrant.nl%2F%3Fpaper%3D{paper_id}%26zone%3D{regio_code}"
+AUTHURL = "https://caps.volkskrant.nl/service/validate?service="
+SAVEURL = "http://krant.volkskrant.nl/ipaper-online/saveLoginHistory?zone=%(regio_code)s&pubId=%(main_id)s&method=CAPS&paperId=%(paper_id)s&login=%(username)s"
 
 # AMF API page
 AMFURL = "http://krant.volkskrant.nl/ipaper-online/blaze/amf"
@@ -73,54 +78,83 @@ class VolkskrantScraper(HTTPScraper, DBScraper):
     def __init__(self, *args, **kwargs):
         super(VolkskrantScraper, self).__init__(*args, **kwargs)
 
+        self.ticket_url = None
         self.client_id = uuid4()
+        self.headers = {
+            'DSMessagingVersion' : 1,
+            'DSId' : 'nil'
+        }
 
     def _login(self, username, password, retry=False):
         """
         Parse login form and fill in wanted parts
         """
-        if not retry:
-            log.info("Logging in..")
-            login_page = self.getdoc(LOGINURL)
+        # Get latest paper id
+        latest = self._get_latest()
+        latest = latest[(sorted(latest.keys())[-1])]
+        paper_id = int(latest['paperId'])
 
-            form = toolkit.parse_form(login_page)
-            form['username'] = username
-            form['password'] = password
+        # Build url
+        url = LOGINURL.format(paper_id=paper_id, regio_code=REGIO_CODE)
 
-            login_page = self.opener.opener.open(
-                LOGINURL, urllib.urlencode(form)
-            )
+        # Login
+        log.info("Logging in..")
+        login_page = self.getdoc(url)
 
-            if not LOGIN_SUCCESS in login_page.read():
-                log.error("Login was not successful, check credentials!")
-                import sys; sys.exit(1)
+        form = toolkit.parse_form(login_page)
+        form['username'] = username
+        form['password'] = password
 
-            log.info("Login successful")
-            log.info("Preparing API..")
+        login_page = self.opener.opener.open(
+            url, urllib.urlencode(form)
+        )
 
+        # Resolve ticket_url and save it
+        self.ticket_url = login_page.geturl()
+
+        if 'ticket' not in self.ticket_url:
+            log.error("Login was not successful, check credentials!")
+            import sys; sys.exit(1)
+
+        # Handshake server
         com = self.create_message(messaging.CommandMessage, operation=5)
-        com.headers = {
-            'DSMessagingVersion' : 1,
-            'DSId' : ''
-        }
-
         req = self.create_request(com)
         env = self.create_envelope(req)
         res = self.apiget(env).bodies[0][1]
 
-        error = not isinstance(res.body, messaging.AcknowledgeMessageExt)
+        self.headers.update(res.body.headers)
 
-        if error and retry:
-            # Error occured and this was a retry
-            log.error("Handshake not accepted. Error was: %s"
-                        % res.body.faultString)
-            import sys; sys.exit(1)
+        # Save to webserver
+        url = SAVEURL % {
+            'paper_id' : paper_id,
+            'regio_code' : REGIO_CODE,
+            'main_id' : MAIN_ID,
+            'username' : quote(username).replace('.', '%2E')
+        }
 
-        elif error:
-            # Error occured. Retry with logged out session
-            self._login(username, password, retry=True)
-        else:
-            log.info("Handshake successful")
+        req = urllib2.Request(url, data=None, headers={
+            'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        })
+
+        self.opener.opener.open(req).read()
+
+        # Send AMF Auth message to server
+        ticket = "TICKET_%s:%s%s" % (MAIN_ID, AUTHURL, quote(self.ticket_url, '&'))
+        ticket = ticket.replace('ticket%3D', 'ticket=')
+        ticket = ticket.replace('&zone', '%26zone')
+
+        com = self.create_message(messaging.CommandMessage, operation=8)
+        com.destination = 'auth'
+        com.body = base64.b64encode(ticket)
+
+        com.headers["DSEndpoint"] = "_IPaperOnlineServiceLocator_AMFChannel1"
+        com.correlationId = ""
+
+        env = self.create_envelope(self.create_request(com))
+        res = self.apiget(env)
+
+        log.info("Logged in")
+
 
 
     def apiget(self, envelope):
@@ -138,9 +172,11 @@ class VolkskrantScraper(HTTPScraper, DBScraper):
             'Content-Type' : 'application/x-amf'
         })
 
-        return remoting.decode(
+        resp = remoting.decode(
             self.opener.opener.open(req).read()
         )
+
+        return resp
 
     def create_envelope(self, *requests):
         """
@@ -176,10 +212,30 @@ class VolkskrantScraper(HTTPScraper, DBScraper):
                 operation="getHome"
             )
         """
-        return msgtype(messageId=uuid4(), clientId=self.client_id, **args)
+        msg = msgtype(messageId=uuid4(), clientId=self.client_id, **args)
+        msg.headers.update(self.headers)
+        return msg
 
-    def _get_units(self):
-        # Get urls for last 6 newspapers
+    def _get_paper(self, paper_id):
+        rmsg = self.create_message(
+            messaging.RemotingMessage,
+            operation="getPaper",
+            body=[MAIN_ID, paper_id, REGIO_CODE],
+            destination="onlineFacade"
+        )
+
+        env = self.create_envelope(self.create_request(rmsg))
+        resp = self.apiget(env).bodies[0][1]
+
+        print(resp)
+
+
+        return []
+
+    def _get_latest(self):
+        """
+        Get latest newspapers
+        """
         rmsg = self.create_message(
             messaging.RemotingMessage,
             operation="getHome", body=[MAIN_ID],
@@ -188,19 +244,29 @@ class VolkskrantScraper(HTTPScraper, DBScraper):
 
         req = self.create_request(rmsg)
         env = self.create_envelope(req)
-        resp = self.apiget(env).bodies[0][1].body.body['homePapers']
+        resp = self.apiget(env).bodies[0][1].body #.body['homePapers']
+
+        if isinstance(resp, messaging.ErrorMessage):
+            # Session was not cleared. Try again..
+            return self._get_latest()
 
         # Create date:paper dictionary and check for date
-        pages = dict([(get_pubdate(p), p) for p in resp])
-        page = pages.get(self.options['date'])
+        return dict([(get_pubdate(p), p) for p in resp.body['homePapers']])
+
+    def _get_units(self):
+        date = self.options['date']
+
+        # Get urls for last 6 newspapers
+        page = self._get_latest().get(date)
 
         if page is None:
             log.error("Page for this date could not be found!")
             import sys; sys.exit(1)
 
-        print(page)
+        pid = int(page['paperId'])
+        log.info("Found paper of %r with id %r" % (date, pid))
 
-        return []
+        return self._get_paper(pid)
 
     def _scrape_unit(self, ipage): # ipage --> index_page
         pass
