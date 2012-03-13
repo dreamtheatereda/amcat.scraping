@@ -24,6 +24,7 @@ import pcm
 class TrouwScraper(pcm.PCMScraper):
     medium_name = "Trouw"
     domain = "trouw.nl"
+    paper_id = 8004
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli

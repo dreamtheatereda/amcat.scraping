@@ -54,7 +54,6 @@ LOGIN_SUCCESS = "Log In Successful"
 uuid4 = lambda: str(uuid.uuid4()).upper()
 
 # iPaper static ID's
-MAIN_ID = 8002
 REGIO_CODE = "NL"
 
 # Convienience function
@@ -74,6 +73,7 @@ class PCMScraper(HTTPScraper, DBScraper):
     We use PyAMF to create and serialize the objects.
     """
     domain = None
+    paper_id = None
 
     def __init__(self, *args, **kwargs):
         super(PCMScraper, self).__init__(*args, **kwargs)
@@ -131,7 +131,7 @@ class PCMScraper(HTTPScraper, DBScraper):
         url = SAVEURL % {
             'paper_id' : paper_id,
             'regio_code' : REGIO_CODE,
-            'main_id' : MAIN_ID,
+            'main_id' : self.paper_id,
             'username' : quote(username).replace('.', '%2E'),
             'domain' : self.domain
         }
@@ -144,7 +144,7 @@ class PCMScraper(HTTPScraper, DBScraper):
 
         # Send AMF Auth message to server
         ticket = "TICKET_%s:%s%s" % (
-            MAIN_ID,
+            self.paper_id,
             AUTHURL.format(domain=self.domain),
             quote(self.ticket_url, '&')
         )
@@ -232,7 +232,7 @@ class PCMScraper(HTTPScraper, DBScraper):
         rmsg = self.create_message(
             messaging.RemotingMessage,
             operation="getPaper",
-            body=[MAIN_ID, paper_id, REGIO_CODE],
+            body=[self.paper_id, paper_id, REGIO_CODE],
             destination="onlineFacade"
         )
 
@@ -257,7 +257,7 @@ class PCMScraper(HTTPScraper, DBScraper):
         """
         rmsg = self.create_message(
             messaging.RemotingMessage,
-            operation="getHome", body=[MAIN_ID],
+            operation="getHome", body=[self.paper_id],
             destination="onlineFacade"
         )
 
