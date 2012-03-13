@@ -53,9 +53,6 @@ LOGIN_SUCCESS = "Log In Successful"
 # Generate a valid uuid for an AMF object
 uuid4 = lambda: str(uuid.uuid4()).upper()
 
-# iPaper static ID's
-REGIO_CODE = "NL"
-
 # Convienience function
 def get_pubdate(paper):
     pd = dict([(k, int(v)) for k,v in paper['pubDate'].items()])
@@ -72,8 +69,9 @@ class PCMScraper(HTTPScraper, DBScraper):
 
     We use PyAMF to create and serialize the objects.
     """
-    domain = None
-    paper_id = None
+    domain = None # exp: ad.nl
+    paper_id = None # exp: 8002
+    context_id = None # exp: NL or AD
 
     def __init__(self, *args, **kwargs):
         super(PCMScraper, self).__init__(*args, **kwargs)
@@ -96,7 +94,7 @@ class PCMScraper(HTTPScraper, DBScraper):
 
         # Build url
         url = LOGINURL.format(paper_id=paper_id,
-                              regio_code=REGIO_CODE,
+                              regio_code=self.context_id,
                               domain=self.domain)
 
         # Login
@@ -130,7 +128,7 @@ class PCMScraper(HTTPScraper, DBScraper):
         # Save to webserver
         url = SAVEURL % {
             'paper_id' : paper_id,
-            'regio_code' : REGIO_CODE,
+            'regio_code' : self.context_id,
             'main_id' : self.paper_id,
             'username' : quote(username).replace('.', '%2E'),
             'domain' : self.domain
@@ -232,7 +230,7 @@ class PCMScraper(HTTPScraper, DBScraper):
         rmsg = self.create_message(
             messaging.RemotingMessage,
             operation="getPaper",
-            body=[self.paper_id, paper_id, REGIO_CODE],
+            body=[self.paper_id, paper_id, self.context_id],
             destination="onlineFacade"
         )
 

@@ -25,6 +25,7 @@ class VolkskrantScraper(pcm.PCMScraper):
     medium_name = "De Volkskrant"
     domain = "volkskrant.nl"
     paper_id = 8002
+    context_id = "NL"
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
