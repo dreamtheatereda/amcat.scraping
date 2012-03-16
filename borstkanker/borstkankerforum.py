@@ -19,19 +19,18 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.scraper import PhpBBScraper, urlencode
+#from amcat.scraping.scraper import urlencode
 from amcat.scraping.document import HTMLDocument
-
-INDEX_URL = "http://www.borstkankerforum.nl/forum/"
+from amcat.scraping.phpbbscraper import PhpBBScraper
+from amcat.scraping.scraper import DBScraper
 
 MESSAGES_PER_THREAD = 15
 THREADS_PER_BOARD= 20
 
-class BorstkankerForumScraper(PhpBBScraper):
-    def _login(self):
-        self._login('martijnbb', 'amcat')
-
-    def _get_unit(self, url=INDEX_URL, cat=None):
+class BorstkankerForumScraper(PhpBBScraper, DBScraper):
+    index_url = "http://www.borstkankerforum.nl/forum/"
+    
+    def _scrape_unit(self, url=INDEX_URL, cat=None):
         """
         Recursively get all boards. For every board, call get_threads,
         to get all (forum!) threads.
@@ -40,7 +39,9 @@ class BorstkankerForumScraper(PhpBBScraper):
 
         for td in index.cssselect('tr.windowbg2 td[align=left]'):
             a = td.cssselect('a')[0]
-
+            
+            
+            ####cat=None
             _cat = a.text_content() if not cat else " > ".join([cat, a.text_content()])
             url = a.get('href')
 
@@ -59,7 +60,7 @@ class BorstkankerForumScraper(PhpBBScraper):
                 yield thread
                 break
 
-    def get_threads(self, board):
+    def _get_units(self, board):
         """This method gets all threads in a board."""
         try:
             pages = [board,]
@@ -118,15 +119,10 @@ class BorstkankerForumScraper(PhpBBScraper):
 
             for page in range(1, pages+1):
                 yield "%s.%s" % (base_url, str(page*ppp))
-    '''
-    def parse_post(self, el):
-        pass'''
-
-    def _scrape_unit(self, page):
         
-
-        return []
-
 if __name__ == '__main__':
-    from amcat.tools.scraping.manager import main
-    main(BorstkankerForumScraper)
+    from amcat.scripts.tools import cli
+    from amcat.tools import amcatlogging
+    amcatlogging.debug_module("amcat.scraping.scraper")
+    amcatlogging.debug_module("amcat.scraping.document")
+    cli.run_cli(BorstkankerForumScraper)

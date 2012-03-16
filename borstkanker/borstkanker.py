@@ -76,6 +76,7 @@ class BorstkankerNLScraper(HTTPScraper):
 
     def _scrape_unit(self, thread):
         fipo = True
+        row = 0
         thread.doc = self.getdoc(thread.props.url)      
         for page in self.get_pages(thread.doc):
             for post in page.cssselect('table.forumIndex > tr')[1:]:
@@ -83,8 +84,13 @@ class BorstkankerNLScraper(HTTPScraper):
                 ca = thread if fipo else thread.copy(parent=thread)
                 ca.props.date = toolkit.readDate(post.cssselect('span.bijSchrift')[0].text)
                 ca.props.author = post.cssselect('td.auteur h2')[0].text
-                ca.props.title = post.cssselect('td.row2 h2')[0].text
-
+                row = row % 2 + 1
+                
+                #tellertje += 1
+                #print('!!!!!!!!!!'+str(row)+' '+str(tellertje))
+                
+                ca.props.title = post.cssselect('td.row{row} h2'.format(row=row))[0].text
+                
                 texttd = post.cssselect('td')[0]
                 texttd.cssselect('h2')[0].drop_tree()
                 texttd.cssselect('.editImg')[0].drop_tree()
