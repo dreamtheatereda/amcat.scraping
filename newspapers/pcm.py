@@ -39,6 +39,8 @@ from pyamf.flex import messaging
 # Logging
 import logging; log = logging.getLogger(__name__)
 
+CHECK_CREDENTIALS = "Login was not successful, check credentials!"
+
 # Login page
 LOGINURL = "https://caps.{domain}/service/login?service=http%3A%2F%2Fkrant.{domain}%2F%3Fpaper%3D{paper_id}%26zone%3D{regio_code}"
 AUTHURL = "https://caps.{domain}/service/validate?service="
@@ -114,8 +116,8 @@ class PCMScraper(HTTPScraper, DBScraper):
         self.ticket_url = login_page.geturl()
 
         if 'ticket' not in self.ticket_url:
-            log.error("Login was not successful, check credentials!")
-            import sys; sys.exit(1)
+            log.error(CHECK_CREDENTIALS)
+            raise ValueError(CHECK_CREDENTIALS)
 
         # Handshake server
         com = self.create_message(messaging.CommandMessage, operation=5)
@@ -277,8 +279,7 @@ class PCMScraper(HTTPScraper, DBScraper):
         page = self._get_latest().get(date)
 
         if page is None:
-            log.error("Page for this date could not be found!")
-            import sys; sys.exit(1)
+            raise ValueError("Could not find paper for %s" % date)
 
         pid = int(page['paperId'])
         log.info("Found paper of %r with id %r" % (date, pid))

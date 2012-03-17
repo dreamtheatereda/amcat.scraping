@@ -25,6 +25,8 @@ class AlgemeenDagbladScraper(pcm.PCMScraper):
     medium_name = "Algemeen Dagblad"
     domain = "ad.nl"
     paper_id = 8001
+    context_id = "AD"
+
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli

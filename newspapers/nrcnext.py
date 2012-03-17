@@ -21,9 +21,9 @@ from __future__ import unicode_literals, print_function
 
 import nrc
 
-class NRCHandelsbladScraper(nrc.NRCScraper):
-    medium_name = "NRC Handelsblad"
-    nrc_version = "NH"
+class NRCNextScraper(nrc.NRCScraper):
+    medium_name = "NRC Next"
+    nrc_version = "NN"
 
 
 if __name__ == '__main__':
@@ -31,4 +31,4 @@ if __name__ == '__main__':
     from amcat.tools import amcatlogging
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
-    cli.run_cli(NRCHandelsbladScraper)
+    cli.run_cli(NRCNextScraper)
