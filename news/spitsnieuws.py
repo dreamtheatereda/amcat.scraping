@@ -32,11 +32,11 @@ from urlparse import urljoin
 
 class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
     medium_name = "Spits - website"
-    
+
     def _get_units(self):
         date = self.options['date']
         url = INDEX_URL % dict(year=date.year, month=date.month)
-        
+
         for li in self.getdoc(url).cssselect('.ltMainContainer ul li.views-row'):
             docdate = toolkit.readDate(li.text.strip('\n\r \u2022:')).date()
             if docdate == todate(date):
