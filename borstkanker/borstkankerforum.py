@@ -20,106 +20,110 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 #from amcat.scraping.scraper import urlencode
+from amcat.scraping.scraper import HTTPScraper, DBScraper
 from amcat.scraping.document import HTMLDocument
-from amcat.scraping.phpbbscraper import PhpBBScraper
-from amcat.scraping.scraper import DBScraper
 
-MESSAGES_PER_THREAD = 15
-THREADS_PER_BOARD= 20
+from urlparse import urljoin, urlunsplit, parse_qs, urlsplit
+from urllib import urlencode
 
-class BorstkankerForumScraper(PhpBBScraper, DBScraper):
+from amcat.tools import toolkit
+
+class BorstkankerForumScraper(HTTPScraper, DBScraper):
     index_url = "http://www.borstkankerforum.nl/forum/"
+    medium_name = "Borstkankerforum.nl - forum"
+
+    def _login(self, username, password):
+        form = self.getdoc(self.index_url).cssselect('form')[0]
+
+        self.opener.opener.open(form.get('action'), urlencode({
+            'user' : username,
+            'passwrd' : password,
+            'cookielength' : '-1'
+        })).read()
+            
+    def _get_units(self):
+        index = self.getdoc(self.index_url)
+
+        for cat_title, cat_doc in self.get_categories(index):
+            for page in self.get_pages(cat_doc):
+                for fbg in page.cssselect('tr')[1:]:
+                    for a in fbg.cssselect('.windowbg a'):
+                        url = urljoin(self.index_url, a.get('href'))
+                        if not a.find("img") is None:
+                            continue
+                        yield HTMLDocument(headline=a.text, url=url, category=cat_title)
     
-    def _scrape_unit(self, url=INDEX_URL, cat=None):
+    def get_categories(self, index):
         """
-        Recursively get all boards. For every board, call get_threads,
-        to get all (forum!) threads.
+        @yield: (category_name, lxml_doc)
         """
-        index = self.getdoc(url)
+        hrefs = index.cssselect('.windowbg2 td[align=left] a')
 
-        for td in index.cssselect('tr.windowbg2 td[align=left]'):
-            a = td.cssselect('a')[0]
-            
-            
-            ####cat=None
-            _cat = a.text_content() if not cat else " > ".join([cat, a.text_content()])
-            url = a.get('href')
+        for href in hrefs:
+            url = urljoin(self.index_url, href.get('href'))
+            yield href.text, self.getdoc(url) 
+    
+    def _scrape_unit(self, thread):
+        fipo = True # First post
+        thread.doc = self.getdoc(thread.props.url)
+        for page in self.get_pages(thread.doc):
+            for post in page.cssselect('.windowbg'):
+                ca = thread if fipo else thread.copy(parent=thread)
+                #print('!!!!!!!!!!!!!!!!!!!!!!')
+                #print( post.cssselect('.smalltext')[1].text_content().split('op:')[1][14:-2] )
+                ca.props.date = toolkit.readDate(post.cssselect('.smalltext')[1].text_content()[14:-2])
+                
+                divs = post.cssselect('div')
+                if len(divs) < 4: # guest
+                    title = post.cssselect('a')[2].text
+                    ca.props.text = divs[2]
+                    ca.props.author = post.cssselect('b')[0].text
+                else:    
+                    if post.cssselect('a')[5].find("img") is None:
+                        title = post.cssselect('a')[5].text
+                    else:
+                        title = post.cssselect('a')[6].text
+                    ca.props.text = divs[3]
+                    ca.props.author = post.cssselect('a')[0].text
+                    
+                if fipo:
+                    optitle = title
+                if title:
+                    ca.props.headline = title
+                else:
+                    ca.props.headline = 're: {}'.format( optitle )
 
-            board = HTMLDocument(**{
-                'category' : _cat,
-                'url' : url
-            })
+                
 
-            # Get all threads
-            page = board.copy(); page.prepare(self)
-            for thread in self.get_threads(page):
-                yield thread
+                yield ca
 
-            for thread in self.init(url=url, cat=_cat):
-                # Get sub-boards' threads
-                yield thread
-                break
+                fipo = False
 
-    def _get_units(self, board):
-        """This method gets all threads in a board."""
-        try:
-            pages = [board,]
-            for url in self.parse_pagination(board.doc):
-                page = board.copy()
-                page.props.url = url
-
-                # Download document..
-                page.prepare(self, force=True)
-                pages.append(page)
-
-        except IndexError:
-            # This probably the forum-index page
-            pass
-        else:
-            for page in pages: 
-                # First tr should be in <thread>
-                for tr in page.doc.cssselect('table[class=bordercolor] tr')[1:]: 
-                    # windowbg2 indicates a sub-board, not a thread.
-                    if tr.get('class') == 'windowbg2': continue
-
-                    tds = tr.cssselect('td')
-
-                    # 3rd td contains link to thread / thread-name
-                    # 4th td contains topic-starter's name
-                    a = tds[2].cssselect('a')[0]
-                    page.props.url = a.get('href')
-                    page.props.headline = a.text_content()
-                    page.props.author = tds[3].text_content()
-
-                    yield page 
-
-                    break
-
-                break
-
-    def parse_pagination(self, el):
-        """
-        Parse pagination displayed at the bottom of each thread / board.
-
-        @param el: root html element
-        @type el: lxml.html object
-
-        @return: generator yielding urls (including non-displayed pages). This method
-                 does not return the first page.
-        """
-        td = el.cssselect('td[class=catbg] td')[0] 
-        aes = td.cssselect('a')
-        if len(aes) > 1:
-            last = aes[-2].get('href')
-
-            # Determine wehther this is a board or thread
-            ppp = THREADS_PER_BOARD if 'board' in last else MESSAGES_PER_THREAD
-            pages = (int(last.split('.')[-1]) / ppp)
-            base_url = ".".join(last.split('.')[:-1])
-
-            for page in range(1, pages+1):
-                yield "%s.%s" % (base_url, str(page*ppp))
+    def get_pages(self, page):
+        """Get each page specified in pagination division."""
         
+        yield page # First page, is always available
+        
+        nav = page.cssselect('.catbg')[0]
+        nava = nav.cssselect('a')[:-5]
+        if len(nava) > 1:
+            # Pagination available    
+
+            pages = int(nava[-1].text)
+            spage = nava[0].get('href')
+            
+            url = list(urlsplit(spage))
+            query = dict([(k, v[-1]) for k,v in parse_qs(url[3]).items()])
+            
+            ppp = query['topic'].split('.')
+            if len(ppp) == 1:
+                ppp.append(0)
+            for pag in range(1, pages):
+                query['topic'] = ppp[0]+'.'+pag*ppp[1]
+                url[3] = urlencode(query)
+                
+                yield self.getdoc(urljoin(self.index_url, urlunsplit(url)))
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
