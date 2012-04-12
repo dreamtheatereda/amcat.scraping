@@ -1,4 +1,4 @@
-#!/usr/bin/python
+ #!/usr/bin/python
 ###########################################################################
 #          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
 #                                                                         #
@@ -22,8 +22,8 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from urlparse import urljoin
 from cStringIO import StringIO
-#import os, re, struct, sys, ftplib, datetime
-import ftplib, datetime
+import ftplib, datetime, threading
+from contextlib import contextmanager
     
 import logging
 log = logging.getLogger(__name__)
@@ -37,17 +37,7 @@ from amcat.scraping.toolkit import todate
 from amcat.models.medium import get_or_create_medium
 
 mediadict = {} #replace by reference to database table
-host = "ftp.tt888.nl"
-folder = ""
-
-def readFTP(host, user, passwd, folder): 
-    """Logs in to FTP and yields all filenames from designated folder"""
-    ftp = ftplib.FTP(host)  
-    ftp.login(user, passwd)
-    ftp.cwd(folder)
-    for fn in ftp.nlst():
-        fn = fn.decode("latin-1")
-        yield fn
+HOST = "ftp.tt888.nl"
 
 def getDate(title):
     """Parses date (datetime object) from title of tt-888 .stl files. If hour > 24 (the date of nighttime broadcasts to a certain hour are attributed to former day), the true date of the broadcast is used. (hour minus 24, and day plus 1)"""
@@ -64,31 +54,45 @@ def getUrlsFromSet(setid, check_back=30):
     """Returns list with all URLS of articles in the articleset for the last [check_back] days"""
     fromdate = (datetime.date.today() - datetime.timedelta(days = check_back))
     articles = (Article.objects.filter(date__gt = fromdate)
-                .filter(articlesets = 9).only("url"))
+                .filter(articlesets = setid).only("url"))
     urls = set(a.url.split('/')[-1] for a in articles)
     return urls
-
+            
 class tt888Scraper(DBScraper):
     medium_name = 'TT888_unassigned'
-    
+
+    def __init__(self, *args, **kargs):
+        super(tt888Scraper, self).__init__(*args, **kargs)
+        self._ftp = ftplib.FTP(HOST)  
+        self._ftp.login(self.options['username'], self.options['password'])
+        self._ftp_lock = threading.Lock()
+
+    @contextmanager
+    def ftp(self):
+        self._ftp_lock.acquire()
+        try:
+            yield self._ftp
+        finally:
+            self._ftp_lock.release()
+        
     def _get_units(self):
         existing_files = getUrlsFromSet(setid=self.articleset, check_back=30)
-        for fn in readFTP(host, self.options['username'], self.options['password'], folder):
-                title = fn.split('/')[-1]                
-                if title in existing_files:
-                    print("Already in articleset: %s" % title)
-                    continue # Skip if already in database
-                if title.count('-') > 9:
-                   continue # Filter out reruns (marked by double dates)
-                yield fn
-
+        with self.ftp() as ftp:
+            files = ftp.nlst()
+        for fn in files:
+            fn = fn.decode("latin-1")
+            title = fn.split('/')[-1]                
+            if title in existing_files:
+                print("Already in articleset: %s" % title)
+                continue # Skip if already in database
+            if title.count('-') > 9:
+                continue # Filter out reruns (marked by double dates)
+            yield fn
 
     def _scrape_unit(self, fn):
         dest = StringIO()
-        ftp = ftplib.FTP(host)  
-        ftp.login(self.options['username'], self.options['password'])
-        ftp.retrbinary(b'RETR %s' % (fn.encode('latin-1')) , dest.write)
-        
+        with self.ftp() as ftp:
+            ftp.retrbinary(b'RETR %s' % (fn.encode('latin-1')) , dest.write)
         body = STLtoText(dest.getvalue())
         title = fn.split('/')[-1]
         naam = title.split('-')[-1].split('.stl')[0].strip().lower()
@@ -106,4 +110,5 @@ if __name__ == '__main__':
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
     cli.run_cli(tt888Scraper)
+
 
