@@ -1,5 +1,4 @@
 #!/usr/bin/python
-from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 #          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
 #                                                                         #
@@ -19,13 +18,17 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
+from __future__ import unicode_literals, print_function, absolute_import
+
 NAME = 'Subtitle (stl) scraper'
 
 HOST = "ftp.tt888.nl"
 FOLDER = ""
 OUTPUT = "tt888backup"
 
-MEDIADICT = {}
+MEDIADICT = {} # geen fijne oplossing, liever zoeken in media tabel op naam oid?
+from urlparse import urljoin
+import os, re, struct, sys, ftplib, datetime
     
 import logging
 log = logging.getLogger(__name__)
@@ -37,10 +40,9 @@ from amcat.tools import toolkit
 from amcat.tools.stl import STLtoText
 from amcat.scraping.toolkit import todate
 from amcat.models.medium import get_or_create_medium
-from urlparse import urljoin
-import os, re, struct, sys, ftplib, datetime
 
-def read(ftp, OUTPUT):
+def read(ftp, OUTPUT): # geen hoofdletters voor lokale variabelen
+    # liever bestanden als string doorgeven dan via schijf?
     stlfiles = []
     for fn in ftp.nlst():
         fn = fn.decode("latin-1")
@@ -49,7 +51,7 @@ def read(ftp, OUTPUT):
         ftp.retrbinary(b'RETR %s' % (fn.encode('latin-1')) , dest.write)
     return stlfiles
 
-def getStlFiles(HOST, USER, PASSWD, FOLDER):  
+def getStlFiles(HOST, USER, PASSWD, FOLDER): # geen hoofdletters voor lokale variabelen
     ftp = ftplib.FTP(HOST)  
     ftp.login(USER, PASSWD)
     ftp.cwd(FOLDER)
@@ -58,23 +60,26 @@ def getStlFiles(HOST, USER, PASSWD, FOLDER):
 
 def getDate(title):
     """LENGTHY WORK-AROUND, DUE TO 'HOUR' OCCASIONALLY EXCEEDING 24 (LATE NIGHT SHOWS)"""
+    # docstring moet aangeven wat de functie doet (dus inclusief hoe om te gaan met >24 uren
     datestring = title.split('-')[0:4]
     year, month, day, hour, minute = int(datestring[0]), int(datestring[1]), int(datestring[2]), int(datestring[3].split(',')[0]), int(datestring[3].split(',')[1])
     if hour > 23:
         hour = hour - 24
         date = datetime.datetime(year,month,day,hour,minute)
-        date = date + datetime.timedelta(1)
-    else: date = datetime.datetime(year,month,day,hour,minute)
-    return date
+        return date + datetime.timedelta(1)
+    else:
+        return datetime.datetime(year,month,day,hour,minute)
 
 def getUrlsFromSet(setid, check_back=30):
     fromdate = (datetime.date.today() - datetime.timedelta(days = check_back))
-    urls = set(a.url.split('/')[-1] for a in Article.objects.filter(date__gt = datetime.date(2012,3,20)).filter(articlesets = 9).only("url"))
+    # vanwaar deze datum check??
+    articles = (Article.objects.filter(date__gt = datetime.date(2012,3,20))
+                .filter(articlesets = 9).only("url"))
+    urls = set(a.url.split('/')[-1] for a in articles)
     return urls
 
 class tt888Scraper(DBScraper):
-    #medium_name = "TT888_unassigned"
-
+    medium_name = 'TT888_unassigned'
     def _get_units(self):
         existing_files = getUrlsFromSet(setid=self.articleset, check_back=30)
         for fn in getStlFiles(HOST, self.options['username'], self.options['password'], FOLDER):
@@ -82,7 +87,8 @@ class tt888Scraper(DBScraper):
                 if title in existing_files:
                     print("Already in articleset: %s" % title)
                     continue # Skip if already in database
-                if len(title.split('-')) > 9: continue # Filter out rewinds (marked by dubble dates)
+                if len(title.split('-')) > 9:
+                   continue # Filter out repeats (marked by dubble dates)
                 yield fn
 
 
@@ -91,13 +97,10 @@ class tt888Scraper(DBScraper):
         title = fn.split('/')[-1]
         naam = title.split('-')[-1].split('.stl')[0].strip().lower()
         date = getDate(title)    
-        if naam in MEDIADICT:
-            med = get_or_create_medium(MEDIADICT[naam])
-        else: med = get_or_create_medium('TT888_unassigned')
-        print(naam, med, date, fn)
+        med = get_or_create_medium(MEDIADICT[naam]) if naam in MEDIADICT else None
         
-        art = Article(headline=naam, text=body.decode('latin-1'), medium = med, date=date, url = fn)
-
+        art = Article(headline=naam, text=body.decode('latin-1'),
+                      medium = med, date=date, url = fn)
         yield art
 
 
