@@ -20,15 +20,10 @@
 
 from __future__ import unicode_literals, print_function, absolute_import
 
-NAME = 'Subtitle (stl) scraper'
-
-HOST = "ftp.tt888.nl"
-FOLDER = ""
-OUTPUT = "tt888backup"
-
-MEDIADICT = {} # geen fijne oplossing, liever zoeken in media tabel op naam oid?
 from urlparse import urljoin
-import os, re, struct, sys, ftplib, datetime
+from cStringIO import StringIO
+#import os, re, struct, sys, ftplib, datetime
+import ftplib, datetime
     
 import logging
 log = logging.getLogger(__name__)
@@ -41,26 +36,21 @@ from amcat.tools.stl import STLtoText
 from amcat.scraping.toolkit import todate
 from amcat.models.medium import get_or_create_medium
 
-def read(ftp, OUTPUT): # geen hoofdletters voor lokale variabelen
-    # liever bestanden als string doorgeven dan via schijf?
-    stlfiles = []
+mediadict = {} #replace by reference to database table
+host = "ftp.tt888.nl"
+folder = ""
+
+def readFTP(host, user, passwd, folder): 
+    """Logs in to FTP and yields all filenames from designated folder"""
+    ftp = ftplib.FTP(host)  
+    ftp.login(user, passwd)
+    ftp.cwd(folder)
     for fn in ftp.nlst():
         fn = fn.decode("latin-1")
-        stlfiles.append('%s/%s' % (OUTPUT, fn))
-        dest = open(os.path.join(OUTPUT, fn), 'wb')
-        ftp.retrbinary(b'RETR %s' % (fn.encode('latin-1')) , dest.write)
-    return stlfiles
-
-def getStlFiles(HOST, USER, PASSWD, FOLDER): # geen hoofdletters voor lokale variabelen
-    ftp = ftplib.FTP(HOST)  
-    ftp.login(USER, PASSWD)
-    ftp.cwd(FOLDER)
-    stlfiles = read(ftp, OUTPUT)
-    return stlfiles
+        yield fn
 
 def getDate(title):
-    """LENGTHY WORK-AROUND, DUE TO 'HOUR' OCCASIONALLY EXCEEDING 24 (LATE NIGHT SHOWS)"""
-    # docstring moet aangeven wat de functie doet (dus inclusief hoe om te gaan met >24 uren
+    """Parses date (datetime object) from title of tt-888 .stl files. If hour > 24 (the date of nighttime broadcasts to a certain hour are attributed to former day), the true date of the broadcast is used. (hour minus 24, and day plus 1)"""
     datestring = title.split('-')[0:4]
     year, month, day, hour, minute = int(datestring[0]), int(datestring[1]), int(datestring[2]), int(datestring[3].split(',')[0]), int(datestring[3].split(',')[1])
     if hour > 23:
@@ -71,34 +61,40 @@ def getDate(title):
         return datetime.datetime(year,month,day,hour,minute)
 
 def getUrlsFromSet(setid, check_back=30):
+    """Returns list with all URLS of articles in the articleset for the last [check_back] days"""
     fromdate = (datetime.date.today() - datetime.timedelta(days = check_back))
-    # vanwaar deze datum check??
-    articles = (Article.objects.filter(date__gt = datetime.date(2012,3,20))
+    articles = (Article.objects.filter(date__gt = fromdate)
                 .filter(articlesets = 9).only("url"))
     urls = set(a.url.split('/')[-1] for a in articles)
     return urls
 
 class tt888Scraper(DBScraper):
     medium_name = 'TT888_unassigned'
+    
     def _get_units(self):
         existing_files = getUrlsFromSet(setid=self.articleset, check_back=30)
-        for fn in getStlFiles(HOST, self.options['username'], self.options['password'], FOLDER):
+        for fn in readFTP(host, self.options['username'], self.options['password'], folder):
                 title = fn.split('/')[-1]                
                 if title in existing_files:
                     print("Already in articleset: %s" % title)
                     continue # Skip if already in database
-                if len(title.split('-')) > 9:
-                   continue # Filter out repeats (marked by dubble dates)
+                if title.count('-') > 9:
+                   continue # Filter out reruns (marked by double dates)
                 yield fn
 
 
     def _scrape_unit(self, fn):
-        body = STLtoText(open(fn).read())
+        dest = StringIO()
+        ftp = ftplib.FTP(host)  
+        ftp.login(self.options['username'], self.options['password'])
+        ftp.retrbinary(b'RETR %s' % (fn.encode('latin-1')) , dest.write)
+        
+        body = STLtoText(dest.getvalue())
         title = fn.split('/')[-1]
         naam = title.split('-')[-1].split('.stl')[0].strip().lower()
         date = getDate(title)    
-        med = get_or_create_medium(MEDIADICT[naam]) if naam in MEDIADICT else None
-        
+        med = get_or_create_medium(mediadict[naam]) if naam in mediadict else get_or_create_medium('TT888_unassigned')
+    
         art = Article(headline=naam, text=body.decode('latin-1'),
                       medium = med, date=date, url = fn)
         yield art
