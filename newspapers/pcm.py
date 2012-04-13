@@ -32,6 +32,8 @@ from amcat.scraping.document import Document
 from amcat.scraping import toolkit
 
 # PyAMF imports
+# if you get an import error, you might not have installed pyamf yet. Try:
+# sudo apt-get install python-pyamf
 import pyamf
 from pyamf import remoting
 from pyamf.flex import messaging
@@ -289,7 +291,7 @@ class PCMScraper(HTTPScraper, DBScraper):
     def _scrape_unit(self, ipage): # ipage --> index_page
         for art in ipage.doc['articles']:
             page = ipage.copy()
-            page.props.author = art['author']
+            page.props.author = art['author'][:100]
             page.props.headline = art['title']
             page.props.text = "\n\n".join([el['text'] for el in art['bodyElements']])
 

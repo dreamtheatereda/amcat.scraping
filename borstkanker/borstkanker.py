@@ -28,23 +28,24 @@ from urllib import urlencode
 
 from amcat.tools import toolkit
 
+INDEX_URL = "http://borstkanker.nl/forum/index.php"
+
 class BorstkankerNLScraper(HTTPScraper):
-    index_url = "http://borstkanker.nl/forum/index.php"
     medium_name = "Borstkanker.nl - forum"
     
     def _get_units(self):
         
-        index = self.getdoc(self.index_url)
+        index = self.getdoc(INDEX_URL)
         cats = set()
         for a in index.cssselect('a'):
             if 'viewforum.php' in a.get('href'):
-                cats.add(urljoin(self.index_url, a.get('href')))
+                cats.add(urljoin(INDEX_URL, a.get('href')))
 
         for index in (self.getdoc(url) for url in cats):
             cat = index.cssselect('#forumCrumb b')[0].text
             for thread in self.get_pages(index):
                 for a in thread.cssselect('table.forumIndex td > a'):
-                    url = urljoin(self.index_url, a.get('href'))
+                    url = urljoin(INDEX_URL, a.get('href'))
                     if not 'viewtopic.php' in url or not a.text:
                         continue
                     
@@ -71,11 +72,10 @@ class BorstkankerNLScraper(HTTPScraper):
                     query['start'] = pag*ppp
                     url[3] = urlencode(query)
 
-                    yield self.getdoc(urljoin(self.index_url, urlunsplit(url)))
+                    yield self.getdoc(urljoin(INDEX_URL, urlunsplit(url)))
 
     def _scrape_unit(self, thread):
         fipo = True
-        row = 0
         thread.doc = self.getdoc(thread.props.url)      
         for page in self.get_pages(thread.doc):
             for post in page.cssselect('table.forumIndex > tr')[1:]:
@@ -83,10 +83,12 @@ class BorstkankerNLScraper(HTTPScraper):
                 ca = thread if fipo else thread.copy(parent=thread)
                 ca.props.date = toolkit.readDate(post.cssselect('span.bijSchrift')[0].text)
                 ca.props.author = post.cssselect('td.auteur h2')[0].text
-                row = row % 2 + 1
+                if fipo:
+                    row = '1'
+                else:
+                    row = '2'
+                ca.props.title = post.cssselect('td.row'+row+' h2')[0].text
 
-                ca.props.headline = post.cssselect('td.row{row} h2'.format(row=row))[0].text
-                
                 texttd = post.cssselect('td')[0]
                 texttd.cssselect('h2')[0].drop_tree()
                 texttd.cssselect('.editImg')[0].drop_tree()
