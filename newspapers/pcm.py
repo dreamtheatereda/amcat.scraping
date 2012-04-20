@@ -291,7 +291,7 @@ class PCMScraper(HTTPScraper, DBScraper):
     def _scrape_unit(self, ipage): # ipage --> index_page
         for art in ipage.doc['articles']:
             page = ipage.copy()
-            page.props.author = art['author'][:100]
+            page.props.author = art['author'][:100] if art['author'] else '' 
             page.props.headline = art['title']
             page.props.text = "\n\n".join([el['text'] for el in art['bodyElements']])
 
