@@ -49,5 +49,5 @@ case $1 in
                         $articleset = '';;
 esac
 
-nohup python $pythonfile 258 $2 $username $password --$articleset $articleset > logs/$1.out 2> logs/$1.err < /dev/null &
+echo nohup python $pythonfile 258 $2 $username $password --$articleset $articleset > logs/$1.out 2> logs/$1.err < /dev/null &
 
