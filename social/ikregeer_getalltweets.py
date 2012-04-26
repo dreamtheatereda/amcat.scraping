@@ -56,7 +56,7 @@ class IkRegeerTweetsScraper(HTTPScraper):
         date = datetime.datetime.strptime(date, '%d-%m-%Y').date()
         length = len(filter(None, tweet.split(' ')))
         
-        art = Article(headline=tweet, byline=author, text='', date=date, length=length)
+        art = Article(headline=author, text=tweet, date=date, length=length)
         #DATAFILE.writerow([date, author.encode('UTF-8'), tweet.encode('UTF-8'), length])
         yield art
 
