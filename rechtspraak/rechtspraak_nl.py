@@ -93,15 +93,10 @@ class RechtspraakScraper(DatedScraper, HTTPScraper):
                 key, content = key.text_content().strip(':'), content.text_content()
                 metadata[key] = content
 
-            start = False
-            for bodypart in d.cssselect('span'):
-                if bodypart.text_content() == 'Uitspraak': start = True
-                if start == False: continue
-                print(bodypart.text_content())
-                
-            sys.exit()
+            #for bodypart in d.cssselect('span'):
             
-            
+            # TO DO. FIND A ROBUST WAY TO PARSE MAIN BODY OF TEXT. (SLIGHTLY MESSY HTML CODE) 
+            sys.exit()        
             return []
 
 

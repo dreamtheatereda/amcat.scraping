@@ -35,8 +35,6 @@ INDEXURL = "%s/actueel/1/%s"
 BASEURL = "https://zoek.officielebekendmakingen.nl/%s"
 
 DOCTYPELIST = ['kamerstuk','handelingen','kamervragen_zonder_antwoord', 'kamervragen_aanhangsel','agenda','niet_dossierstuk']
-DOCTYPELIST = ['kamervragen_zonder_antwoord']
-
             
 class OfficieleBekendmakingenScraper(DatedScraper, HTTPScraper):
     
@@ -68,7 +66,7 @@ class OfficieleBekendmakingenScraper(DatedScraper, HTTPScraper):
         print('\nMETA:')
         for meta in metadict:
             print(meta, ': ', metadict[meta])
-        # DIFFERENT _SCRAPE_UNIT() REQUIRED FOR DIFFERENT DOCTYPES. MAKE SUBCLASSES FOR DOCTYPES  
+        # DIFFERENT _SCRAPE_UNIT() REQUIRED FOR DIFFERENT DOCTYPES. USE SUBCLASSES FOR DOCTYPES  
         sys.exit()
         return []
 
