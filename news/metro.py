@@ -57,7 +57,6 @@ class MetroScraper(DatedScraper, HTTPScraper):
                     "%Y-%m-%d")
                 if doc.props.date.date() != self.options['date']:
                     continue
-                print(doc.props.date.date())
                 yield doc
 
     def _scrape_unit(self, doc):
