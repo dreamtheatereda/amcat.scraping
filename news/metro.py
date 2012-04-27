@@ -21,8 +21,9 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 INDEX_URL = "http://www.metronieuws.nl/"
 
-from amcat.tools.scraping.processors import HTTPScraper, CommentScraper, Form
-from amcat.tools.scraping.objects import HTMLDocument
+from django import forms
+from amcat.scraping.scraper import DatedScraper, HTTPScraper #CommentScraper
+from amcat.scraping.document import HTMLDocument
 
 from amcat.tools import toolkit
 from amcat.models.medium import Medium
@@ -33,22 +34,10 @@ import datetime
 from pprint import pprint
 from lxml import etree
 
-class MetroForm(Form):
-    #date = forms.DateField()
-    pass
-
-class MetroScraper(HTTPScraper, CommentScraper):
+class MetroScraper(DatedScraper, HTTPScraper):
     """ Scrape the tweets from ikregeer.nl."""
-    options_form = MetroForm
-    try:
-        medium = Medium.objects.get(name="Metro - news")
-    except:
-        medium = Medium(name="Metro - news", language_id=4) #lang=nl
-        medium.save()
-
-    def __init__(self, options):
-        super(MetroScraper, self).__init__(options)
-
+    medium_name = "Metro - website"
+    
     def get_categories(self):
         """ Yields the urls to all the pages contianing the categories.
         """
@@ -56,24 +45,35 @@ class MetroScraper(HTTPScraper, CommentScraper):
         for link in doc.cssselect("ul.primary-nav.drop li a"):
             yield urljoin(INDEX_URL, link.get("href"))
 
-    def init(self):
+    def _get_units(self):
         for url in self.get_categories():
             doc = self.getdoc(url)
             for article in doc.cssselect("h4.title a"):
-                yield HTMLDocument(url=urljoin(INDEX_URL, article.get("href")))
+                # date only visible in unit
+                doc = HTMLDocument(url=urljoin(INDEX_URL, article.get("href")))
+                doc.doc = self.getdoc(doc.props.url)
+                doc.props.date = datetime.datetime.strptime(
+                    doc.doc.xpath("/html/head/meta[@name='date']")[0].get("content"),
+                    "%Y-%m-%d")
+                if doc.props.date.date() != self.options['date']:
+                    continue
+                print(doc.props.date.date())
+                yield doc
 
-    def main(self, doc):
+    def _scrape_unit(self, doc):
+
         if not doc.doc.cssselect("h1.title"):
             doc.props.headline = doc.doc.xpath("/html/head/title")[0].text
         else:
             doc.props.headline = doc.doc.cssselect("h1.title")[0].text
-        doc.props.date = datetime.datetime.strptime(
-            doc.doc.xpath("/html/head/meta[@name='date']")[0].get("content"),
-            "%Y-%m-%d")
         doc.props.text = "".join([
             d.text_content() for d in doc.doc.cssselect("div.article-body")])
         yield doc
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
+    from amcat.tools import amcatlogging
+    amcatlogging.debug_module("amcat.scraping.scraper")
+    amcatlogging.debug_module("amcat.scraping.document")
     cli.run_cli(MetroScraper)
+

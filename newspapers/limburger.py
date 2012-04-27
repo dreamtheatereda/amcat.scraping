@@ -116,6 +116,8 @@ class LimburgerScraper(HTTPScraper, DBScraper):
 
         def _parsecoord(elem):
             top, left = elem.get('style').split(';')[1:3]
+            print( top)
+            print( left)
             top, left = int(top[4:-2]), int(top[5:-2])
 
             table = elem.cssselect('table')[0]
