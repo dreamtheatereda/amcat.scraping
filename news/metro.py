@@ -42,7 +42,7 @@ class MetroScraper(DatedScraper, HTTPScraper):
         """ Yields the urls to all the pages contianing the categories.
         """
         doc = self.getdoc(INDEX_URL)
-        for link in doc.cssselect("ul.primary-nav.drop li a"):
+        for link in doc.cssselect("ul.primary-nav.drop li a")[1:]:
             yield urljoin(INDEX_URL, link.get("href"))
 
     def _get_units(self):
