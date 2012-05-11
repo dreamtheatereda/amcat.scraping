@@ -22,13 +22,13 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 
-
 import re
 
 SESSION_URL = "http://mgl.x-cago.net/session.do"
 LOGINURL = "http://mgl.x-cago.net/login.do?pub=ddl&auto=false"
 
 INDEX_URL = "http://krantdigitaal.ddl.x-cago.net/DDL/%(year)d%(month)02d%(day)02d/public/index_editions_js.html"
+#INDEX_URL = "http://krantdigitaal.ddl.x-cago.net/DDL/%(year)d%(month)02d%(day)02d/public/index_editions_js.html"
 INDEX_PAGE_URL = "http://krantdigitaal.ddl.x-cago.net/DDL/%(year)d%(month)02d%(day)02d/public/index.html"
 
 INDEX_RE = re.compile('"(DDL-.+)"')
@@ -101,7 +101,6 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         edition = "DDL_%s" % self.editie
         lines = list(self.opener.opener.open(index).readlines())
         codes = self._get_codes(lines, edition)
-
         index = self.getdoc(INDEX_PAGE_URL % index_dic)
         referer_codes = index.cssselect('head > script')[5].text.split('\n')
 
@@ -116,8 +115,7 @@ class LimburgerScraper(HTTPScraper, DBScraper):
 
         def _parsecoord(elem):
             top, left = elem.get('style').split(';')[1:3]
-            top, left = int(top[4:-2]), int(top[5:-2])
-
+            top, left = int(top[4:-2]), int(left[5:-2])
             table = elem.cssselect('table')[0]
             width, height = map(int, (table.get('width'), table.get('height')))
 
@@ -128,7 +126,7 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         ipage.page = int(ipage.props.url.split('/')[-1].split('-')[2])
         ipage.props.category = int(ipage.props.url.split('/')[-1].split('-')[1])
 
-        for div in ipage.doc.cssselect('body > div')[1:]:
+        for div in ipage.doc.cssselect('.overlay'):
             page = HTMLDocument(date=ipage.props.date)
             page.coords = [_parsecoord(el) for el in div.cssselect('div > div')]
 
