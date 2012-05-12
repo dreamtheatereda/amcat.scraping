@@ -19,43 +19,150 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.tools.scraping.processors import CommentScraper, Form
-from amcat.tools.scraping.objects import HTMLDocument
-from amcat.tools.scraping import toolkit as stoolkit
+#this piece makes it possible to quickly create a new scraper. As there are thousands of papers and other mediums out on the web, we can never have enough scrapers.
 
-from amcat.tools import toolkit
-from amcat.models.medium import Medium
+from amcat.scraping.scraper import DBScraper, HTTPScraper
+from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping import toolkit as stoolkit #remove this line if not used
 
-from django import forms
+#possibly useful imports:
 
-import logging
-log = logging.getLogger(__name__)
+#from urllib import urlencode
+#from urlparse import urljoin
 
-INDEX_URL = ""
+INDEX_URL = "" #Add url which contains links to all index pages
+LOGIN_URL = "" #Add login url
 
-class NuForm(Form):
-    date = forms.DateField()
+class TemplateScraper(HTTPScraper, DBScraper): #change class name
+    medium_name = "Template" #change medium name
 
-class NuScraper(CommentScraper):
-    options_form = NuForm
-    medium = Medium.objects.get(name="nu.nl - website")
+    def __init__(self, *args, **kwargs):
+        
+        super(TemplateScraper, self).__init__(*args, **kwargs)
+        #some scrapers don't even have __init__ methods, 
+        #in some cases adding code may be useful though. 
 
-    def __init__(self, options):
-        super(NuScraper, self).__init__(options)
 
-    def init(self):
-        date = self.options['date']
+    def _login(self, username, password):
+        """log in on the web page
+        @param username: username to log in with
+        @param password: password 
+        """
 
-        print(data)
 
-        return []
 
-    def main(self, doc):
-        return []
 
-    def comments(self, doc):
-        return []
+
+        #one of the following code blocks should be implemented and adjusted, not either.
+
+        try: 
+            page = self.getdoc(LOGIN_URL)
+            form = stoolkit.parse_form(page)
+            form['username'] = username
+            form['password'] = password
+            self.opener.opener.open(LOGIN_URL, urlencode(form))
+
+
+
+        #if that didn't work, add form keys manually:
+        except: 
+            POST_DATA = {
+                'email' : username,
+                'password' : password,
+                #other keys/values should be added and former keys may be changed depending on website form
+            }
+            self.opener.opener.open(LOGIN_URL, URLENCODE(POST_DATA))
+
+        
+
+
+
+
+
+
+
+
+    def _get_units(self):
+        """papers are often organised in blocks (pages) of articles, this method gets the blocks, articles are to be gotten later"""
+
+
+
+        index_dict = {
+            'year' : self.options['date'].year,
+            'month' : self.options['date'].month,
+            'day' : self.options['date'].day,
+            #more keys/values may be added depending on the web page URL
+        }
+
+
+
+
+        INDEX_URL = INDEX_URL % index_dict
+        index = self.getdoc(INDEX_URL) 
+        #this is the index of units, the page that contains a list of index pages,
+        #pages which contain lists of articles.
+
+
+
+        #add html tags with the links to the ipages in the next line
+        units = index.cssselect(''):
+        for article_unit in units:
+            #add 'a' tag in next line
+            href = article_unit.cssselect('').get('href')
+            yield IndexDocument(url=href, date=self.options['date'])
+
+
+
+
+
+
+        
+    def _scrape_unit(self, ipage): # 'ipage' means index_page
+        """gets articles from an index page"""
+        ipage.prepare(self)
+
+
+
+        ipage.bytes = "?" #whats this?
+
+
+        ipage.doc = self.getdoc(ipage.props.url)
+        ipage.page = "" #add paper page number
+        ipage.props.category = "" #add ipage category if present
+
+        #add html tag which contains link to article
+        for a in ipage.doc.cssselect(" "):
+            #make sure the following line works in your case
+            url = a.get('href')
+            
+            #now we're heading into the page which contains the article!
+            page = HTMLDocument(date = ipage.props.date,url=url)
+            page.prepare(self)
+            # Get article
+            page.doc = self.getdoc(page.props.url)
+            yield self.get_article(page)
+
+            # Add article to index page
+            ipage.addchild(page)
+
+        yield ipage
+
+    def get_article(self, page):
+        #use mainly page.doc.cssselect() to fill the following lines
+        page.props.author = ""
+        page.props.headline = ""
+        page.props.text = ""
+        return page
+
+
+
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
-    cli.run_cli(NuScraper)
+    from amcat.tools import amcatlogging
+    amcatlogging.debug_module("amcat.scraping.scraper")
+    amcatlogging.debug_module("amcat.scraping.document")
+    cli.run_cli(TemplateScraper)
+
+
+#thanks for contributing!
