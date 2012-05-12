@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 #          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
 #                                                                         #
@@ -18,52 +20,55 @@
 ###########################################################################
 
 
-from __future__ import unicode_literals, print_function, absolute_import
+from amcat.scraping.scraper import DBScraper, HTTPScraper
+from amcat.scraping.document import HTMLDocument, IndexDocument
 
-from datetime import datetime
 
-from amcat.scraping.scraper import HTTPScraper, DatedScraper
-from amcat.scraping.document import Document
-from amcat.scraping import toolkit
+INDEX_URL = "http://www.geenstijl.nl/"
 
-class GeenstijlScraper(HTTPScraper, DatedScraper):
-    medium_name = "Geenstijl"
-    def __init__(self, *args, **kargs):
-        super(GeenstijlScraper, self).__init__(*args, **kargs)
-        
-        self.index_url = "http://www.geenstijl.nl/mt/archieven/maandelijks/%(year)d/%(month)02d/"
+class GeenstijlScraper(HTTPScraper, DBScraper):
+    medium_name = "geenstijl.nl"
+
+    def __init__(self, *args, **kwargs):
+        super(GeenstijlScraper, self).__init__(*args, **kwargs)
+
+
+   
 
     def _get_units(self):
-        date = self.options['date']
-        doc = self.getdoc(self.index_url % dict(year=date.year, month=date.month))
-        listitems = doc.cssselect('div.content > ul li')
-        for li in listitems:
-            print(li.cssselect('a')[0])
-            href = li.cssselect('a')[0].get('href')
-            day = li.text[:2]
-            if day == date.day:
-                yield HTMLDocument(url=ref, date=self.options['date'])
-            if day < date.day:
-                break
+        #only works for current day
+        yield IndexDocument(url=INDEX_URL,date=self.options['date'])
+    
+    def _scrape_unit(self, ipage):
+        ipage.prepare(self)
+        ipage.doc = self.getdoc(ipage.props.url)
+        ipage.page = self.getdoc(INDEX_URL)
+        units = ipage.doc.cssselect('article.artikel')
+        correct_date = str(self.options['date']).split("-")
+        correct_date = correct_date[2]+"-"+correct_date[1]+"-"+correct_date[0].lstrip("20")
+        for article_unit in units:
+            date = article_unit.cssselect("footer time")[0].text.split("|")[0].rstrip(" ")
+            if correct_date in date:
+                href = article_unit.cssselect("footer a")[0].get('href')
+                page = HTMLDocument(url=href, date=self.options['date'])
+                page.prepare(self)
+                page.doc = self.getdoc(href)
+                page = self.get_article(page)
+                yield page
+                ipage.addchild(page)
 
-    def _scrape_unit(self,doc):
-        doc.doc = self.getdoc(doc.props.url)
+        yield ipage
+        
 
-        articles = doc.cssselect('article')
-        headline = articles[0].cssselect('h1')[0].text
-        footer = unit.cssselect('footer')[0].text_content.split('|')
-        comment = False
-        for article in articles:
-            unit = doc.copy(parent=doc) if comment else doc
-            if comment:
-                unit.props.headline = headline + ' - comment'
-                unit.props.date = toolkit.readDate(''.join(footer[1:]))
-            else:
-                unit.props.headline = headline
-                unit.props.date = unit.cssselect('time').get('datetime')
-                comment = True
-        unit.props.text = unit.text_content[1:-2] 
-        unit.props.author = footer[0]
+    def get_article(self, page):
+        page.props.author = page.doc.cssselect("article.artikel footer")[0].text.split("|")[0]
+        page.props.headline = page.doc.cssselect("article.artikel h1")[0].text
+        page.props.text = page.doc.cssselect("article.artikel p")[0].text_content()
+        page.coords = ""
+        return page
+
+
+
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
