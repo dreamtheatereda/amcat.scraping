@@ -19,52 +19,54 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-INDEX_URL = "http://www.parool.nl/"
-
-from amcat.tools.scraping.processors import HTTPScraper, CommentScraper, Form
-from amcat.tools.scraping.objects import HTMLDocument
+from amcat.scraping.scraper import HTTPScraper, DatedScraper
+from amcat.scraping.document import HTMLDocument
 
 from amcat.tools import toolkit
-from amcat.model.medium import Medium
+#from amcat.model.medium import Medium
 
 from urlparse import urljoin
+import datetime
 
-from django import forms
-
-class ParoolScraper(Form):
-    date = forms.DateField()
-
-class ParoolScraper(HTTPScraper,CommentScraper):
-
-    def __init__(self, options):
-        super(ParoolScraper, self).__init__(options)
+class ParoolScraper(HTTPScraper, DatedScraper):
+    medium_name = 'Parool'
+    index_url = "http://www.parool.nl/"
         
-    def init(self):
-        url = INDEX_URL
-        for li in self.getdoc(url).cssselect('.art_box8 li'):
-            href = li.cssselect('a')[0].get('href')
-            href = urljoin(INDEX_URL, href)
-            yield HTMLDocument(url=href)
+    def _get_units(self):
+        date = self.options['date']
+        if date == datetime.date.today():
+            for li in self.getdoc(self.index_url).cssselect('.art_box8 li'):
+                href = li.cssselect('a')[0].get('href')
+                href = urljoin(self.index_url, href)
+                yield HTMLDocument(url=href)
+        else:
+            print( 'blaat' )
 
-    def main(self,doc):
-        #print(tostring(doc.props.url))
-
+    def _scrape_unit(self,doc):
+        print(doc.props.url)
+        doc.doc = self.getdoc(doc.props.url)
         doc.props.headline = doc.doc.cssselect('.k20')[0].text
-        doc.props.text = doc.doc.cssselect('.intro2')[0].text
-        doc.props.author = doc.doc.cssselect('.intro2')[0].text.rpartition('(')[2].partition(')')[0]
         datum = doc.doc.cssselect('.time_post')[0].text
         doc.props.date = toolkit.readDate(datum)
-
+        print('!!!!!!!!')
+        articlebody = doc.doc.cssselect('.art_box2')[0]
+        print(repr(articlebody.text_content()))
+        articlebody.cssselect('.k20')[0].drop_tree()
+        articlebody.cssselect('.time_post')[0].drop_tree()
+        try:
+            articlebody.cssselect('script')[0].drop_tree()
+        except:
+            pass
+        articlebody = articlebody.text_content().strip()
+        doc.props.text = articlebody
+        doc.props.author = '' # zeer inconsistent weergegeven, meestal ANP
+        print(repr(doc.props.date))
         yield doc
 
-    
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
+    from amcat.tools import amcatlogging
+    amcatlogging.debug_module("amcat.scraping.scraper")
+    amcatlogging.debug_module("amcat.scraping.document")
     cli.run_cli(ParoolScraper)
-
-
-
-
-
-
-
