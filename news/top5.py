@@ -56,7 +56,7 @@ class Top5Scraper(HTTPScraper):
         article.prepare(self)
         article.doc = self.getdoc(article.props.url)
         doc = article.doc
-        print( 'url      :' + article.props.url )
+        #print( 'url      :' + article.props.url )
         if   'nrc.nl' in article.props.url:
             article.author = doc.cssselect('.author a')[0].text.strip()
             article.text = doc.cssselect('.article #broodtekst')[0].text_content().strip()
@@ -73,8 +73,8 @@ class Top5Scraper(HTTPScraper):
         elif 'nu.nl' in article.props.url:
             article.author = doc.cssselect('.smallprint')[0].text.strip()
             article.text = doc.cssselect('.content')[0].text_content().strip()
-        print( 'text     :' + repr(article.text[:50] ))
-        print( 'author   :' + repr(article.author))
+        #print( 'text     :' + repr(article.text[:50] ))
+        #print( 'author   :' + repr(article.author))
         yield article
 
 if __name__ == '__main__':
