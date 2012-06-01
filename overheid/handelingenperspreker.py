@@ -22,42 +22,37 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 import datetime, sys, urllib, urllib2, re
     
-import logging, datetime, csv
-from itertools import count
-
+import logging
 log = logging.getLogger(__name__)
 
-from amcat.scraping.scraper import HTTPScraper
+from officiele_bekendmakingen import OfficieleBekendmakingenScraper
+
+from amcat.scraping.scraper import DatedScraper, HTTPScraper
+from amcat.scraping.document import HTMLDocument
 from amcat.models.article import Article
 from amcat.tools import toolkit
 from amcat.models.medium import get_or_create_medium
-
-PAGEURL = "http://ikregeer.nl/tweets?page=%s"
-    
-class IkRegeerTweetsScraper(HTTPScraper):
-    medium_name = "Twitter (ikregeer.nl)"
-    
-    def _get_units(self):
-        for pagenr in count(1):
-            page = PAGEURL % pagenr
-            doc = self.getdoc(page)
-            for t in doc.cssselect('div."post-container clearfix"'):
-                yield t
-            if not doc.cssselect("a#pg-next"): break 
-
- 
-    def _scrape_unit(self, t):
-        author = t.cssselect('a')[0].get('title')
-        try: tweet = t.cssselect('div.entry-summary')[0].text_content()
-        except: 
-            print('\n\n SOMETHING WENT HORRIBLY WRONG!!!')
-            tweet = ''
-        date = t.cssselect('span.published')[0].text_content()
-        date = datetime.datetime.strptime(date, '%d-%m-%Y').date()
-        length = len(filter(None, tweet.split(' ')))
         
-        art = Article(headline=author, text=tweet, date=date, length=length)
-        yield art
+class HandelingenPerSprekerScraper(OfficieleBekendmakingenScraper):
+    doctypelist = ['handelingen']
+
+    def _scrape_unit(self, url):
+        print(url.replace('.xml','.html'))
+        xml = self.getdoc(url)
+        metadict = self.getMetaDict(xml, printit=False)
+        
+        headline = metadict['DC.title']
+        external_id = metadict['DC.identifier']
+        date = datetime.datetime.strptime(metadict['OVERHEIDop.datumVergadering'], '%d-%m-%Y')
+        section = metadict['OVERHEID.category']
+
+        
+
+        for line in self.sprekerDictReader(xml):
+            line
+            
+        #sys.exit()
+        return []
 
 
 if __name__ == '__main__':
@@ -65,6 +60,6 @@ if __name__ == '__main__':
     from amcat.tools import amcatlogging
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
-    cli.run_cli(IkRegeerTweetsScraper)
+    cli.run_cli(HandelingenPerSprekerScraper)
 
 
