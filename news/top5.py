@@ -52,34 +52,37 @@ class Top5Scraper(HTTPScraper):
                     headline = article_unit.get('title')
                 else:
                     headline = article_unit.text
-                #print(article_url)
                 yield HTMLDocument(url=article_url, headline=headline, date=date.today())
 
     def _scrape_unit(self, article):
-        """gets articles from an index page"""
         article.prepare(self)
         article.doc = self.getdoc(article.props.url)
         doc = article.doc
-        #print( 'url      :' + article.props.url )
-        if   'nrc.nl' in article.props.url:
+        url = article.props.url
+        text = ''
+        if   'nrc.nl' in url:
             article.props.author = doc.cssselect('.author a')[0].text.strip()
-            article.props.text = doc.cssselect('.article #broodtekst')[0].text_content().strip()
-        elif 'volkskrant.nl' in article.props.url or 'trouw.nl' in article.props.url:
+            text = doc.cssselect('.article #broodtekst')[0]
+        elif 'volkskrant.nl' in url or 'trouw.nl' in url:
             article.props.author = doc.cssselect('.author')[0].text.strip()
             ps = doc.cssselect('.art_box2 p')
-            article.props.text = ps[0].text_content()+ps[1].text_content().strip()
-        elif 'telegraaf.nl' in article.props.url:
+            article.props.text = ps[0].text_content()+ps[1].text_content()
+        elif 'telegraaf.nl' in url:
             try:
                 article.props.author = doc.cssselect('.auteur')[0].text.strip()
             except:
                 article.props.author = ''
-            article.props.text = doc.cssselect('#artikelKolom')[0].text_content().strip()
-        elif 'nu.nl' in article.props.url:
+            text = doc.cssselect('#artikelKolom')[0]
+        elif 'nu.nl' in url:
             article.props.author = doc.cssselect('.smallprint')[0].text.strip()
-            article.props.text = doc.cssselect('.content')[0].text_content().strip()
-        #print( 'headline :' + repr(article.props.headline ))
-        #print( 'text     :' + repr(article.props.text[:50] ))
-        #print( 'author   :' + repr(article.props.author))
+            text = doc.cssselect('.content')[0]
+        if not ('volkskrant.nl' in url or 'trouw.nl' in url):
+            konijnenpoep = text.cssselect('.kolomRelated') # gerelateerde linkjes
+            konijnenpoep.extend(text.cssselect('.broodtxt')) # reclame
+            konijnenpoep.extend(text.cssselect('script'))
+            for keutel in konijnenpoep:
+                keutel.drop_tree()
+            article.props.text = text.text_content().strip()
         yield article
 
 if __name__ == '__main__':
