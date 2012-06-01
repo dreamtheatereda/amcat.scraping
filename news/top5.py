@@ -56,24 +56,25 @@ class Top5Scraper(HTTPScraper):
         article.prepare(self)
         article.doc = self.getdoc(article.props.url)
         doc = article.doc
+        print( 'url      :' + article.props.url )
         if   'nrc.nl' in article.props.url:
-            article.author = doc.cssselect('.author a')[0].text
-            article.text = doc.cssselect('.article #broodtekst')[0].text_content()
+            article.author = doc.cssselect('.author a')[0].text.strip()
+            article.text = doc.cssselect('.article #broodtekst')[0].text_content().strip()
         elif 'volkskrant.nl' in article.props.url or 'trouw.nl' in article.props.url:
-            article.author = doc.cssselect('.author')[0].text
+            article.author = doc.cssselect('.author')[0].text.strip()
             ps = doc.cssselect('.art_box2 p')
-            article.text = ps[0].text_content()+ps[1].text_content()
+            article.text = ps[0].text_content()+ps[1].text_content().strip()
         elif 'telegraaf.nl' in article.props.url:
             try:
-                article.author = doc.cssselect('.auteur')[0].text
+                article.author = doc.cssselect('.auteur')[0].text.strip()
             except:
                 article.author = ''
-            article.text = doc.cssselect('#artikelKolom')[0].text_content()
+            article.text = doc.cssselect('#artikelKolom')[0].text_content().strip()
         elif 'nu.nl' in article.props.url:
             article.author = doc.cssselect('.smallprint')[0].text.strip()
-            article.text = doc.cssselect('.content')[0].text_content()
-        print(repr(article.author))
-        print(repr(article.text))
+            article.text = doc.cssselect('.content')[0].text_content().strip()
+        print( 'text     :' + repr(article.text[:50] ))
+        print( 'author   :' + repr(article.author))
         yield article
 
 if __name__ == '__main__':
