@@ -22,37 +22,41 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.scraper import HTTPScraper
 from amcat.scraping.document import HTMLDocument 
 from datetime import date
+from amcat.models.medium import get_or_create_medium
 
 from urlparse import urljoin
 
 class Top5Scraper(HTTPScraper):
-    medium_name = "Top5Scraper"
     #       base url                        path to top5 links
-    meta = [['http://www.nrc.nl/',          '.related dd a'],
-            ['http://www.volkskrant.nl/',   '#top5 a'],
-            ['http://www.telegraaf.nl/',    '#rankingTelegraaf2338997 a'],
-            ['http://www.trouw.nl/',        '#top5 a'],
-            ['http://www.nu.nl/',           '.top5 a']
+    meta = [['http://www.nrc.nl/',          '.related dd a',                'NRC Handelsblad'],
+            ['http://www.volkskrant.nl/',   '#top5 a',                      'De Volkskrant'],
+            ['http://www.telegraaf.nl/',    '#rankingTelegraaf2338997 a',   'Telegraaf'],
+            ['http://www.trouw.nl/',        '#top5 a',                      'Trouw'],
+            ['http://www.nu.nl/',           '.top5 a',                      'Nu.nl']
            ]
 
     def _get_units(self):
         nrc_index = self.getdoc(self.meta[0][0])
         nrc_page = nrc_index.cssselect('.eerste a')[1].get('href')
         self.meta[0][0] = urljoin(self.meta[0][0], nrc_page)
-        for index_url, path in self.meta:
+        for index_url, path, medium in self.meta:
             if 'volkskrant.nl' in index_url:
                 index_url = urljoin(index_url, 'vk/nl/2/Home/homepage/right.dhtml')
             elif 'trouw.nl' in index_url:
                 index_url = urljoin(index_url, '/tr/nl/4492/Nederland/articleDetail/right.dhtml')
             index = self.getdoc(index_url)
             units = index.cssselect(path)[:5]
+            rank = 0
             for article_unit in units:
                 article_url = urljoin(index_url, article_unit.get('href'))
                 if 'nrc.nl' in index_url or 'nu.nl' in index_url:
                     headline = article_unit.get('title')
                 else:
                     headline = article_unit.text
-                yield HTMLDocument(url=article_url, headline=headline, date=date.today())
+                rank += 1
+                site_medium = get_or_create_medium(medium)
+                yield HTMLDocument(url=article_url, pagenr=rank, headline=headline, 
+                        date=date.today(), medium=site_medium)
 
     def _scrape_unit(self, article):
         article.prepare(self)
@@ -64,7 +68,10 @@ class Top5Scraper(HTTPScraper):
             article.props.author = doc.cssselect('.author a')[0].text.strip()
             text = doc.cssselect('.article #broodtekst')[0]
         elif 'volkskrant.nl' in url or 'trouw.nl' in url:
-            article.props.author = doc.cssselect('.author')[0].text.strip()
+            try:
+                article.props.author = doc.cssselect('.author')[0].text.strip()
+            except:
+                article.props.author = 'ANP'
             ps = doc.cssselect('.art_box2 p')
             article.props.text = ps[0].text_content()+ps[1].text_content()
         elif 'telegraaf.nl' in url:
@@ -77,12 +84,13 @@ class Top5Scraper(HTTPScraper):
             article.props.author = doc.cssselect('.smallprint')[0].text.strip()
             text = doc.cssselect('.content')[0]
         if not ('volkskrant.nl' in url or 'trouw.nl' in url):
-            konijnenpoep = text.cssselect('.kolomRelated') # gerelateerde linkjes
-            konijnenpoep.extend(text.cssselect('.broodtxt')) # reclame
-            konijnenpoep.extend(text.cssselect('script'))
-            for keutel in konijnenpoep:
-                keutel.drop_tree()
+            suikerhuis = text.cssselect('.kolomRelated') # gerelateerde linkjes
+            suikerhuis.extend(text.cssselect('.broodtxt')) # reclame
+            suikerhuis.extend(text.cssselect('script'))
+            for snoeptrap in suikerhuis:
+                snoeptrap.drop_tree()
             article.props.text = text.text_content().strip()
+            print(article.props.pagenr)
         yield article
 
 if __name__ == '__main__':
