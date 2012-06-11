@@ -34,8 +34,11 @@ from amcat.models.medium import get_or_create_medium
 INDEXURL = "%s/actueel/1/%s"
 BASEURL = "https://zoek.officielebekendmakingen.nl/%s"
 
+
+
 class OfficieleBekendmakingenScraper(DatedScraper, HTTPScraper):
     """Downloads XML files of documents that are PUBLISHED (!) on the assigned date"""
+    doctypelist = ['kamerstuk','handelingen','kamervragen_zonder_antwoord', 'kamervragen_aanhangsel','agenda','niet_dossierstuk']
     
     def _get_units(self):
         for page in self.get_pages():
@@ -55,10 +58,24 @@ class OfficieleBekendmakingenScraper(DatedScraper, HTTPScraper):
                 yield BASEURL % page
 
     def getNotesDict(self, xml, printit=False):
-        notesdict = dict((noot.get('nr'),noot.text_content()) for noot in (xml.cssselect('noot')))
+        notesdict = {}
+        for noot in xml.cssselect('noot'):
+            if 'nr' in [e.tag for e in noot]:
+                print(noot.get('nr'))
+                notesdict[noot.get('nr')] = noot.text_content().strip()   # alternatives for different notation styles
+            elif not noot.get('nr') == None: notesdict[noot.get('nr')] = noot.text_content().strip()
+            else: notesdict[noot.find('noot.nr').text_content()] = noot.find('noot.al').text_content().strip()
         if printit == True:
-            for note in notedict: print(note, ': ', notedict[note])
+            for note in notesdict: print(note, ': ', notesdict[note])
         return notesdict
+
+    def traceNootRefNr(self, nootref, xml):
+        if not nootref.get('nr') == None: return nootref.get('nr')
+        
+        for noot in xml.cssselect('noot'):
+            if noot.get('id') == nootref.get('refid'):
+                nootrefnr = noot.find('noot.nr').text_content()
+                return nootrefnr
 
     def getMetaDict(self, xml, printit=False):
         metadict = dict((meta.get('name'), meta.get('content')) for meta in xml.cssselect('meta'))
@@ -66,24 +83,17 @@ class OfficieleBekendmakingenScraper(DatedScraper, HTTPScraper):
             for meta in metadict: print(meta, ': ', metadict[meta])
         return metadict
 
-    def sprekerDictReader(self, xml):
-        """yields dictionaries containing meta-info and text for each consequtive speaker"""
-        for spreker in xml.cssselect('spreker'):
-            tekst, moties, otherelements = [], [], []
-            for s in spreker.getchildren():
-                if s.tag == 'wie': sprekerdict = dict((e.tag, e.text_content()) for e in s.getchildren())
-                elif s.tag == 'al':
-                    otherelements += [element for element in s.getchildren()]
-                    tekst.append(s.text_content())
-                elif s.tag == 'motie':
-                    motie = '\n'.join([mtekst.text_content() for mtekst in s.find('mtekst')])
-                    #tekst += [motie] # PLAATS MOTIE IN TEKST
-                    moties.append(motie) # SLA LIJST MET MOTIES OP IN SPREKERDICT
-                else:
-                    otherelements.append(s)
-            sprekerdict['tekst'], sprekerdict['other_el'], sprekerdict['moties'] = '\n'.join(tekst), otherelements, moties
-            if len(otherelements) > 0: log.warn("FOUND UNUSED ELEMENTS, CONTAINING: %s" % [o.text_content() for o in otherelements])
-            yield sprekerdict
+    def safeMetaGet(self, d, key):
+        try: value = d[key]
+        except:
+            value = 'missing'
+            log.warn('MISSING METADATA FOR %s' % key)
+        return value
+
+
+    def _scrape_unit(self, url):
+        xml = self.getdoc(url)
+        return []
 
 
 if __name__ == '__main__':
