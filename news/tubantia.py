@@ -23,8 +23,8 @@ from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 from amcat.scraping import toolkit
 import wegenertools
-
-
+import re
+import urllib2
 from urllib import urlencode
 #from urlparse import urljoin
 
@@ -42,17 +42,41 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         super(TubantiaScraper, self).__init__(*args, **kwargs)
 
 
+
+
+
+
+
+
     def _login(self, username, password):
         """log in on the web page
         @param username: username to log in with
         @param password: password 
         """
         page = self.getdoc(LOGIN_URL)
-        print(page.text_content())
-        form = stoolkit.parse_form(page)
+        form = toolkit.parse_form(page)
         form["username"] = str(username)
         form["password"] = str(password)
         page = self.opener.opener.open(LOGIN_URL, urlencode(form))
+        
+        cookies=page.info()["Set-Cookie"]
+        tauidloc = [m.start() for m in re.finditer('TAUID', cookies)][2]
+        tauid = cookies[tauidloc:cookies.find(";",tauidloc)]
+        tauid_expires = cookies[cookies.find("expires",tauidloc):cookies.find(";",cookies.find(";",tauidloc)+1)]
+        
+        machineidloc = cookies.find("MACHINEID")
+        machineid = cookies[machineidloc:cookies.find(";",machineidloc)]
+        machineid_expires = cookies[cookies.find("expires",machineidloc):cookies.find(";",cookies.find(";",machineidloc)+1)]
+        cookieheader = machineid+"; "+tauid
+        self.opener.opener.addheaders.append(("Cookie",cookieheader))
+        page = self.opener.opener.open(LOGIN_URL, urlencode(form))
+        
+
+
+    
+
+
+        
 
     def _get_units(self):
         """papers are often organised in blocks (pages) of articles, this method gets the blocks, articles are to be gotten later"""
@@ -81,12 +105,12 @@ class TubantiaScraper(HTTPScraper, DBScraper):
             edition = args[3]
             url = PAGE_URL.format(**locals())
             self.page_data.append(dict(pagefile=args[0].strip('("'),section=args[1],pagenum=args[2],edition=args[3],url=url))
-
         for page in self.page_data:
             yield page
 
         
     def _scrape_unit(self, ipage):
+        
         page = ipage
         ipage = HTMLDocument(ipage)
         ipage.doc = self.getdoc(page['url'])
@@ -102,9 +126,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
 
             yield artpage
 
-            ipage.addchild(page)
             
-        yield ipage
 
 
 

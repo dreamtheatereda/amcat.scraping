@@ -40,12 +40,14 @@ from amcat.tools import toolkit
 
 def clean(text):
     """Clean the javascript document before parsing"""
-    text = text.decode('latin-1')
+    text = text.encode('ascii',errors='replace')
+    text = text.decode('iso-8859-1',errors='ignore')
     text = re.sub("\x1d\\d", " ", text)
     text = text.replace("-\x1e","")
     text = text.replace("\x1e","")
     text = text.replace("\x1dC"," ")
     text = text.replace("\x1dB"," ")
+    #text = text.replace("\xeb","e")
     text = re.sub("[ \t]+", " ", text)
     return text    
 
@@ -72,7 +74,7 @@ def decode_html_entity(entity):
     return unichr(codepoint)
 
 def decode_html_entities(text):
-    return re.sub('&([^;]+);', lambda m: decode_html_entity(m.group(1)), text)
+    return re.sub('&([^&;]+);', lambda m: decode_html_entity(m.group(1)), text)
 
 def _chunks_to_text(chunks):
     text = "\n".join(chunks)
@@ -88,7 +90,9 @@ def get_article(txt, ids):
     @param ids:  a list of paragraph ids to concatenate
     @return: a string representing the text of the article
     """
-    text = []
+    body = []
+    headline = []
+    byline = []
     for parid in ids:
         offset = 1
 
@@ -100,7 +104,7 @@ def get_article(txt, ids):
             elif font == 1:
                 headline.append(chunk)
             else:
-                text.append(chunk)
+                body.append(chunk)
 
     body, headline, byline = map(_chunks_to_text, [body, headline, byline])
     return body, headline, byline
