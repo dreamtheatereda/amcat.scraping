@@ -43,12 +43,10 @@ class ParoolScraper(HTTPScraper, DatedScraper):
             print( 'blaat' )
 
     def _scrape_unit(self,doc):
-        print(doc.props.url)
         doc.doc = self.getdoc(doc.props.url)
         doc.props.headline = doc.doc.cssselect('.k20')[0].text
         datum = doc.doc.cssselect('.time_post')[0].text
         doc.props.date = toolkit.readDate(datum)
-        print('!!!!!!!!')
         articlebody = doc.doc.cssselect('.art_box2')[0]
         print(repr(articlebody.text_content()))
         articlebody.cssselect('.k20')[0].drop_tree()
@@ -60,7 +58,6 @@ class ParoolScraper(HTTPScraper, DatedScraper):
         articlebody = articlebody.text_content().strip()
         doc.props.text = articlebody
         doc.props.author = '' # zeer inconsistent weergegeven, meestal ANP
-        print(repr(doc.props.date))
         yield doc
 
 
