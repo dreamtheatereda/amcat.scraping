@@ -40,15 +40,12 @@ from amcat.tools import toolkit
 
 def clean(text):
     """Clean the javascript document before parsing"""
-    text = text.encode('ascii',errors='replace')
-    text = text.decode('iso-8859-1',errors='ignore')
-    text = re.sub("\x1d\\d", " ", text)
+    text = text.decode('iso-8859-1',errors='replace')
+    text = re.sub("\x1d+[\dA-Z]", " ", text)
     text = text.replace("-\x1e","")
     text = text.replace("\x1e","")
-    text = text.replace("\x1dC"," ")
-    text = text.replace("\x1dB"," ")
-    #text = text.replace("\xeb","e")
     text = re.sub("[ \t]+", " ", text)
+    
     return text    
 
 ARTICLE_IDS_PATTERN = r"a\[(\d+)\].e\[\d+\]=new mE\(\d+,(\d+)\);"
@@ -70,7 +67,10 @@ def decode_html_entity(entity):
     if entity.startswith("#"):
         codepoint = int(entity[1:])
     else:
-        codepoint = htmlentitydefs.name2codepoint[entity]
+        try:
+            codepoint = htmlentitydefs.name2codepoint[entity]
+        except KeyError:
+            return entity #sometimes whole sentence gets in here somehow
     return unichr(codepoint)
 
 def decode_html_entities(text):

@@ -23,16 +23,9 @@ from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 from amcat.scraping import toolkit
 import wegenertools
-<<<<<<< local
 
-import string
-=======
 import re
-import urllib2
->>>>>>> other
 from urllib import urlencode
-import urllib
-#from urlparse import urljoin
 
 INDEX_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.1/load/newspaper.php?pSetup=tubantia&userid=9635&date=0@/tubantia/{year}{month}{day}"
 
@@ -40,19 +33,12 @@ PAGE_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea
 
 LOGIN_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.1/protection/login.php?pSetup=tubantia"
 
-bla = 1
 
 class TubantiaScraper(HTTPScraper, DBScraper):
     medium_name = "Tubantia"
 
     def __init__(self, *args, **kwargs):
         super(TubantiaScraper, self).__init__(*args, **kwargs)
-
-
-
-
-
-
 
 
     def _login(self, username, password):
@@ -64,59 +50,21 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         form = toolkit.parse_form(page)
         form["username"] = str(username)
         form["password"] = str(password)
-<<<<<<< local
-        page = self.opener.opener.open(LOGIN_URL,urlencode(form))
-        cookies = page.info()['set-cookie']
-        from Cookie import SimpleCookie
-        bla = cookies
-        import sys; sys.exit()
-=======
+
         page = self.opener.opener.open(LOGIN_URL, urlencode(form))
->>>>>>> other
         
-<<<<<<< local
-=======
+
         cookies=page.info()["Set-Cookie"]
         tauidloc = [m.start() for m in re.finditer('TAUID', cookies)][2]
         tauid = cookies[tauidloc:cookies.find(";",tauidloc)]
         tauid_expires = cookies[cookies.find("expires",tauidloc):cookies.find(";",cookies.find(";",tauidloc)+1)]
->>>>>>> other
-        
-<<<<<<< local
-        cookiefind = string.find(cookies,'MACHINEID')
-        cookie = cookies[cookiefind:string.find(cookies,';',cookiefind)]
-=======
+ 
         machineidloc = cookies.find("MACHINEID")
         machineid = cookies[machineidloc:cookies.find(";",machineidloc)]
         machineid_expires = cookies[cookies.find("expires",machineidloc):cookies.find(";",cookies.find(";",machineidloc)+1)]
         cookieheader = machineid+"; "+tauid
         self.opener.opener.addheaders.append(("Cookie",cookieheader))
         page = self.opener.opener.open(LOGIN_URL, urlencode(form))
->>>>>>> other
-        
-<<<<<<< local
-        #self.opener.opener.addheaders.append(('Cookie',cookie))
-=======
-
-
-    
-
-
->>>>>>> other
-        
-<<<<<<< local
-        page = self.opener.opener.open(LOGIN_URL,urlencode(form))
-        print(page.read())
-        import sys; sys.exit()
-
-        print(self.opener.cookiejar.cookiejar._cookies)
-        global bla
-        bla = self.opener
-        print(self.opener.cookiejar.cookiejar)
-
-
-=======
->>>>>>> other
 
     def _get_units(self):
         """papers are often organised in blocks (pages) of articles, this method gets the blocks, articles are to be gotten later"""
@@ -159,18 +107,15 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         ipage.page = page['pagenum']
         ipage.props.category = page['section']
         
-        text = wegenertools.clean(ipage.doc.text_content())
+        text = wegenertools.clean(ipage.doc.read())
         for article_ids in wegenertools.get_article_ids(text):
-            text,headline,byline = wegenertools.get_article(text,article_ids)
-            artpage = HTMLDocument()
-            artpage.props.text = text
-            artpage.props.headline = headline
-
-            yield artpage
-
-            
-
-
+            body,headline,byline = wegenertools.get_article(text,article_ids)
+            if len(body) >= 300: #filtering non-articles, image links and other html crap
+                artpage = HTMLDocument()
+                artpage.props.text = body
+                artpage.props.headline = headline
+                artpage.props.byline = byline
+                yield artpage
 
 
 
