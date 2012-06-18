@@ -40,7 +40,6 @@ class TubantiaScraper(HTTPScraper, DBScraper):
     def __init__(self, *args, **kwargs):
         super(TubantiaScraper, self).__init__(*args, **kwargs)
 
-
     def _login(self, username, password):
         """log in on the web page
         @param username: username to log in with

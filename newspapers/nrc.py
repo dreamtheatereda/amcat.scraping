@@ -30,7 +30,7 @@ from urlparse import urljoin
 from urllib import urlencode
 
 class NRCScraper(HTTPScraper, DBScraper):
-    #medium_name = None #"NRC Handelsblad"
+    #medium_name = #"NRC Handelsblad"
     nrc_version = None
 
     def _login(self, username, password):
