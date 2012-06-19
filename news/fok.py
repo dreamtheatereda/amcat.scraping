@@ -71,7 +71,7 @@ class FokScraper(HTTPScraper, DBScraper):
         articles = index.cssselect('.title')
         for article_unit in articles:
             href = article_unit.cssselect('a')[0].get('href')
-            yield IndexDocument(url=href, date=self.options['date'])
+            yield HTMLDocument(url=href, date=self.options['date'])
 
     def _scrape_unit(self, page):
         """units are articles here, not pages"""
@@ -80,7 +80,10 @@ class FokScraper(HTTPScraper, DBScraper):
         page.doc = self.getdoc(page.props.url)
         txt = ""
         for paragraph in page.doc.cssselect("div.itemBody p"):
-            txt += (paragraph.text+"\n")
+            try:
+                txt += (paragraph.text+"\n")
+            except TypeError: #empty paragraph
+                pass
         page.props.text = txt
         byline = page.doc.cssselect("span.postedbyline")[0].text_content()
         page.props.author = byline[byline.find("Geschreven door")+16:byline.find(" op ")]
