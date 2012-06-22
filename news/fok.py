@@ -89,7 +89,7 @@ class FokScraper(HTTPScraper, DBScraper):
         page.props.author = byline[byline.find("Geschreven door")+16:byline.find(" op ")]
         page.props.headline = page.doc.cssselect("h1.title")[0].text.strip("\n")
 
-        print(page.props.text)
+        #print(page.props.text)
         
         yield page
 
