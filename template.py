@@ -23,24 +23,22 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
-from amcat.scraping import toolkit as stoolkit #remove this line if not used
 
 #possibly useful imports:
 
 #from urllib import urlencode
 #from urlparse import urljoin
+#from amcat.tools.toolkit import readDate
 
-INDEX_URL = "" #Add url which contains links to all index pages
+
+INDEX_URL = "" #Add url which contains links to all pages
 LOGIN_URL = "" #Add login url
 
 class TemplateScraper(HTTPScraper, DBScraper): #change class name
     medium_name = "Template" #change medium name
 
     def __init__(self, *args, **kwargs):
-        
-        super(TemplateScraper, self).__init__(*args, **kwargs)
-        #some scrapers don't even have __init__ methods, 
-        #in some cases adding code may be useful though. 
+        super(TemplateScraper, self).__init__(*args, **kwargs) #change 'TemplateScraper'
 
 
     def _login(self, username, password):
@@ -83,7 +81,7 @@ class TemplateScraper(HTTPScraper, DBScraper): #change class name
 
 
     def _get_units(self):
-        """papers are often organised in blocks (pages) of articles, this method gets the blocks, articles are to be gotten later"""
+        """get pages"""
 
 
 
@@ -117,8 +115,8 @@ class TemplateScraper(HTTPScraper, DBScraper): #change class name
 
 
         
-    def _scrape_unit(self, ipage): # 'ipage' means index_page
-        """gets articles from an index page"""
+    def _scrape_unit(self, ipage): # 'ipage' means index page
+        """gets articles from a page"""
         ipage.prepare(self)
 
 
@@ -135,7 +133,7 @@ class TemplateScraper(HTTPScraper, DBScraper): #change class name
             #make sure the following line works in your case
             url = a.get('href')
             
-            #now we're heading into the page which contains the article!
+            #now we're heading into the article location
             page = HTMLDocument(date = ipage.props.date,url=url)
             page.prepare(self)
             # Get article
@@ -162,7 +160,7 @@ if __name__ == '__main__':
     from amcat.tools import amcatlogging
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
-    cli.run_cli(TemplateScraper)
+    cli.run_cli(TemplateScraper) #change 'TemplateScraper'
 
 
 #thanks for contributing!
