@@ -23,15 +23,12 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
-from amcat.scraping import toolkit as stoolkit #remove this line if not used
 
-#possibly useful imports:
-
-#from urllib import urlencode
-#from urlparse import urljoin
+from urlparse import urljoin
 
 BASE_URL = "http://www.rtl.nl/"
 INDEX_URL = "http://www.rtl.nl/actueel/rtlnieuws/"
+
 
 class RTLScraper(HTTPScraper, DBScraper):
     medium_name = "RTL Nieuws"
@@ -39,7 +36,12 @@ class RTLScraper(HTTPScraper, DBScraper):
     def __init__(self, *args, **kwargs):
         
         super(RTLScraper, self).__init__(*args, **kwargs)
-
+        self.month = str(self.options['date'].month)
+        self.day = str(self.options['date'].day)
+        if len(self.month)==1:
+            self.month = "0"+self.month
+        if len(self.day)==1:
+            self.day = "0"+self.day
 
 
 
@@ -74,7 +76,7 @@ class RTLScraper(HTTPScraper, DBScraper):
 
         ipage.doc = self.getdoc(ipage.props.url)
         ipage.page = ""
-        ipage.props.category = ipage.doc.cssselect("div.category_lead_container h2").text
+        ipage.props.category = ipage.doc.cssselect("div.category_lead_container h2")[0].text
         articlelinks = []
         for a in ipage.doc.cssselect("div.category_lead_container h3 a"):
             articlelinks.append(a.get('href'))
@@ -85,11 +87,22 @@ class RTLScraper(HTTPScraper, DBScraper):
             
             url = urljoin(BASE_URL,a)
             page = HTMLDocument(date = ipage.props.date,url=url)
-            page.prepare(self)
-            page.doc = self.getdoc(page.props.url)
-            yield self.get_article(page)
 
-            ipage.addchild(page)
+            #check for correct date
+            match_1 = "/{y}/{m}_".format(y=self.options['date'].year,m=self.month)
+            match_2 = "/{d}/".format(d=self.day)
+            if ((match_1 in page.props.url) and (match_2 in page.props.url)):
+
+
+
+                page.prepare(self)
+                page.doc = self.getdoc(page.props.url)
+                page.coords=""
+
+                yield self.get_article(page)
+                ipage.addchild(page)
+            
+
 
         yield ipage
 
