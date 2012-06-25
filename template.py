@@ -19,139 +19,108 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-#this piece makes it possible to quickly create a new scraper. As there are thousands of papers and other mediums out on the web, we can never have enough scrapers.
+
+
+#this document serves as a template to quickly create scrapers
+#make sure to check all comment lines to adjust where needed,
+#then remove those lines, along with this description
+#when you're done, test the scraper for there will inevitably be
+#a few errors to fix.
+
+
 
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
-from amcat.scraping import toolkit as stoolkit #remove this line if not used
 
-#possibly useful imports:
+from amcat.tools.toolkit import toolkit
+from urlparse import urljoin
 
-#from urllib import urlencode
-#from urlparse import urljoin
+#add index url
+INDEX_URL = "http://www.example.com/archive/"
 
-INDEX_URL = "" #Add url which contains links to all index pages
-LOGIN_URL = "" #Add login url
+#add other urls if needed
+BASE_URL = "http://www.example.com/"
+#etc...
 
-class TemplateScraper(HTTPScraper, DBScraper): #change class name
-    medium_name = "Template" #change medium name
+
+#change class name
+class TemplateScraper(HTTPScraper, DBScraper): 
+    
+    #aswell as medium name
+    medium_name = "Template Scraper"
+
 
     def __init__(self, *args, **kwargs):
         
+        #change 1st argument of super()
         super(TemplateScraper, self).__init__(*args, **kwargs)
-        #some scrapers don't even have __init__ methods, 
-        #in some cases adding code may be useful though. 
-
-
-    def _login(self, username, password):
-        """log in on the web page
-        @param username: username to log in with
-        @param password: password 
-        """
-
-
-
-
-
-        #one of the following code blocks should be implemented and adjusted, not either.
-
-        try: 
-            page = self.getdoc(LOGIN_URL)
-            form = stoolkit.parse_form(page)
-            form['username'] = username
-            form['password'] = password
-            self.opener.opener.open(LOGIN_URL, urlencode(form))
-
-
-
-        #if that didn't work, add form keys manually:
-        except: 
-            POST_DATA = {
-                'email' : username,
-                'password' : password,
-                #other keys/values should be added and former keys may be changed depending on website form
-            }
-            self.opener.opener.open(LOGIN_URL, URLENCODE(POST_DATA))
-
-        
-
-
-
-
-
-
 
 
     def _get_units(self):
-        """papers are often organised in blocks (pages) of articles, this method gets the blocks, articles are to be gotten later"""
-
-
-
-        index_dict = {
-            'year' : self.options['date'].year,
-            'month' : self.options['date'].month,
-            'day' : self.options['date'].day,
-            #more keys/values may be added depending on the web page URL
-        }
-
-
-
-
-        INDEX_URL = INDEX_URL % index_dict
-        index = self.getdoc(INDEX_URL) 
-        #this is the index of units, the page that contains a list of index pages,
-        #pages which contain lists of articles.
-
-
-
-        #add html tags with the links to the ipages in the next line
-        units = index.cssselect(''):
-        for article_unit in units:
-            #add 'a' tag in next line
-            href = article_unit.cssselect('').get('href')
-            yield IndexDocument(url=href, date=self.options['date'])
-
-
-
-
-
-
+        """get pages, ideally distinct by category"""
         
-    def _scrape_unit(self, ipage): # 'ipage' means index_page
+        index = self.getdoc(INDEX_URL)
+        
+        #change the next line to get a list of <a> tags linking to pages
+        for some_link in index.cssselect("some css syntax pattern"):
+            
+            #change some_link to your own variable name for clarity
+            href = some_link.get('href')
+            
+            #in fact, just check if all lines work in your case.
+            url = urljoin(BASE_URL,href)
+            
+            #if you know some other props beforehand, add them as argument 
+            yield IndexDocument(url=url,date=self.options['date'])
+        
+    def _scrape_unit(self, ipage):
         """gets articles from an index page"""
         ipage.prepare(self)
-
-
-
-        ipage.bytes = "?" #whats this?
-
+        
+        #if the page contains a relevant picture, add it
+        imgurl = 
+        ipage.bytes = self.opener.opener.open(imgurl).read()
 
         ipage.doc = self.getdoc(ipage.props.url)
-        ipage.page = "" #add paper page number
-        ipage.props.category = "" #add ipage category if present
+        
+        #add page number if present
+        ipage.page = 
 
-        #add html tag which contains link to article
-        for a in ipage.doc.cssselect(" "):
-            #make sure the following line works in your case
-            url = a.get('href')
-            
-            #now we're heading into the page which contains the article!
+        #add category if present
+        ipage.props.category = ""
+
+        #change the next line to get a list of html tags linking to sole articles
+        for link_tag in ipage.doc.cssselect("some css syntax pattern"):
+
+            #check if next line is correct in your case
+            href = link_tag.get('href')
+
+            #replace BASE_URL with where the articles are contained, if needed
+            url = urljoin(BASE_URL,href)
+
+            #now we're heading into the page which contains the article
             page = HTMLDocument(date = ipage.props.date,url=url)
             page.prepare(self)
-            # Get article
             page.doc = self.getdoc(page.props.url)
+            
+            #use get_article() to add page properties
             yield self.get_article(page)
 
-            # Add article to index page
+            #add article to index page
             ipage.addchild(page)
 
         yield ipage
 
     def get_article(self, page):
-        #use mainly page.doc.cssselect() to fill the following lines
-        page.props.author = ""
+        #use mainly page.doc.cssselect() and regexp or string methods to fill the following lines
+
+        #don't forget cssselect returns a list
+        page.props.author = page.doc.cssselect("some css syntax pattern")[0].text
+        #you can use text_content()
         page.props.headline = ""
+        #you can also use drop_tree() to rid unwanted HTML
         page.props.text = ""
+        #we aren't done yet, scroll further down
         return page
 
 
@@ -162,7 +131,10 @@ if __name__ == '__main__':
     from amcat.tools import amcatlogging
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
+    #change argument
     cli.run_cli(TemplateScraper)
 
 
-#thanks for contributing!
+#thanks for contributing! If you're lucky, the whole thing works already, but there are likely a few errors you'll need to fix. this template is only meant to speed up the process.
+#don't forget to remove print statements (those can cause encoding errors) 
+#don't forget to remove these comments.

@@ -19,16 +19,10 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-#this piece makes it possible to quickly create a new scraper. As there are thousands of papers and other mediums out on the web, we can never have enough scrapers.
 
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
-from amcat.scraping import toolkit as stoolkit #remove this line if not used
 
-#possibly useful imports:
-
-#from urllib import urlencode
-#from urlparse import urljoin
 
 
 
@@ -89,7 +83,6 @@ class FokScraper(HTTPScraper, DBScraper):
         page.props.author = byline[byline.find("Geschreven door")+16:byline.find(" op ")]
         page.props.headline = page.doc.cssselect("h1.title")[0].text.strip("\n")
 
-        #print(page.props.text)
         
         yield page
 
@@ -102,5 +95,3 @@ if __name__ == '__main__':
     amcatlogging.debug_module("amcat.scraping.document")
     cli.run_cli(FokScraper)
 
-
-#thanks for contributing!

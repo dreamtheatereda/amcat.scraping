@@ -19,8 +19,6 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-#this piece makes it possible to quickly create a new scraper. As there are thousands of papers and other mediums out on the web, we can never have enough scrapers.
-
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 
