@@ -77,7 +77,7 @@ class TemplateScraper(HTTPScraper, DBScraper):
         """gets articles from an index page"""
         ipage.prepare(self)
         
-        #if the page contains a relevant picture, add it
+        #if the page contains (or is) a relevant picture, add it
         imgurl = 
         ipage.bytes = self.opener.opener.open(imgurl).read()
 
