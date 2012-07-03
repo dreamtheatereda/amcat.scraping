@@ -22,7 +22,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 from amcat.scraping import toolkit
-import wegenertools
+from scraping.newspapers import wegenertools
 
 import re
 from urllib import urlencode
@@ -114,16 +114,24 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         for article_ids in wegenertools.get_article_ids(text):
             body,headline,byline = wegenertools.get_article(text,article_ids)
             if len(body) >= 300: #filtering non-articles, image links and other html crap
-                artpage = HTMLDocument()
-                artpage.props.text = body
                 for part in body.split("\n\n"):
                     if part.isupper():
                         pass
                     else:
-                        artpage.props.headline = part
-                        break
-                artpage.props.byline = byline
-                yield artpage
+                        if "\n" in part:
+                            stop=True
+                            break
+                        else:
+                            artpage.props.headline = part
+                            break
+                if stop==True:
+                    break #when title has a linebreak it probably not an article
+                else:
+                    artpage = HTMLDocument()
+                    artpage.props.text = body
+                
+                    artpage.props.byline = byline
+                    yield artpage
 
 
 
