@@ -22,7 +22,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 from amcat.scraping import toolkit
-import wegenertools
+from scraping.newspapers import wegenertools
 
 import re
 from urllib import urlencode
