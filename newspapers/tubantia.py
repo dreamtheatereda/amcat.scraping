@@ -123,8 +123,6 @@ class TubantiaScraper(HTTPScraper, DBScraper):
                         artpage.props.headline = part
                         break
                 artpage.props.byline = byline
-                print(repr(artpage.props.headline))
-                print(repr(artpage.props.text))
                 yield artpage
 
 
