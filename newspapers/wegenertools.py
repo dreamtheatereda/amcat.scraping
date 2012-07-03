@@ -40,6 +40,7 @@ from amcat.tools import toolkit
 
 def clean(text):
     """Clean the javascript document before parsing"""
+
     text = text.decode('iso-8859-1',errors='replace')
     text = re.sub("\x1d+[\dA-Z]", " ", text)
     text = text.replace("-\x1e","")
@@ -67,11 +68,13 @@ def decode_html_entity(entity):
     if entity.startswith("#"):
         codepoint = int(entity[1:])
     else:
+
         try:
             codepoint = htmlentitydefs.name2codepoint[entity]
         except KeyError:
             return entity #sometimes whole sentence gets in here somehow
     return unichr(codepoint)
+
 
 def decode_html_entities(text):
     return re.sub('&([^&;]+);', lambda m: decode_html_entity(m.group(1)), text)
