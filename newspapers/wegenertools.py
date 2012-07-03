@@ -101,13 +101,9 @@ def get_article(txt, ids):
 
         pattern = r'p\[{parid}\].S\[\d+\]=new mS\((\d+),"([^"]*)"\);$'.format(**locals())
         m = re.findall(pattern, txt, re.MULTILINE)
+        first = True
         for font, chunk in m:
-            if font == 0:
-                byline.append(chunk)
-            elif font == 1:
-                headline.append(chunk)
-            else:
-                body.append(chunk)
+            body.append(chunk)
 
     body, headline, byline = map(_chunks_to_text, [body, headline, byline])
     return body, headline, byline

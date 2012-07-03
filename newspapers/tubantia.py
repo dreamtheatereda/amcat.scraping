@@ -27,11 +27,11 @@ import wegenertools
 import re
 from urllib import urlencode
 
-INDEX_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.1/load/newspaper.php?pSetup=tubantia&userid=9635&date=0@/tubantia/{year}{month}{day}"
+INDEX_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/load/newspaper.php?pSetup=tubantia&userid=9635&date=0@/tubantia/{year}{month}{day}"
 
-PAGE_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.1/php-script/fullpage.php?pSetup=tubantia&file=0@/tubantia/{year}{month}{day}/{pagefile}/&section={section}&edition={edition}&pageNum={pagenum}"
+PAGE_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/php-script/fullpage.php?pSetup=tubantia&file=0@/tubantia/{year}{month}{day}/{pagefile}/&section={section}&edition={edition}&pageNum={pagenum}"
 
-LOGIN_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.1/protection/login.php?pSetup=tubantia"
+LOGIN_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/protection/login.php?pSetup=tubantia"
 
 
 class TubantiaScraper(HTTPScraper, DBScraper):
@@ -54,7 +54,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         
 
         cookies=page.info()["Set-Cookie"]
-        tauidloc = [m.start() for m in re.finditer('TAUID', cookies)][2]
+        tauidloc = cookies.rfind("TAUID")
         tauid = cookies[tauidloc:cookies.find(";",tauidloc)]
         tauid_expires = cookies[cookies.find("expires",tauidloc):cookies.find(";",cookies.find(";",tauidloc)+1)]
  
@@ -68,13 +68,18 @@ class TubantiaScraper(HTTPScraper, DBScraper):
     def _get_units(self):
         """papers are often organised in blocks (pages) of articles, this method gets the blocks, articles are to be gotten later"""
 
-
         
         year=self.options['date'].year
-        month='0'+str(self.options['date'].month)
-        day=self.options['date'].day
+        month = self.options['date'].month
+        day = self.options['date'].day
+        if len(str(month))==1:
+            month='0'+str(month)
+        if len(str(day))==1:
+            day='0'+str(day)
 
+            
         INDEXURL = INDEX_URL.format(year=year,month=month,day=day)
+        print(INDEXURL)
         index_text = str(self.getdoc(INDEXURL).text_content())
         cur = index_text.find("p[i++]")
         self.page_data = []
@@ -96,7 +101,6 @@ class TubantiaScraper(HTTPScraper, DBScraper):
 
         
     def _scrape_unit(self, ipage):
-        
         page = ipage
         ipage = HTMLDocument(ipage)
         
@@ -112,8 +116,15 @@ class TubantiaScraper(HTTPScraper, DBScraper):
             if len(body) >= 300: #filtering non-articles, image links and other html crap
                 artpage = HTMLDocument()
                 artpage.props.text = body
-                artpage.props.headline = headline
+                for part in body.split("\n\n"):
+                    if part.isupper():
+                        pass
+                    else:
+                        artpage.props.headline = part
+                        break
                 artpage.props.byline = byline
+                print(repr(artpage.props.headline))
+                print(repr(artpage.props.text))
                 yield artpage
 
 
