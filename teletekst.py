@@ -67,18 +67,12 @@ class TeletekstScraper(HTTPScraper, DBScraper):
 
     def get_article(self, page):
         page.props.author = ""
-        page.props.headline = ""
         for table in page.doc.cssselect("table"):
             table.drop_tree()
-        headlinedoc = page.doc
-        textdoc = page.doc
-        for p in headlinedoc.cssselect("p"):
-            p.drop_tree()
-        
-        headline_text = headlinedoc.text_content().split("\n")[0].split(":")[1:]
-        headline_text = ":".join(headline_text) 
-        page.props.text = textdoc.text_content()
+        page.props.headline = page.doc.cssselect("title")[0].text.partition(":")[2]
+        page.props.text = page.doc.cssselect("body")[0].text_content().strip("\t\n")
         page.coords = ""
+        
         return page
 
 
