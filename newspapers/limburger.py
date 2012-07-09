@@ -19,141 +19,106 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
+#this piece makes it possible to quickly create a new scraper. As there are thousands of papers and other mediums out on the web, we can never have enough scrapers.
+
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
-
-import re
-
-SESSION_URL = "http://mgl.x-cago.net/session.do"
-LOGINURL = "http://mgl.x-cago.net/login.do?pub=ddl&auto=false"
-
-INDEX_URL = "http://krantdigitaal.ddl.x-cago.net/DDL/%(year)d%(month)02d%(day)02d/public/index_editions_js.html"
-#INDEX_URL = "http://krantdigitaal.ddl.x-cago.net/DDL/%(year)d%(month)02d%(day)02d/public/index_editions_js.html"
-INDEX_PAGE_URL = "http://krantdigitaal.ddl.x-cago.net/DDL/%(year)d%(month)02d%(day)02d/public/index.html"
-
-INDEX_RE = re.compile('"(DDL-.+)"')
+from amcat.scraping import toolkit as stoolkit
+#possibly useful imports:
 
 from urllib import urlencode
-from urlparse import urljoin
+from lxml import etree
+#from urlparse import urljoin
+#from amcat.tools.toolkit import readDate
 
-DEBUG = True
+
+INDEX_URL = "http://digitaal.ddl.x-cago.net/DDL/{:%Y%m%d}/public/index_tablet.html"
+PAGE_URL = "http://digitaal.ddl.x-cago.net/DDL/{:%Y%m%d}/public/{pageurl}_tablet.html"
+ARTICLE_URL = "http://digitaal.ddl.x-cago.net/DDL/{:%Y%m%d}/public/pages/{pageid}/articles/{articleid}_body_tablet.html"
+LOGIN_URL = "http://mgl.x-cago.net/login.do?pub=ddl&auto=false"
 
 class LimburgerScraper(HTTPScraper, DBScraper):
     medium_name = "De Limburger"
 
     def __init__(self, *args, **kwargs):
-        """
-        @type editie: str
-        @param editie: 'editie' to scrape:
-         * HL: Heuvelland
-         * HE: Heerlen
-         * MA: Maastricht
-         * SI: Sittard-Geleen
-         * NL: Venray / Venlo
-         * ML: Weert / Roermond
-        """
-        self.editie = 'MA'
-
         super(LimburgerScraper, self).__init__(*args, **kwargs)
 
+
     def _login(self, username, password):
-        POST_DATA = {
-            'email' : username,
-            'password' : password,
-            'pub' : 'ddl',
-            'r' : 'krantdigitaal.ddl.x-cago.net'
-        }
+        """log in on the web page
+        @param username: username to log in with
+        @param password: password 
+        """
 
-        login1 = self.opener.opener.open(LOGINURL, urlencode(POST_DATA))
+        page = self.getdoc(LOGIN_URL)
+        form = stoolkit.parse_form(page)
+        form['email'] = username
+        form['password'] = password
+        page = self.opener.opener.open(LOGIN_URL, urlencode(form))
 
-        if "Sessie overschrijven" in login1.read():
-            data = urlencode(dict(overwrite='on', pub='ddl'))
-            return self.opener.opener.open(SESSION_URL, data)
-
-    def _get_codes(self, lines, edition):
-        # See krantdigitaal.ddl.x-cago.net/DDL/20110712/public/index_editions_js.html
-        while True:
-            line = lines.pop(0)
-            if edition in line:
-                lines.pop(0)
-                break
-
+    def _get_pages_links(self,page):
+        JS_text = page.text_content()
+        lines = JS_text.split(";")
+        pages = []
         for line in lines:
-            mo = INDEX_RE.search(line)
-            if mo:
-                yield mo.groups()[0]
-            else:
-                break
+            if "pageTable.add( \"DDL" in line:
+                args = line[line.find("Array"):].split(",")
+                pages.append({'date' : args[1],'link' : args[2].strip().strip('"').lstrip("/"),'pagenum' : args[3],'category' : args[6]})
+        return pages
 
     def _get_units(self):
-        def _search(lines, code):
-            for line in lines:
-                if code in line:
-                    return line
+        """get pages"""
 
-        index_dic = {
-            'year' : self.options['date'].year,
-            'month' : self.options['date'].month,
-            'day' : self.options['date'].day,
-        }
+        index_url = INDEX_URL.format(self.options['date'])
+        index = self.getdoc(index_url)
+        
+        for page in self._get_pages_links(index):
+            
+            href = PAGE_URL.format(self.options['date'],pageurl = page['link'])
+            yield IndexDocument(url=href, date=self.options['date'],category = page['category'],page=page['pagenum'])
 
-        index = INDEX_URL % index_dic
-        edition = "DDL_%s" % self.editie
-        lines = list(self.opener.opener.open(index).readlines())
-        codes = self._get_codes(lines, edition)
-        index = self.getdoc(INDEX_PAGE_URL % index_dic)
-        referer_codes = index.cssselect('head > script')[5].text.split('\n')
 
-        for code in codes:
-            ref = _search(referer_codes, code).split(',')[3][3:-1]
-            ref = urljoin(INDEX_PAGE_URL % index_dic, ref) + '.html'
 
-            yield IndexDocument(url=ref, date=self.options['date'])
 
-    def _scrape_unit(self, ipage): # ipage --> index_page
+
+
+        
+    def _scrape_unit(self, ipage):
+        """gets articles from a page"""
         ipage.prepare(self)
-
-        def _parsecoord(elem):
-            top, left = elem.get('style').split(';')[1:3]
-            top, left = int(top[4:-2]), int(left[5:-2])
-            table = elem.cssselect('table')[0]
-            width, height = map(int, (table.get('width'), table.get('height')))
-
-            return (left, top, width, height)
-
-        imgurl = urljoin(ipage.props.url, ipage.doc.cssselect('#pgImg')[0].get('src'))
-        ipage.bytes = self.opener.opener.open(imgurl).read()
-        ipage.page = int(ipage.props.url.split('/')[-1].split('-')[2])
-        ipage.props.category = int(ipage.props.url.split('/')[-1].split('-')[1])
-
-        for div in ipage.doc.cssselect('.overlay'):
-            page = HTMLDocument(date=ipage.props.date)
-            page.coords = [_parsecoord(el) for el in div.cssselect('div > div')]
-
-            # Get url
-            relref = div.cssselect('table')[0].get('onclick')[13:-9].strip("'")
-            page.props.url = urljoin(ipage.props.url, relref)[:-5] + '_body.html'
-
-            # Get article
-            page.doc = self.getdoc(page.props.url, encoding='latin-1') # Bad x-cago.net! >:(
+        pageid = ipage.props.url.split("/")[-2]
+        ipage.bytes = ""
+        ipage.doc = self.getdoc(ipage.props.url)
+        ipage.props.category = "" #add ipage category if present
+        for article in ipage.doc.cssselect("body div.overlay"):
+            text = article.text_content()
+            onclick = text[text.find("onClick"):]
+            article_id = onclick.split(",")[0].split("'")[1]
+            url = ARTICLE_URL.format(self.options['date'],pageid = pageid,articleid = article_id)
+            
+            page = HTMLDocument(date = ipage.props.date,url=url)
+            print(url)
+            page.prepare(self)
+            page.doc = self.getdoc(page.props.url)
             yield self.get_article(page)
 
-            # Add article to index page
             ipage.addchild(page)
 
         yield ipage
 
     def get_article(self, page):
-        try:
-            page.props.author = page.doc.cssselect('td.artauthor')[0].text.strip()[5:]
-            if len(page.props.author) >= 100: del page.props.author
-        except IndexError:
+        print(page.props.url)
+        try: #not always an author in text
+            page.props.author = page.doc.cssselect("font.artauthor")[0].text.lstrip("dor")
+        except IndexError: #cssselect index error
             pass
-
-        page.props.headline = page.doc.cssselect('td.artheader')[0].text
-        page.props.text = page.doc.cssselect('p')
-
+        page.props.headline = page.doc.cssselect("font.artheader")[0].text
+        page.props.text = page.doc.cssselect("font.artbody")[0].text_content()
+        page.coords=""
         return page
+
+
+
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
@@ -161,3 +126,5 @@ if __name__ == '__main__':
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
     cli.run_cli(LimburgerScraper)
+
+
