@@ -114,6 +114,8 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         for article_ids in wegenertools.get_article_ids(text):
             body,headline,byline = wegenertools.get_article(text,article_ids)
             if len(body) >= 300: #filtering non-articles, image links and other html crap
+                artpage = HTMLDocument()
+                stop = False
                 for part in body.split("\n\n"):
                     if part.isupper():
                         pass
@@ -122,10 +124,10 @@ class TubantiaScraper(HTTPScraper, DBScraper):
                             stop=True
                             break
                         else:
-                            artpage = HTMLDocument()
+                            
                             artpage.props.headline = part
                             break
-                if stop==True:
+                if stop:
                     break #when title has a linebreak it's probably not an article
                 else:
                     
