@@ -19,17 +19,11 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-#this piece makes it possible to quickly create a new scraper. As there are thousands of papers and other mediums out on the web, we can never have enough scrapers.
-
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 from amcat.scraping import toolkit as stoolkit
-#possibly useful imports:
 
 from urllib import urlencode
-from lxml import etree
-#from urlparse import urljoin
-#from amcat.tools.toolkit import readDate
 
 
 INDEX_URL = "http://digitaal.ddl.x-cago.net/DDL/{:%Y%m%d}/public/index_tablet.html"

@@ -23,6 +23,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 from urlparse import urljoin
+from datetime import date
 
 INDEX_URL = "http://teletekst.mobile.nob.nl/xda-teletekst/index.jsp?page=TTARTICLE_PAGE_{page}_{tab}.htm"
 BASE_URL = "http://teletekst.mobile.nob.nl/xda-teletekst/index.jsp"
@@ -51,6 +52,7 @@ class TeletekstScraper(HTTPScraper, DBScraper):
         ipage.prepare(self)
         ipage.bytes = ""
         ipage.doc = self.getdoc(ipage.props.url)
+        ipage.props.date = date.today()
         ipage.page = ipage.props.url.split("_")[2]
         ipage.doc.cssselect("p")[0].drop_tree()
         for a in ipage.doc.cssselect("a"):
