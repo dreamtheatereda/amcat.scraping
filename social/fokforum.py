@@ -22,15 +22,14 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 
-#possibly useful imports:
 
-#from urllib import urlencode
 from datetime import date
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
 
 
 CATEGORIES_TO_SCRAPE = [
+    #('forum name','forum id'),
     ('nieuws & achtergronden',4)
     ]
 
@@ -96,18 +95,20 @@ class FokForumScraper(HTTPScraper, DBScraper):
                 page.prepare(self)
             
                 page.doc = self.getdoc(page.props.url)
-                _date = page.doc.cssselect("span.post_time")[0].text
-                if readDate(_date) == date.today():
+                _date = page.doc.cssselect("span.post_time a")[0].text
+                if str(date.today()) in str(readDate(_date)):
                     yield self.get_article(page)
                     ipage.addchild(page)
+                else:
+                    print("topic discarded: not from today")
 
         yield ipage
 
     def get_article(self, page):
-        
         page.props.author = page.doc.cssselect("span.post_sub a.username")[0].text
-        page.props.headline = page.doc.cssselect("h1.stx")[0].text
+        page.props.headline = page.doc.cssselect("div.fieldholder h1")[0].text
         page.props.text = page.doc.cssselect("div.postmain_right")[0].text_content()
+        page.coords=''
         return page
 
 
