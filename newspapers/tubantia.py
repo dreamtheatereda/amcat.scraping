@@ -122,12 +122,13 @@ class TubantiaScraper(HTTPScraper, DBScraper):
                             stop=True
                             break
                         else:
+                            artpage = HTMLDocument()
                             artpage.props.headline = part
                             break
                 if stop==True:
-                    break #when title has a linebreak it probably not an article
+                    break #when title has a linebreak it's probably not an article
                 else:
-                    artpage = HTMLDocument()
+                    
                     artpage.props.text = body
                 
                     artpage.props.byline = byline

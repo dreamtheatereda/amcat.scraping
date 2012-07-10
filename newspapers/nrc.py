@@ -83,7 +83,6 @@ class NRCScraper(HTTPScraper, DBScraper):
 
     def get_article(self, page):
         #page.prepare(self)
-        print( page )
         page.props.text = page.doc.cssselect('.column-left')[0]
         page.props.headline = page.doc.cssselect('h2')[0].text
 
