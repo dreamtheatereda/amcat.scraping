@@ -92,11 +92,15 @@ class TelegraafScraper(HTTPScraper, DBScraper):
             page.props.url = urljoin(ipage.props.url,
                     "article/%s.html" % clsname[7:])
 
+            #import pdb
+            #pdb.set_trace()
             page.doc = self.getdoc(page.props.url)
             page.props.text = page.doc.cssselect('#article')
-            page.props.headline = page.doc.cssselect('#article h1')[0].text_content()
+            if page.doc.cssselect('#article h1'):
+                page.props.headline = page.doc.cssselect('#article h1')[0].text_content()
+            #else implement images
 
-            yield page
+                yield page
 
 
         yield ipage

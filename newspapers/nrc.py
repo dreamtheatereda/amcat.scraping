@@ -56,7 +56,6 @@ class NRCScraper(HTTPScraper, DBScraper):
             'month_minus' : date.month - 1,
             'version' : self.nrc_version
         }
-
         sections = self.getdoc(index).cssselect('#Sections a.thumbnail-link')
         for s in sections:
             url = urljoin(index, s.get('href'))
