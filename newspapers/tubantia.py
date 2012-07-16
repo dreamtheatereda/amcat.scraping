@@ -27,15 +27,17 @@ from scraping.newspapers import wegenertools
 import re
 from urllib import urlencode
 
-INDEX_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/load/newspaper.php?pSetup=tubantia&userid=9635&date=0@/tubantia/{year}{month}{day}"
+INDEX_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/load/newspaper.php?pSetup={paper}&userid=9635&date=0@/{paper}/{year}{month}{day}"
 
-PAGE_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/php-script/fullpage.php?pSetup=tubantia&file=0@/tubantia/{year}{month}{day}/{pagefile}/&section={section}&edition={edition}&pageNum={pagenum}"
+PAGE_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/php-script/fullpage.php?pSetup={paper}&file=0@/{paper}/{year}{month}{day}/{pagefile}/&section={section}&edition={edition}&pageNum={pagenum}"
 
-LOGIN_URL = "http://tubantia.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/protection/login.php?pSetup=tubantia"
+LOGIN_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/protection/login.php?pSetup={paper}"
 
 
 class TubantiaScraper(HTTPScraper, DBScraper):
     medium_name = "Tubantia"
+    paper = "tubantia"
+
 
     def __init__(self, *args, **kwargs):
         super(TubantiaScraper, self).__init__(*args, **kwargs)
@@ -45,12 +47,13 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         @param username: username to log in with
         @param password: password 
         """
-        page = self.getdoc(LOGIN_URL)
+        url = LOGIN_URL.format(paper=self.paper)
+        page = self.getdoc(url)
         form = toolkit.parse_form(page)
         form["username"] = str(username)
         form["password"] = str(password)
 
-        page = self.opener.opener.open(LOGIN_URL, urlencode(form))
+        page = self.opener.opener.open(url, urlencode(form))
         
 
         cookies=page.info()["Set-Cookie"]
@@ -63,7 +66,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         machineid_expires = cookies[cookies.find("expires",machineidloc):cookies.find(";",cookies.find(";",machineidloc)+1)]
         cookieheader = machineid+"; "+tauid
         self.opener.opener.addheaders.append(("Cookie",cookieheader))
-        page = self.opener.opener.open(LOGIN_URL, urlencode(form))
+        page = self.opener.opener.open(url, urlencode(form))
 
     def _get_units(self):
         """papers are often organised in blocks (pages) of articles, this method gets the blocks, articles are to be gotten later"""
@@ -78,8 +81,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
             day='0'+str(day)
 
             
-        INDEXURL = INDEX_URL.format(year=year,month=month,day=day)
-        print(INDEXURL)
+        INDEXURL = INDEX_URL.format(year=year,month=month,day=day,paper=self.paper)
         index_text = str(self.getdoc(INDEXURL).text_content())
         cur = index_text.find("p[i++]")
         self.page_data = []
@@ -94,7 +96,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
             section = args[1]
             pagenum = args[2].lstrip("0")
             edition = args[3]
-            url = PAGE_URL.format(**locals())
+            url = PAGE_URL.format(paper=self.paper, **locals())
             self.page_data.append(dict(pagefile=args[0].strip('("'),section=args[1],pagenum=args[2],edition=args[3],url=url))
         for page in self.page_data:
             yield page
@@ -106,7 +108,6 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         
         
         ipage.doc = self.opener.opener.open(page['url'])
-        print(page['url'])
         ipage.page = page['pagenum']
         ipage.props.category = page['section']
         
