@@ -24,7 +24,7 @@ from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 
 
-INDEX_URL = "http://www.geenstijl.nl/"
+INDEX_URL = "http://www.geenstijl.nl/mt/archieven/maandelijks/{y}/{m}/"
 
 class GeenstijlScraper(HTTPScraper, DBScraper):
     medium_name = "geenstijl.nl"
@@ -32,24 +32,28 @@ class GeenstijlScraper(HTTPScraper, DBScraper):
     def __init__(self, *args, **kwargs):
         super(GeenstijlScraper, self).__init__(*args, **kwargs)
 
-
-   
-
     def _get_units(self):
-        #only works for current day
-        yield IndexDocument(url=INDEX_URL,date=self.options['date'])
+        month = self.options['date'].month
+        if len(str(month)) == 1:
+            month = '0'+str(month)
+        year = self.options['date'].year
+        url = INDEX_URL.format(y=year,m=month)
+        yield IndexDocument(url=url,date=self.options['date'])
     
     def _scrape_unit(self, ipage):
         ipage.prepare(self)
         ipage.doc = self.getdoc(ipage.props.url)
-        ipage.page = self.getdoc(INDEX_URL)
-        units = ipage.doc.cssselect('article.artikel')
-        correct_date = str(self.options['date']).split("-")
-        correct_date = correct_date[2]+"-"+correct_date[1]+"-"+correct_date[0].lstrip("20")
+        ipage.page = " "
+        units = ipage.doc.cssselect('div.content ul li')
+        correct_date = self.options['date'].strftime("%d-%m-%y").strip()
         for article_unit in units:
-            date = article_unit.cssselect("footer time")[0].text.split("|")[0].rstrip(" ")
-            if correct_date in date:
-                href = article_unit.cssselect("footer a")[0].get('href')
+            try:
+                _date = article_unit.text.strip()
+            except AttributeError:
+                break
+            if _date == correct_date:
+                
+                href = article_unit.cssselect("a")[0].get('href')
                 page = HTMLDocument(url=href, date=self.options['date'])
                 page.prepare(self)
                 page.doc = self.getdoc(href)
@@ -61,9 +65,10 @@ class GeenstijlScraper(HTTPScraper, DBScraper):
         
 
     def get_article(self, page):
-        page.props.author = page.doc.cssselect("article.artikel footer")[0].text.split("|")[0]
-        page.props.headline = page.doc.cssselect("article.artikel h1")[0].text
-        page.props.text = page.doc.cssselect("article.artikel p")[0].text_content()
+        page.props.author = page.doc.cssselect("article footer")[0].text_content().split("|")[0].strip()
+        page.props.headline = page.doc.cssselect("article h1")[0].text
+        page.doc.cssselect("footer")[0].drop_tree()
+        page.props.text = page.doc.cssselect("article")[0].text_content()
         page.coords = ""
         return page
 
