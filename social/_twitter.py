@@ -44,12 +44,13 @@ class TwitterScraper(Scraper):
         super(TwitterScraper, self).__init__(options)
 
     def run(self, options):
-        target = date.today().strftime("twitter_scrapheap_%Y-%m-%d.txt")
-        target_file = open(target,'a+')
+        
+        
         stream = TwitterStream(auth=UserPassAuth(self.options['username'],self.options['password']))
         iterator = stream.statuses.sample()
         for tweet in iterator:
-
+            target = date.today().strftime("twitter_scrapheap_%Y-%m-%d.txt")
+            target_file = open(target,'a+')
             try:
                 target_file.write(tweet['text']+"\n")
             except:continue
