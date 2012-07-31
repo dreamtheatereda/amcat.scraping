@@ -79,7 +79,6 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
 
     def _get_units(self):
         """get pages"""
-        
         i = 0
         for row in CSV_FILE:
             i = i + 1
@@ -103,8 +102,11 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
         
     def _scrape_unit(self, page):
         """gets articles from a page"""
-        page.prepare(self)
-        page.doc = self.getdoc(page.props.url)
+        try:
+            page.prepare(self)
+            page.doc = self.getdoc(page.props.url)
+        except HTTPError:
+            return
         FULL_NAME = page.doc.cssselect("h1.fullname")[0].text.strip()
         for div in page.doc.cssselect("div.stream-item"):
             if div.get('data-item-type')=="tweet":
@@ -121,7 +123,6 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
             
 
 
-        yield page
 
    
     def get_user(self,q):
