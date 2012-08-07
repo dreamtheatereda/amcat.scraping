@@ -90,7 +90,6 @@ class Top5Scraper(HTTPScraper):
                 article.props.text = "\n".join([(li.text_content()) for li in self.getdoc(href).cssselect("ul li")])
             else:
                 article.props.text = "\n".join([(p.text_content()) for p in art.cssselect("p")])
-            print(article.props.text)
         elif 'telegraaf.nl' in url:
             try:
                 article.props.author = doc.cssselect('.auteur')[0].text.strip()
