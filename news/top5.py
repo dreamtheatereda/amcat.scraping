@@ -65,15 +65,32 @@ class Top5Scraper(HTTPScraper):
         url = article.props.url
         text = ''
         if   'nrc.nl' in url:
-            article.props.author = doc.cssselect('.author a')[0].text.strip()
+            if not article.doc.cssselect(".livebar"):
+                article.props.author = doc.cssselect('.author a')[0].text.strip()
+            else:
+                article.props.author = ", ".join(list(set([a.get('data-author') for a in article.doc.cssselect(".bericht")]))) 
+                #above line makes a list of distinct authors seperated by commas
             text = doc.cssselect('.article #broodtekst')[0]
         elif 'volkskrant.nl' in url or 'trouw.nl' in url:
             try:
                 article.props.author = doc.cssselect('.author')[0].text.strip()
             except:
                 article.props.author = 'ANP'
-            ps = doc.cssselect('.art_box2 p')
-            article.props.text = ps[0].text_content()+ps[1].text_content()
+            
+            art = doc.cssselect('#art_box2')[0]
+            if "live_art" in art[0].get('class'):
+                #find url to the content, because in a live article the content is not loaded on first request but by JS
+                script_crap = [" ".join(crap.text) for crap in doc.cssselect("script")]
+                start = script_crap.find("function loadAllHighlights()")
+                end = script_crap.find(";",start)
+                jsfunction = script_crap[start:end]
+                start2 = jsfunction.find("url")+8
+                end2 = jsfunction.find(";")-2
+                href = urljoin(url,jsfunction[start2:end2])
+                article.props.text = "\n".join([(li.text_content()) for li in self.getdoc(href).cssselect("ul li")])
+            else:
+                article.props.text = "\n".join([(p.text_content()) for p in art.cssselect("p")])
+            print(article.props.text)
         elif 'telegraaf.nl' in url:
             try:
                 article.props.author = doc.cssselect('.auteur')[0].text.strip()
