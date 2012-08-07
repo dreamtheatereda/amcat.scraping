@@ -43,24 +43,14 @@ class TwitterScraper(object):
         iterator = stream.statuses.sample()
 
         
-        if self.lastdate != date.today():
-            print("\n\nNew date detected, changing target file\n\n")
-            self.target = date.today().strftime("twitter_scrapheap_%Y-%m-%d.csv")
-            self.writer = csv.writer(open(self.target,'a+'))
-            self.writer.writerow(['id','created at','text','hashtags','urls','user mentions','retweeted','user id','in reply to status id','in reply to user id','place id','user location','user language','contributor id\'s','contributor screen names respectively'])
-            self.lastdate = date.today()
+        self.datecheck()
 
         i = 0
         for tweet in iterator:
             i += 1
-            if self.lastdate != date.today():
-                print("\n\nNew date detected, changing target file\n\n")
-                self.target = date.today().strftime("twitter_scrapheap_%Y-%m-%d.csv")
-                self.writer = csv.writer(open(self.target,'a+'))
-                self.writer.writerow(['id','created at','text','hashtags','urls','user mentions','retweeted','user id','in reply to status id','in reply to user id','place id','user location','user language','contributor id\'s','contributor screen names respectively'])
-                self.lastdate = date.today()
             
-            
+            self.datecheck()
+
             data =  self.filter_tweet_data(tweet)
             if(data):
                 self.writer.writerow(data)
@@ -72,7 +62,13 @@ class TwitterScraper(object):
 
 
 
-
+    def datecheck(self):
+        if self.lastdate != date.today():
+            print("\n\nNew date detected, changing target file\n\n")
+            self.target = date.today().strftime("twitter_scrapheap_%Y-%m-%d.csv")
+            self.writer = csv.writer(open(self.target,'a+'))
+            self.writer.writerow(['id','created at','text','hashtags','urls','user mentions','retweeted','user id','in reply to status id','in reply to user id','place id','user location','user language','contributor id\'s','contributor screen names respectively'])
+            self.lastdate = date.today()
 
     def filter_tweet_data(self,tweet):
 
