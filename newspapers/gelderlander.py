@@ -19,7 +19,10 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from scraping.newspapers import tubantia
+try:
+    from scraping.newspapers import tubantia
+except ImportError:
+    from amcatscraping.newspapers import tubantia
 
 class GelderlanderScraper(tubantia.TubantiaScraper):
     medium_name = "Gelderlander"

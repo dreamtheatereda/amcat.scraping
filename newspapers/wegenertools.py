@@ -46,7 +46,7 @@ def clean(text):
     text = text.replace("-\x1e","")
     text = text.replace("\x1e","")
     text = re.sub("[ \t]+", " ", text)
-    
+
     return text    
 
 ARTICLE_IDS_PATTERN = r"a\[(\d+)\].e\[\d+\]=new mE\(\d+,(\d+)\);"

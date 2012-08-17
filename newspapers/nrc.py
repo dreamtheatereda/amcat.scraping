@@ -64,7 +64,7 @@ class NRCScraper(HTTPScraper, DBScraper):
     def _scrape_unit(self, ipage): # ipage --> index_page
         ipage.doc = self.getdoc(ipage.props.url)
         ipage.page = int(ipage.props.url.split('_')[-1].split('/')[0])
-
+        print(ipage.page)
         imgurl = urljoin(ipage.props.url, 'page.jpg')
         ipage.bytes = self.opener.opener.open(imgurl).read()
 
@@ -84,7 +84,6 @@ class NRCScraper(HTTPScraper, DBScraper):
         #page.prepare(self)
         page.props.text = page.doc.cssselect('.column-left')[0]
         page.props.headline = page.doc.cssselect('h2')[0].text
-
         intro = page.doc.cssselect('p.intro')
         if intro:
             page.props.text.insert(0, intro[0])

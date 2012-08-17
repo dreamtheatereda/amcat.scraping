@@ -22,7 +22,10 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 from amcat.scraping import toolkit
-from scraping.newspapers import wegenertools
+try:
+    from scraping.newspapers import wegenertools
+except ImportError:
+    from amcatscraping.newspapers import wegenertools
 
 import re
 from urllib import urlencode
@@ -82,7 +85,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
 
             
         INDEXURL = INDEX_URL.format(year=year,month=month,day=day,paper=self.paper)
-        index_text = str(self.getdoc(INDEXURL).text_content())
+        index_text = unicode(self.getdoc(INDEXURL).text_content())
         cur = index_text.find("p[i++]")
         self.page_data = []
         while index_text.find("p[i++]",cur+1) >= 0:
@@ -112,6 +115,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         ipage.props.category = page['section']
         
         text = wegenertools.clean(ipage.doc.read())
+        print(text)
         for article_ids in wegenertools.get_article_ids(text):
             body,headline,byline = wegenertools.get_article(text,article_ids)
             if len(body) >= 300: #filtering non-articles, image links and other html crap
