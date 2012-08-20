@@ -106,7 +106,8 @@ class FokForumScraper(HTTPScraper, DBScraper):
 
     def get_article(self, page):
         page.props.author = page.doc.cssselect("span.post_sub a.username")[0].text
-        page.props.headline = page.doc.cssselect("div.fieldholder h1")[0].text
+        page.props.headline = page.doc.cssselect("div.fieldholder h1")[0].text_content()
+        
         page.props.text = page.doc.cssselect("div.postmain_right")[0].text_content()
         page.coords=''
         return page
