@@ -115,7 +115,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         ipage.props.category = page['section']
         
         text = wegenertools.clean(ipage.doc.read())
-        print(text)
+
         for article_ids in wegenertools.get_article_ids(text):
             body,headline,byline = wegenertools.get_article(text,article_ids)
             if len(body) >= 300: #filtering non-articles, image links and other html crap
