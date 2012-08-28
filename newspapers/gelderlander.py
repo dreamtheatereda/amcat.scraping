@@ -25,7 +25,7 @@ except ImportError:
     from amcatscraping.newspapers import tubantia
 
 class GelderlanderScraper(tubantia.TubantiaScraper):
-    medium_name = "Gelderlander"
+    medium_name = "De Gelderlander"
     paper = "dg"
 
 
