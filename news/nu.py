@@ -20,9 +20,9 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 
-from amcat.scraping.scraper import DBScraper, HTTPScraper
+from amcat.scraping.scraper import HTTPScraper, DatedScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
-
+import urllib2
 from urlparse import urljoin
 
 INDEX_URL = "http://www.nu.nl/"
@@ -41,7 +41,7 @@ MONTHS = [
     'december'
 ]
 
-class NuScraper(HTTPScraper, DBScraper):
+class NuScraper(HTTPScraper, DatedScraper):
     medium_name = "Nu.nl"
 
     def __init__(self, *args, **kwargs):
@@ -54,10 +54,7 @@ class NuScraper(HTTPScraper, DBScraper):
         menu_options = index.cssselect('ul.listleft li')[1:]
         index_units = []
         for unit in menu_options:
-            if "closed" in unit.get('class'):
-                pass
-            else:
-                index_units.append(unit)
+            index_units.append(unit)
                 
         page_int = 0
         for index_unit in index_units:
@@ -75,7 +72,7 @@ class NuScraper(HTTPScraper, DBScraper):
 
         
         #nu.nl articles are not ordered by date anywhere. To be as accurate as possible, all recent articles will be opened, checked for a correct date and then listed 
-        #this only works correctly if the scraped day is less than ~10 hours ago, more if lucky
+        #this only works correctly if the scraped day is less than ~10 hours ago, more if there are not so many articles
 
         article_links = []
         try:
@@ -87,56 +84,43 @@ class NuScraper(HTTPScraper, DBScraper):
             article_links.append(urljoin(INDEX_URL,a.get('href')))
         for a in ipage.doc.cssselect(".list ul li a"):
             article_links.append(urljoin(INDEX_URL,a.get('href')))
+
+        try:
+            if "nuzakelijk" in article_links[0]:
+                article_links.pop(0)
+        except IndexError:
+            pass
         for url in article_links:
-            doc = self.getdoc(url)
+            try:
+                doc = self.getdoc(url)
+            except urllib2.HTTPError:
+                break
             date_str = "{day} {month} {year}".format(day = self.options['date'].day,month = MONTHS[self.options['date'].month-1],year = self.options['date'].year)
-            if "nuzakelijk" in url:
-                if date_str in doc.cssselect("div.smallblock td")[1].text:
+            try:
+                bla = doc.cssselect(".header .dateplace-data")[0].text 
+            except IndexError:
+                pass
+            else:
+                if date_str in doc.cssselect(".header .dateplace-data")[0].text:
                     page = HTMLDocument(date = self.options['date'],url=url)
                     page.prepare(self)
                     page.doc = doc
-                    page = self.get_article(page)
-                    yield page
+                    yield self.get_article(page)
                     ipage.addchild(page)
-            else:
-
-
-                try:
-                    if date_str in doc.cssselect(".header div span")[0].text:
-                        page = HTMLDocument(date = self.options['date'],url=url)
-                        page.prepare(self)
-                        page.doc = doc
-                        page = self.get_article(page)
-                        yield page
-                        ipage.addchild(page)
-                except IndexError:
-                    pass
-            
+                
+                        
         yield ipage
  
     def get_article(self, page):
-        def removeNonAscii(s): return "".join(i for i in s if ord(i)<128)
-
-        if "nuzakelijk" in page.props.url:
-            page.props.author = page.doc.cssselect("#viawho td")[0].text
-            page.props.headline = page.doc.cssselect("#leadarticle h1")[0].text
-            try:
-                page.doc.cssselect("#leadarticle center")[0].drop_tree()
-                page.doc.cssselect("#leadarticle .footer")[0].drop_tree()
-            except IndexError:
-                pass
-            page.props.text = removeNonAscii(page.doc.cssselect("#articlebody #leadarticle")[0].text_content())
-        else:
-            page.props.author = page.doc.cssselect("#leadarticle .footer .actions span")[0].text
-            page.props.headline = page.doc.cssselect("#leadarticle .header h1")[0].text
-            try:
-                page.doc.cssselect("#leadarticle center")[0].drop_tree()
-                page.doc.cssselect("#leadarticle .footer")[0].drop_tree()
-            except IndexError:
-                pass
-            page.props.text = removeNonAscii(page.doc.cssselect("#leadarticle .content")[0].text_content())
+        page.props.author = page.doc.cssselect("#leadarticle span.smallprint")[0].text.split("Door:")[1].strip()
+        page.props.headline = page.doc.cssselect("#leadarticle .header h1")[0].text
+        try:
+            page.doc.cssselect("#leadarticle center")[0].drop_tree()
+            page.doc.cssselect("#leadarticle .footer")[0].drop_tree()
+        except IndexError:
+            pass
+        page.props.text = page.doc.cssselect("#leadarticle .content")[0].text_content()
         
-
         
         page.coords = ""
         return page

@@ -26,7 +26,6 @@ from amcat.scraping.document import HTMLDocument, IndexDocument
 from urllib import urlencode
 #from urlparse import urljoin
 #from amcat.tools.toolkit import readDate
-from amcat.tools import toolkit
 from amcat.scraping import toolkit
 
 INDEX_URL = "http://digikrant.fd.nl/{y:04d}{m:02d}{d:02d}/public/pages/01001/FD-01-001-{y:04d}{m:02d}{d:02d}.html"

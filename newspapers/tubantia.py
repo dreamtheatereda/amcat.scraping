@@ -30,7 +30,7 @@ except ImportError:
 import re
 from urllib import urlencode
 
-INDEX_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/load/newspaper.php?pSetup={paper}&userid=9635&date=0@/{paper}/{year}{month}{day}"
+INDEX_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/load/newspaper.php?pSetup={paper}&userid=NOUSER&date=0@/{paper}/{year}{month}{day}"
 
 PAGE_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/php-script/fullpage.php?pSetup={paper}&file=0@/{paper}/{year}{month}{day}/{pagefile}/&section={section}&edition={edition}&pageNum={pagenum}"
 
