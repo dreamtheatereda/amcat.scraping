@@ -62,8 +62,7 @@ class NuJijScraper(HTTPScraper, DatedScraper):
             if self.options['date'].__str__() in datum.__str__():
                 href = article.cssselect("h3.title a")[0].get('href')+"?pageStart=1"
                 yield HTMLDocument(url=href)
-            elif self.options['date']>datum:
-                break
+            
 
     def _scrape_unit(self, page):
         try:
