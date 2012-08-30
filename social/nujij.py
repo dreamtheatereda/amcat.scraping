@@ -27,7 +27,7 @@ from urlparse import urljoin
 from amcat.tools.toolkit import readDate
 from datetime import timedelta
 from datetime import date
-
+import re
 from lxml import etree
 INDEX_URL = "http://www.nujij.nl/"
 
@@ -42,7 +42,7 @@ class NuJijScraper(HTTPScraper, DatedScraper):
     def _get_units(self):
         index = self.getdoc(INDEX_URL)
         for category in index.cssselect("dl.topmenu dd a")[1:]:
-            url = category.get('href')
+            url = category.get('href').replace(" ","%20")
             for doc in self.get_articles(self.getdoc(url)):
                 yield doc
             nxt = self.getdoc(url)        
@@ -108,10 +108,13 @@ class NuJijScraper(HTTPScraper, DatedScraper):
             for li in nxt.cssselect("ol.reacties li.hidenum"):
                 comment = Document(parent=page)
                 if not "<b>Reageer als eerste op dit bericht</b>" in etree.tostring(li):
-                    comment.props.text = li.cssselect("div.reactie-body")[0].text.strip()
-                    comment.props.author = li.cssselect("strong")[0].text
-                    comment.props.date = readDate(li.cssselect("span.tijdsverschil")[0].get('publicationdate'))
-                    yield comment
+                    try:
+                        comment.props.text = li.cssselect("div.reactie-body")[0].text.strip()
+                        comment.props.author = li.cssselect("strong")[0].text
+                        comment.props.date = readDate(li.cssselect("span.tijdsverschil")[0].get('publicationdate'))
+                        yield comment
+                    except IndexError:
+                        pass
 
 
 if __name__ == '__main__':
