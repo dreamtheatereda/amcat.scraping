@@ -59,7 +59,7 @@ class NuJijScraper(HTTPScraper, DatedScraper):
             datum = readDate(_datum)
             print("checking date for {url}".format(url=article.cssselect("h3.title a")[0].get('href')))
             print("Scraped date: {sdate}. Article date: {adate}. Correct? -> {correct}".format(sdate=self.options['date'],adate=_datum,correct=(self.options['date'].__str__() in datum.__str__())))
-            if self.options['date'].__str__() in datum.__str__():
+            if str(self.options['date']) in str(datum):
                 href = article.cssselect("h3.title a")[0].get('href')+"?pageStart=1"
                 yield HTMLDocument(url=href)
             
