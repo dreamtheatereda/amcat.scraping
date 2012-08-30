@@ -40,11 +40,9 @@ class NuJijScraper(HTTPScraper, DatedScraper):
 
         
     def _get_units(self):
-        """get pages"""
-
         index = self.getdoc(INDEX_URL)
-        for category in index.cssselect("dl.topmenu dd")[1:]:
-            url = category.cssselect("a")[0].get('href')
+        for category in index.cssselect("dl.topmenu dd a")[1:]:
+            url = category.get('href')
             for doc in self.get_articles(self.getdoc(url)):
                 yield doc
             nxt = self.getdoc(url)        
@@ -98,10 +96,13 @@ class NuJijScraper(HTTPScraper, DatedScraper):
                 for li in nxt.cssselect("ol.reacties li.hidenum"):
                     comment = Document(parent=page)
                     if not("<b>Reageer als eerste op dit bericht</b>" in etree.tostring(li) or "gebruiker verwijderd" in etree.tostring(li)):
-                        comment.props.text = li.cssselect("div.reactie-body")[0].text.strip()
-                        comment.props.author = li.cssselect("strong")[0].text
-                        comment.props.date = readDate(li.cssselect("span.tijdsverschil")[0].get('publicationdate'))
-                        yield comment
+                        try:
+                            comment.props.text = li.cssselect("div.reactie-body")[0].text.strip()
+                            comment.props.author = li.cssselect("strong")[0].text
+                            comment.props.date = readDate(li.cssselect("span.tijdsverschil")[0].get('publicationdate'))
+                            yield comment
+                        except IndexError:
+                            pass
         else:
             for li in nxt.cssselect("ol.reacties li.hidenum"):
                 comment = Document(parent=page)
