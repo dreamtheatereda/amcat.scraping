@@ -1,0 +1,57 @@
+# -*- coding: utf-8 -*-
+from __future__ import print_function, absolute_import
+###########################################################################
+#          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
+#                                                                         #
+# This file is part of AmCAT - The Amsterdam Content Analysis Toolkit     #
+#                                                                         #
+# AmCAT is free software: you can redistribute it and/or modify it under  #
+# the terms of the GNU Affero General Public License as published by the  #
+# Free Software Foundation, either version 3 of the License, or (at your  #
+# option) any later version.                                              #
+#                                                                         #
+# AmCAT is distributed in the hope that it will be useful, but WITHOUT    #
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or   #
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public     #
+# License for more details.                                               #
+#                                                                         #
+# You should have received a copy of the GNU Affero General Public        #
+# License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
+###########################################################################
+
+from amcat.scraping.scraper import Scraper
+from amcat.scraping.document import HTMLDocument
+from amcat.models.article import Article
+from amcat.tools import toolkit
+
+from sys import fileinput
+import json
+
+class TwitterFileScraper(Scraper):
+    """Get tweets from a textfile containing output from _twitter.py"""
+    medium_name = "Twitter"
+    missed = 0
+    n=0
+    
+    def _get_units(self):
+        for line in fileinput.input():
+            if line == '': continue
+            try: yield json.loads(line.strip())
+
+    def _scrape_unit(self,data):
+        if 'limit' in data:
+            self.missed = int(data['limit']['track'])
+            
+        dayname,month,day,time,zone,year = data['created_at'].split()
+        date = toolkit.readDate("{dayname} {month} {day} {year} {time}".format(**locals()))
+        
+        text = data['text']
+        author = "{name} ({screen_name})".format(name=data['user']['name'],screen_name = data['user']['screen_name'])
+        if self.n % 10000 == 0: print("Finished %s\t | Total lost to limit: %s" % (self.n,self.missed))
+        self.n += 1
+
+        yield Article(headline=author,author=author,text=body,date=date)
+
+if __name__=="__main__":
+    from amcat.scripts.tools import cli
+    cli.run_cli(TwitterFileScraper)

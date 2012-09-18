@@ -23,72 +23,57 @@ from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 
 
-from urllib import urlencode
-#from urlparse import urljoin
-#from amcat.tools.toolkit import readDate
+INDEX_URL = "http://teletekst.mobile.nob.nl/xda-teletekst/index.jsp?page=TTARTICLE_PAGE_{page}_{tab}.htm"
+BASE_URL = "http://teletekst.mobile.nob.nl/xda-teletekst/index.jsp"
 
-INDEX_URL = "http://digikrant.fd.nl/{y:04d}{m:02d}{d:02d}/public/pages/01001/FD-01-001-{y:04d}{m:02d}{d:02d}.html"
-LOGIN_URL = "http://fd.nl/handle_login"
-PAGE_URL = "http://digikrant.fd.nl/{y}{m}{d}/public/pages/01{pagenum:03d}/FD-01-{pagenum:03d}-{y}{m}{d}.html"
-
-class FDScraper(HTTPScraper, DBScraper):
-    medium_name = "Financieel Dagblad"
+class TeletekstScraper(HTTPScraper, DBScraper):
+    medium_name = "Teletekst"
 
     def __init__(self, *args, **kwargs):
-        super(FDScraper, self).__init__(*args, **kwargs)
-
-
-    def _login(self, username, password):
-
-        page = self.opener.opener.open(LOGIN_URL)
-        self.cookies = page.info()['Set-Cookie']
-        form = {
-                
-            'email' : username,
-            'password' : password
-            }
-        pg = self.opener.opener.open(LOGIN_URL,urlencode(form))
-        self.cookies += pg.info()['Set-Cookie']
-        self.opener.opener.addheaders.append(("Cookie",self.cookies))
-        self.opener.opener.addheaders.append(("Host","digikrant.fd.nl"))
-            
-        
-
+        super(TeletekstScraper, self).__init__(*args, **kwargs)
 
     def _get_units(self):
-        """get pages"""
+        index = self.getdoc(INDEX_URL.format(page=101,tab=1))
+        for a in index.csselect("p a"):
+            href = a.get('href')
+            url = urljoin
+        
 
-            
-        y = self.options['date'].year
-        m = self.options['date'].month
-        d = self.options['date'].day
-        
-        
-        _url = INDEX_URL.format(**locals())
-        index = self.getdoc(_url)
+
 
         
-    def _scrape_unit(self, ipage):
-        """gets articles from a page"""
+    def _scrape_unit(self, ipage): # 'ipage' means index_page
+        """gets articles from an index page"""
         ipage.prepare(self)
-        ipage.bytes = ""
+
+
+
+        ipage.bytes = "?" #whats this?
+
+
         ipage.doc = self.getdoc(ipage.props.url)
-        ipage.props.category = ""
-        for a in ipage.doc.cssselect("body#framepage table td")[2].cssselect("tr")[7].cssselect("table"): #has inline style so no class/id
-            onclick = a.get('onclick')
-            link = onclick[onclick.find("http"):onclick.find(";")]
-            pg = self.opener.opener.open(link)
-            page = HTMLDocument(date = ipage.props.date,url=link)
-            page.prepare(self)
+        ipage.page = "" #add paper page number
+        ipage.props.category = "" #add ipage category if present
+
+        #add html tag which contains link to article
+        for a in ipage.doc.cssselect(" "):
+            #make sure the following line works in your case
+            url = a.get('href')
             
+            #now we're heading into the page which contains the article!
+            page = HTMLDocument(date = ipage.props.date,url=url)
+            page.prepare(self)
+            # Get article
             page.doc = self.getdoc(page.props.url)
             yield self.get_article(page)
 
+            # Add article to index page
             ipage.addchild(page)
 
         yield ipage
 
     def get_article(self, page):
+        #use mainly page.doc.cssselect() to fill the following lines
         page.props.author = ""
         page.props.headline = ""
         page.props.text = ""
@@ -102,6 +87,7 @@ if __name__ == '__main__':
     from amcat.tools import amcatlogging
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
-    cli.run_cli(FDScraper)
+    cli.run_cli(TemplateScraper)
 
 
+#thanks for contributing!
