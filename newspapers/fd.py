@@ -26,11 +26,13 @@ from amcat.scraping.document import HTMLDocument, IndexDocument
 from urllib import urlencode
 #from urlparse import urljoin
 #from amcat.tools.toolkit import readDate
-from amcat.scraping import toolkit
 
-INDEX_URL = "http://digikrant.fd.nl/{y:04d}{m:02d}{d:02d}/public/pages/01001/FD-01-001-{y:04d}{m:02d}{d:02d}.html"
-LOGIN_URL = "http://fd.nl/?service=unRegisteredLogin&target=http://fd.nl/digikrant"
-PAGE_URL = "http://digikrant.fd.nl/{y}{m}{d}/public/pages/01{pagenum:03d}/FD-01-{pagenum:03d}-{y}{m}{d}.html"
+INDEX_URL = "http://digikrant-archief.fd.nl/vw/page.do?id=FD-01-001-{y:04d}{m:02d}{d:02d}&pagedisplay=true&ed=00&date={y:04d}{m:02d}{d:02d}"
+LOGIN_URL = "http://fd.nl/handle_login"
+PAGE_URL = "http://digikrant-archief.fd.nl/vw/page.do?id={page_id}&pagedisplay=true&ed=00&date={y:04d}{m:02d}{d:02d}"
+ARTICLE_URL = "http://digikrant-archief.fd.nl/vw/txt.do?id={art_id}"
+
+from lxml import etree
 
 class FDScraper(HTTPScraper, DBScraper):
     medium_name = "Financieel Dagblad"
@@ -40,72 +42,79 @@ class FDScraper(HTTPScraper, DBScraper):
 
 
     def _login(self, username, password):
-        page = self.getdoc(LOGIN_URL)
-        form = toolkit.parse_form(page)
-        form['remember_me']=True
-        form['email']=username
-        form['password']=password
-        pg = self.opener.opener.open(LOGIN_URL+"#submitLogin_1",urlencode(form))
-        self.cookies = pg.info()['set-cookie']
 
+        initial = self.opener.opener.open("http://digikrant.fd.nl")
+        form = {
+            'email' : username,
+            'password' : password
+            }
+        pg = self.opener.opener.open(LOGIN_URL,urlencode(form))
 
-#NOTE: this scraper is under construction, for the login doesn't work yet. FD.nl has many cookies and redirects, perhaps saving cookies in the getdoc function is a step forward.
-#Do this by adding 
-#    self.opener.addheaders.append(('Cookie',response.info()['set-cookie']))
-#at the getdoc function in amcat/scraping/htmltools.py just before the try-except statement.
-# anything below these lines is not tested yet.
+        # url below generates a cookie which allows access to archive,
+        # i need to get a medal for finding this.
+
+        url2 = "http://digikrant-archief.fd.nl/vw/edition.do?forward=true&dp=FD&altd=true&date={y:04d}{m:02d}{d:02d}&uid=2570808&oid=&abo=DIGITAAL2011&ed=00&rxst=VDVtb3M5L0pORGhVMG1MUytrb2RpUT09".format(y=self.options['date'].year,m=self.options['date'].month,d=self.options['date'].day)
+
+        pg2 = self.opener.opener.open(url2)
+
 
 
     def _get_units(self):
         """get pages"""
-        index_dict = {
-            'year' : self.options['date'].year,
-            'month' : self.options['date'].month,
-            'day' : self.options['date'].day
-        }
 
+            
+        y = self.options['date'].year
+        m = self.options['date'].month
+        d = self.options['date'].day
+        _url = INDEX_URL.format(**locals())
+        index = self.getdoc(_url)
 
+        for option in index.cssselect("#selectPage option"):
+            page_id = option.get('value')
+            page_category = option.text.split("-")[1].strip()
+            page_num = option.text.split("-")[0].strip().lstrip('p')
+            yield {'id':page_id,'category':page_category,'page':page_num}
 
-
-        i_url = INDEX_URL.format(y = index_dict['year'],
-                                 m = index_dict['month'],
-                                 d = index_dict['day'])
-        self.opener.opener.addheaders.append(("Cookie",self.cookies))
-        index = self.getdoc(i_url)
-        from lxml import etree
-        units = index.cssselect('select#selectPage option')
-        i = 0
-        for page_unit in units:
-            i = i + 1 #pages are nicely ordered
-            href = PAGE_URL.format(index_dict,pagenum=i)
-            print(href)
-            yield IndexDocument(url=href, date=self.options['date'],page=i,category = page_unit.text.split("-")[1].lstrip())
 
         
-    def _scrape_unit(self, ipage):
+    def _scrape_unit(self, p):
         """gets articles from a page"""
+
+        p_url = PAGE_URL.format(page_id=p['id'],y=self.options['date'].year,m=self.options['date'].month,d=self.options['date'].day)
+
+        ipage = IndexDocument(date=self.options['date'],url=p_url)
         ipage.prepare(self)
         ipage.bytes = ""
         ipage.doc = self.getdoc(ipage.props.url)
-        ipage.props.category = ""
-        for a in ipage.doc.cssselect("body#framepage table td")[2].cssselect("tr")[7].cssselect("table"): #has inline style so no class/id
-            onclick = a.get('onclick')
-            link = onclick[onclick.find("http"):onclick.find(";")]
-            pg = self.opener.opener.open(link)
-            page = HTMLDocument(date = ipage.props.date,url=link)
-            page.prepare(self)
-            
-            page.doc = self.getdoc(page.props.url)
-            yield self.get_article(page)
+        ipage.props.category = p['category']
+        ipage.page = p['page']
 
+        for a in ipage.doc.cssselect("td.arthref2 a"):
+            
+
+            art_id = a.get('href').split("('")[1].rstrip("');")
+            art_url = ARTICLE_URL.format(art_id=art_id)
+            page = HTMLDocument(date = ipage.props.date,url=art_url)
+            page.prepare(self)
+            page.doc = self.getdoc(page.props.url)
+            if "Er is geen tekst weergave beschikbaar" in page.doc.cssselect("table.body")[0].text_content():
+                continue
+
+            yield self.get_article(page)
+                
             ipage.addchild(page)
 
         yield ipage
 
     def get_article(self, page):
-        page.props.author = ""
-        page.props.headline = ""
-        page.props.text = ""
+        try:
+            page.props.author = page.doc.cssselect("td.artauthor")[0].text_content().split(":")[1].strip()
+        except IndexError:
+            page.props.author = ""
+        
+        page.props.headline = page.doc.cssselect("td.artheader")[0].text_content()
+        page.props.text = page.doc.cssselect("table.body")[0].text_content()
+        page.coords = ""
         return page
 
 
