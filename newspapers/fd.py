@@ -40,20 +40,14 @@ class FDScraper(HTTPScraper, DBScraper):
 
     def _login(self, username, password):
 
-        page = self.opener.opener.open(LOGIN_URL)
-        self.cookies = page.info()['Set-Cookie']
+        initial = self.opener.opener.open("http://digikrant.fd.nl")
         form = {
-                
             'email' : username,
             'password' : password
             }
         pg = self.opener.opener.open(LOGIN_URL,urlencode(form))
-        self.cookies += pg.info()['Set-Cookie']
-        self.opener.opener.addheaders.append(("Cookie",self.cookies))
-        self.opener.opener.addheaders.append(("Host","digikrant.fd.nl"))
-            
         
-
+        
 
     def _get_units(self):
         """get pages"""
@@ -62,10 +56,11 @@ class FDScraper(HTTPScraper, DBScraper):
         y = self.options['date'].year
         m = self.options['date'].month
         d = self.options['date'].day
-        
-        
         _url = INDEX_URL.format(**locals())
-        index = self.getdoc(_url)
+        index = self.getdoc("http://digikrant.fd.nl")
+        from lxml import etree
+        print(etree.tostring(index))
+
 
         
     def _scrape_unit(self, ipage):
