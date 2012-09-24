@@ -91,7 +91,7 @@ class LimburgerScraper(HTTPScraper, DBScraper):
             url = ARTICLE_URL.format(self.options['date'],pageid = pageid,articleid = article_id)
             
             page = HTMLDocument(date = ipage.props.date,url=url)
-            print(url)
+            
             page.prepare(self)
             page.doc = self.getdoc(page.props.url)
             yield self.get_article(page)
@@ -101,7 +101,6 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         yield ipage
 
     def get_article(self, page):
-        print(page.props.url)
         try: #not always an author in text
             page.props.author = page.doc.cssselect("font.artauthor")[0].text.lstrip("dor")
         except IndexError: #cssselect index error

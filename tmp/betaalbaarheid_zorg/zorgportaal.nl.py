@@ -21,14 +21,12 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from amcat.scraping.document import Document, HTMLDocument, IndexDocument
 
-#possibly useful imports:
-
 #from urllib import urlencode
 #from urlparse import urljoin
 #from amcat.tools.toolkit import readDate
 
 
-INDEX_URL = "" #Add url which contains links to all pages
+INDEX_URL = "http://site.zorgportaal.nl/index.php/nieuws/nieuws/service/nieuws-via-rss/zorgportaal-nl" 
 LOGIN_URL = "" #Add login url
 
 

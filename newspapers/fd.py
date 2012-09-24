@@ -28,11 +28,11 @@ from urllib import urlencode
 #from amcat.tools.toolkit import readDate
 
 INDEX_URL = "http://digikrant-archief.fd.nl/vw/page.do?id=FD-01-001-{y:04d}{m:02d}{d:02d}&pagedisplay=true&ed=00&date={y:04d}{m:02d}{d:02d}"
+
 LOGIN_URL = "http://fd.nl/handle_login"
 PAGE_URL = "http://digikrant-archief.fd.nl/vw/page.do?id={page_id}&pagedisplay=true&ed=00&date={y:04d}{m:02d}{d:02d}"
 ARTICLE_URL = "http://digikrant-archief.fd.nl/vw/txt.do?id={art_id}"
 
-from lxml import etree
 
 class FDScraper(HTTPScraper, DBScraper):
     medium_name = "Financieel Dagblad"
@@ -58,7 +58,6 @@ class FDScraper(HTTPScraper, DBScraper):
         pg2 = self.opener.opener.open(url2)
 
 
-
     def _get_units(self):
         """get pages"""
 
@@ -74,7 +73,6 @@ class FDScraper(HTTPScraper, DBScraper):
             page_category = option.text.split("-")[1].strip()
             page_num = option.text.split("-")[0].strip().lstrip('p')
             yield {'id':page_id,'category':page_category,'page':page_num}
-
 
         
     def _scrape_unit(self, p):
