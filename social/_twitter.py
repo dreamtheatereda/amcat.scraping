@@ -29,12 +29,13 @@ import json
 import csv
 from sys import argv
 import logging; log = logging.getLogger(__name__)
+from datetime import timedelta
 
 class TwitterScraper(object):
     """Constantly get tweets from the twitter streaming api """
     username, password = argv[1:]
     lastdate = date.today()
-    target = date.today().strftime("twitter_scrapheap_%Y-%m-%d.csv")
+    target = date.today().strftime("tweets/twitter_scrapheap_%Y-%m-%d.csv")
     writer = csv.writer(open(target,'a+'))
 
     def run(self):
@@ -43,8 +44,6 @@ class TwitterScraper(object):
         iterator = stream.statuses.sample()
 
         
-        self.datecheck()
-
         i = 0
         for tweet in iterator:
             i += 1
@@ -55,7 +54,7 @@ class TwitterScraper(object):
             if(data):
                 self.writer.writerow(data)
 
-            if i % 100 == 0:
+            if i % 10000 == 0:
                 print("Added {} tweets to file {}".format(i,self.target))
 
         self.run()
@@ -65,10 +64,12 @@ class TwitterScraper(object):
     def datecheck(self):
         if self.lastdate != date.today():
             print("\n\nNew date detected, changing target file\n\n")
-            self.target = date.today().strftime("twitter_scrapheap_%Y-%m-%d.csv")
+            self.target = date.today().strftime("tweets/twitter_scrapheap_%Y-%m-%d.csv")
             self.writer = csv.writer(open(self.target,'a+'))
             self.writer.writerow(['id','created at','text','hashtags','urls','user mentions','retweeted','user id','in reply to status id','in reply to user id','place id','user location','user language','contributor id\'s','contributor screen names respectively'])
             self.lastdate = date.today()
+
+
 
     def filter_tweet_data(self,tweet):
 
