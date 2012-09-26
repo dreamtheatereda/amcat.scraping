@@ -36,10 +36,10 @@ access_token_secret="0FncNCYPgBfQvzwqV0a0kJ7Orr4mQUFsDwkPkrCvo"
 
 
 
-TRACK_FILES_PATH="{}twitter/track/".format(environ.get('PYTHONPATH'))
+
 
 class TwitterFilterForm(forms.Form):
-    track_file = forms.FilePathField(TRACK_FILES_PATH,required=False)
+    track_file = forms.CharField(required=False)
 
 class TwitterFilterScript(Script):
     options_form = TwitterFilterForm
@@ -49,7 +49,7 @@ class TwitterFilterScript(Script):
 
     def run(self, _input):
         if len(self.options['track_file'])<=1:
-            self.options['track_file']='{}default.txt'.format(TRACK_FILES_PATH)
+            self.options['track_file']='track.txt'
 
         words = []
         word_file = open(self.options['track_file'])
@@ -74,7 +74,7 @@ class TwitterFilterScript(Script):
 class Listener(StreamListener):
 
     def __init__(self):
-        f = "{}twitter/tweets/{}".format(environ.get('PYTHONPATH'),date.today().strftime("filter_%Y-%m-%d.csv"))
+        f = "{}tweets/{}".format(environ.get('PYTHONPATH'),date.today().strftime("filter_%Y-%m-%d.csv"))
         outputfile = open(f,'a+')
         self.writer = csv.writer(outputfile)
         self.i = 0
@@ -82,13 +82,16 @@ class Listener(StreamListener):
     def on_data(self,data):
         print("win!")
         self.writer.writerow(data)
-        if self.i % 1:
+        if self.i % 100:
             print("{} tweets written.".format(self.i))
         return True
 
 
     def on_error(self,status):
         print(status)
+
+    def on_limit(self,track):
+        print(track)
 
 
 

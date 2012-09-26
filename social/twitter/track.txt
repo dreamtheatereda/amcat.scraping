@@ -1,0 +1,5 @@
+# lines starting with # are ignored
+# add any word or query, seperated by either commas or lines.
+
+
+de BV, een BV, het BV, justitie BV, V&J BV, starter BV, starters BV, opstelten BV, teeven BV, besloten vennootschap, beperkte aansprakelijkheid, startende ondernemer, startende ondernemers, administratieve lasten, ondernemer lasten, ondernemers lasten, starters lasten, starter lasten, minimumkapitaal, startkapitaal, blokkeringsregel, bankverklaring natura, accountantsverklaring natura, statuten a4, statuten bestuurder, statuten bestuurders, statuten stemrechtloze, statuten AV, statuten algemene vergadering, @minv_j, minv_j
