@@ -48,7 +48,7 @@ class TwitterFilterScript(Script):
 
     def run(self, _input):
         if len(self.options['track_file'])<=1:
-            if path.exists(environ.get('PYTHONPATH')+"/scraping"):
+            if path.exists(environ.get('PYTHONPATH')+"scraping"):
                 self.options['track_file']='{}scraping/social/twitter/track.txt'.format(environ.get('PYTHONPATH'))
             else:
                 self.options['track_file']='{}amcatscraping/social/twitter/track.txt'.format(environ.get('PYTHONPATH'))
