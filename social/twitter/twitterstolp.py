@@ -32,7 +32,8 @@ from amcat.tools.toolkit import readDate
 from datetime import date
 
 import csv
-CSV_FILE = csv.reader(open('twitter.csv','rb'))
+import os
+CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'scraping/twitter.csv','rb'))
 
 
 

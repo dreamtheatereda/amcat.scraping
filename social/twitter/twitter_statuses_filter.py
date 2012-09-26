@@ -28,13 +28,12 @@ from tweepy.streaming import StreamListener
 from os import environ
 import csv
 from datetime import date
+import httplib
 
 consumer_key="XC92JObeStin0qEHuu08KQ"
 consumer_secret="UkEZhOEPI0Ydft85PDF3S2KLrV2AlhZqXMtGVnNSEAc"
 access_token="816243289-14u7zplDIiAkTf1fomp9ZUg62eDlzFspXXZv9bty"
 access_token_secret="0FncNCYPgBfQvzwqV0a0kJ7Orr4mQUFsDwkPkrCvo"
-
-
 
 
 
@@ -58,18 +57,20 @@ class TwitterFilterScript(Script):
                 [words.append(w.strip()) for w in l.strip("\n").split(",") if len(w.strip())>1]
 
         print(words)
-
         s = self.stream()
         s.filter(None,words)
-
-
 
     def stream(self):
         auth = OAuthHandler(consumer_key,consumer_secret)
         auth.set_access_token(access_token,access_token_secret)
         l = Listener()
         stream = Stream(auth,l)
+        l.stream = stream
         return stream
+
+
+
+
 
 class Listener(StreamListener):
 
@@ -80,18 +81,23 @@ class Listener(StreamListener):
         self.i = 0
 
     def on_data(self,data):
-        print("win!")
         self.writer.writerow(data)
-        if self.i % 100:
+        if self.i % 5:
             print("{} tweets written.".format(self.i))
         return True
 
 
     def on_error(self,status):
+        s = self.stream
         print(status)
+        if status == 420:
+            conn = httplib.HTTPConnection(s.host)
+            conn.connect()
+            conn.sock.settimeout(s.timeout)
+            conn.request('POST', s.url, s.body, headers=s.headers)
+            response = conn.getresponse()
+            print(dir(response))
 
-    def on_limit(self,track):
-        print(track)
 
 
 
