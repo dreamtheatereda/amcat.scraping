@@ -29,7 +29,7 @@ from urllib import urlencode
 from urllib2 import HTTPError
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
-
+from datetime import date
 
 import csv
 CSV_FILE = csv.reader(open('twitter.csv','rb'))
@@ -110,15 +110,15 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
         FULL_NAME = page.doc.cssselect("h1.fullname")[0].text.strip()
         for div in page.doc.cssselect("div.stream-item"):
             if div.get('data-item-type')=="tweet":
-                t_date=readDate(div.cssselect("small.time a")[0].get('title'))
-                if str(self.options['date']) in str(t_date):
+                t_date=readDate(div.cssselect("small.time a")[0].get('title')).date()
+                if self.options['date'] == t_date:
                     tweet = Document()
                     tweet.text = div.cssselect("p.js-tweet-text")[0].text_content()
                     tweet.date = div.cssselect("small.time a")[0].get('title')
                     tweet.author = FULL_NAME
                     yield tweet
-                else:
-                    break #for speed
+                elif self.options['date']>t_date:
+                    break
             
 
 
