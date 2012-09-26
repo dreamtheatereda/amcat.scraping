@@ -25,7 +25,7 @@ from django import forms
 from amcat.scripts.script import Script
 from tweepy import OAuthHandler,Stream
 from tweepy.streaming import StreamListener
-from os import environ
+from os import environ,path
 import csv
 from datetime import date
 import httplib
@@ -48,8 +48,10 @@ class TwitterFilterScript(Script):
 
     def run(self, _input):
         if len(self.options['track_file'])<=1:
-            self.options['track_file']='track.txt'
-
+            if path.exists(environ.get('PYTHONPATH')+"/scraping"):
+                self.options['track_file']='{}scraping/social/twitter/track.txt'.format(environ.get('PYTHONPATH'))
+            else:
+                self.options['track_file']='{}amcatscraping/social/twitter/track.txt'.format(environ.get('PYTHONPATH'))
         words = []
         word_file = open(self.options['track_file'])
         for l in word_file.readlines():
@@ -59,6 +61,7 @@ class TwitterFilterScript(Script):
         print(words)
         s = self.stream()
         s.filter(None,words)
+        
 
     def stream(self):
         auth = OAuthHandler(consumer_key,consumer_secret)

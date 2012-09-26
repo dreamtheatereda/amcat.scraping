@@ -89,9 +89,9 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
                 url = row[7]
                 page = self.opener.opener.open(url)
             except:
-                print("twitter addres {} not found, using search instead".format(row[7]))
-                q = row[0]
-                url = urljoin(INDEX_URL,self.get_user(q))
+                print("twitter addres {} not found".format(row[7]))
+                open('readme.txt','a+').write("twitter addres {} not found".format(row[7]))
+                continue
             finally:
                 page = HTMLDocument(url = url,date = self.options['date'])
                 yield page 
@@ -121,17 +121,6 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
                 elif self.options['date']>t_date:
                     break
             
-
-
-
-   
-    def get_user(self,q):
-        USER_Q_URL = 'http://api.twitter.com/1/users/search.json?q={}&per_page=1'
-        TOKEN = '59869892-Y2KfPPVqwjTtvqFlzuvOW4W62bQsEGhJJOOe0Zze6'
-        TOKEN_SECRET = 'dnN7fT1JfPXCx3SIBhveP8IWwfgouepnOJLzCOZAY'
-        json_result = oauth_req(USER_Q_URL.format(q),TOKEN,TOKEN_SECRET)
-        user = json.loads(json_result)
-        return user[0]['screen_name']
 
 
 if __name__ == '__main__':
