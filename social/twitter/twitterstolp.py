@@ -33,7 +33,7 @@ from datetime import date
 
 import csv
 import os
-CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'scraping/twitter.csv','rb'))
+CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'scraping/social/twitter/twitter.csv','rb'))
 
 
 
