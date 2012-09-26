@@ -92,9 +92,9 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
                 print("twitter addres {} not found".format(row[7]))
                 open('readme.txt','a+').write("twitter addres {} not found".format(row[7]))
                 continue
-            finally:
-                page = HTMLDocument(url = url,date = self.options['date'])
-                yield page 
+
+            page = HTMLDocument(url = url,date = self.options['date'])
+            yield page 
                 
 
 
@@ -106,7 +106,7 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
         try:
             page.prepare(self)
             page.doc = self.getdoc(page.props.url)
-        except HTTPError:
+        except (HTTPError,ValueError):
             return
         FULL_NAME = page.doc.cssselect("h1.fullname")[0].text.strip()
         for div in page.doc.cssselect("div.stream-item"):

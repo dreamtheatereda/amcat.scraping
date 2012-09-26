@@ -28,36 +28,33 @@ from amcat.tools import toolkit
 from urlparse import urljoin
 import datetime
 
+
 class ParoolScraper(HTTPScraper, DatedScraper):
     medium_name = 'Parool'
-    index_url = "http://www.parool.nl/"
+    index_url = "http://m.parool.nl/24-uur-nieuws.html"
         
     def _get_units(self):
         date = self.options['date']
-        if date == datetime.date.today():
-            for li in self.getdoc(self.index_url).cssselect('.art_box8 li'):
-                href = li.cssselect('a')[0].get('href')
-                href = urljoin(self.index_url, href)
-                yield HTMLDocument(url=href)
+        if date == datetime.date.today()-datetime.timedelta(days=1):
+            for li in self.getdoc(self.index_url).cssselect('#cntr4 li.clearfix'):
+                if "gisteren" in li.cssselect("p.commentsBox")[0].text:
+                    href = li.cssselect('a')[0].get('href')
+                    href = urljoin("http://m.parool.nl/", href)
+                    yield HTMLDocument(url=href)
+        elif date == datetime.date.today():
+            for li in self.getdoc(self.index_url).cssselect('ul.cntr4 li.clearfix'):
+                if "gisteren" not in li.cssselect("p.commentsBox"):
+                    href = li.cssselect('a')[0].get('href')
+                    href = urljoin("m.parool.nl", href)
+                    yield HTMLDocument(url=href)
         else:
-            print( 'blaat' )
+            print( '\nblaat.\n' )
 
     def _scrape_unit(self,doc):
         doc.doc = self.getdoc(doc.props.url)
-        doc.props.headline = doc.doc.cssselect('.k20')[0].text
-        datum = doc.doc.cssselect('.time_post')[0].text
-        doc.props.date = toolkit.readDate(datum)
-        articlebody = doc.doc.cssselect('.art_box2')[0]
-        print(repr(articlebody.text_content()))
-        articlebody.cssselect('.k20')[0].drop_tree()
-        articlebody.cssselect('.time_post')[0].drop_tree()
-        try:
-            articlebody.cssselect('script')[0].drop_tree()
-        except:
-            pass
-        articlebody = articlebody.text_content().strip()
-        doc.props.text = articlebody
-        doc.props.author = '' # zeer inconsistent weergegeven, meestal ANP
+        doc.props.headline = doc.doc.cssselect('h1.fontXL')[0].text
+        doc.props.byline = doc.doc.cssselect('p.article')[0].text
+        doc.props.text = "\n".join([p.text_content() for p in doc.doc.cssselect("#mainCntr p")])
         yield doc
 
 
