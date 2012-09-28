@@ -91,9 +91,8 @@ class TemplateScraper(HTTPScraper, DBScraper): #change class name
         INDEX_URL = INDEX_URL % index_dict
         index = self.getdoc(INDEX_URL) 
         
-        units = index.cssselect(''):
-        for unit in units:
-            href = unit.cssselect('').get('href')
+        for unit in index.cssselect(''):
+            href = unit.cssselect('')[0].get('href')
             yield IndexDocument(url=href, date=self.options['date'])
 
         # make sure to get the date right
