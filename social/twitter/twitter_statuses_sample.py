@@ -58,7 +58,7 @@ class TwitterScraper(object):
             if(data):
                 self.writer.writerow(data)
 
-            if i % 10000 == 0:
+            if i % 1000 == 0:
                 print("Added {} tweets to file {}".format(i,self.target))
 
         self.run()

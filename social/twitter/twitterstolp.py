@@ -33,8 +33,12 @@ from datetime import date
 
 import csv
 import os
-CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'scraping/social/twitter/twitter.csv','rb'))
 
+target = os.environ.get('PYTHONPATH')+"/{scraping_module}/social/twitter/twitter.csv"
+if os.path.exists(target.format(scraping_module="scraping")):
+    CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'/scraping/social/twitter/twitter.csv','rb'))
+elif os.path.exists(target.format(scraping_module="amcatscraping")):
+    CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'/amcatscraping/social/twitter/twitter.csv','rb'))
 
 
 INDEX_URL = "https://www.twitter.com"
@@ -87,9 +91,11 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
                 continue
             try:
                 url = row[7]
+                if len(url)<5:
+                    continue
                 page = self.opener.opener.open(url)
             except:
-                print("twitter addres {} not found".format(row[7]))
+                print("twitter addres {} not found\n".format(row[7]))
                 open('readme.txt','a+').write("twitter addres {} not found".format(row[7]))
                 continue
 

@@ -48,11 +48,10 @@ class TwitterFilterScript(Script):
 
     def run(self, _input):
         if len(self.options['track_file'])<=1:
-            if path.exists(environ.get('PYTHONPATH')+"amcat/scraping"):
-                self.options['track_file']='{}amcat/scraping/social/twitter/track.txt'.format(environ.get('PYTHONPATH'))
+            if path.exists(environ.get('PYTHONPATH')+"scraping"):
+                self.options['track_file']='{}scraping/social/twitter/track.txt'.format(environ.get('PYTHONPATH'))
             else:
                 self.options['track_file']='{}amcatscraping/social/twitter/track.txt'.format(environ.get('PYTHONPATH'))
-        print(self.options['track_file'])
         words = []
         word_file = open(self.options['track_file'])
         for l in word_file.readlines():
