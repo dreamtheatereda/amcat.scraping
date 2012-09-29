@@ -29,6 +29,8 @@ from os import environ,path
 import csv
 from datetime import date
 import httplib
+import json
+from time import sleep
 
 consumer_key="XC92JObeStin0qEHuu08KQ"
 consumer_secret="UkEZhOEPI0Ydft85PDF3S2KLrV2AlhZqXMtGVnNSEAc"
@@ -60,6 +62,7 @@ class TwitterFilterScript(Script):
 
         print(words)
         s = self.stream()
+        s.retry_time = (60*10)
         s.filter(None,words)
         
 
@@ -71,8 +74,38 @@ class TwitterFilterScript(Script):
         l.stream = stream
         return stream
 
-
-
+fields = [
+    'annotations',
+    'contributors',
+    'coordinates',
+    'created_at',
+    'current_user_retweet',
+    'entities',
+    'favorited',
+    'geo',
+    'id',
+    'id_str',
+    'in_reply_to_screen_name',
+    'in_reply_to_status_id',
+    'in_reply_to_status_id_str',
+    'in_reply_to_user_id',
+    'in_reply_to_user_id_str',
+    'place',
+    'possibly_sensitive',
+    'scopes',
+    'retweet_count',
+    'retweeted',
+    'source',
+    'text',
+    'truncated',
+    'user',
+    'witheld_copyright',
+    'witheld_in_countries',
+    'witheld_scope',
+    'retweeted_status',
+    'possibly_sensitive_editable',
+    'limit'
+    ]
 
 
 class Listener(StreamListener):
@@ -80,26 +113,38 @@ class Listener(StreamListener):
     def __init__(self):
         f = "{}tweets/{}".format(environ.get('PYTHONPATH'),date.today().strftime("filter_%Y-%m-%d.csv"))
         outputfile = open(f,'a+')
-        self.writer = csv.writer(outputfile)
-        self.i = 0
+        self.writer = csv.DictWriter(outputfile,fieldnames=fields)
+
 
     def on_data(self,data):
-        self.writer.writerow(data)
-        if self.i % 5:
-            print("{} tweets written.".format(self.i))
+        print("tweet found")
+        data = json.loads(data)
+        if 'limit' in data.keys():
+            sleep(10)
+        _data = self.dict_unicode_to_str(data)
+        
+        self.writer.writerow(_data)
         return True
 
+    def dict_unicode_to_str(self,data):
+        for k,v in data.items():
+            if 'unicode' in str(type(v)):
+            
+                data[k] = v.encode('utf-8','replace')
+            
+            elif 'dict' in str(type(v)):
+            
+                data[k] = self.dict_unicode_to_str(v)
+            elif 'list' in str(type(v)):
+            
+                data[k] = [str(i).encode('utf-8',errors='replace') for i in v]
+           
+        return data
 
-    def on_error(self,status):
-        s = self.stream
+    def on_error(status):
         print(status)
-        if status == 420:
-            conn = httplib.HTTPConnection(s.host)
-            conn.connect()
-            conn.sock.settimeout(s.timeout)
-            conn.request('POST', s.url, s.body, headers=s.headers)
-            response = conn.getresponse()
-            print(dir(response))
+
+    
 
 
 

@@ -39,9 +39,9 @@ class TwitterScraper(object):
     lastdate = date.today()
     target = date.today().strftime("/home/amcat/tweets/twitter_scrapheap_%Y-%m-%d.csv")
     if os.path.exists(target):
-        writer = csv.writer(open(target,'a+'))
+        writer = csv.DictWriter(open(target,'a+'))
     else:
-        writer = csv.writer(open(target,'w'))
+        writer = csv.DictWriter(open(target,'w'))
     def run(self):
         
         stream = TwitterStream(auth=UserPassAuth(self.username,self.password))
@@ -70,9 +70,9 @@ class TwitterScraper(object):
             print("\n\nNew date detected, changing target file\n\n")
             self.target = date.today().strftime("/home/amcat/tweets/twitter_scrapheap_%Y-%m-%d.csv")
             if os.path.exists(target):
-                writer = csv.writer(open(target,'a+'))
+                writer = csv.DictWriter(open(target,'a+'))
             else:
-                writer = csv.writer(open(target,'w'))
+                writer = csv.DictWriter(open(target,'w'))
             self.writer.writerow(['id','created at','text','hashtags','urls','user mentions','retweeted','user id','in reply to status id','in reply to user id','place id','user location','user language','contributor id\'s','contributor screen names respectively'])
             self.lastdate = date.today()
 
