@@ -71,7 +71,7 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
 
     def __init__(self, *args, **kwargs):
         super(TwitterPoliticiScraper, self).__init__(*args, **kwargs)
-
+        self.notfound = open('readme.txt','w')
 
     def _login(self, username, password):
         
@@ -95,8 +95,9 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
                     continue
                 page = self.opener.opener.open(url)
             except:
-                print("twitter addres {} not found\n".format(row[7]))
-                open('readme.txt','a+').write("twitter addres {} not found".format(row[7]))
+                msg = "{} twitter addres ({}) not found\n".format(row[0],row[7])
+                print(msg)
+                self.notfound.write(msg)
                 continue
 
             page = HTMLDocument(url = url,date = self.options['date'])
