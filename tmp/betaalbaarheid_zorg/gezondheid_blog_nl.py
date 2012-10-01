@@ -48,7 +48,7 @@ class Gezondheid_blog_nlScraper(HTTPScraper, DatedScraper):
             date = readDate(_re.group(2))
             headline = article.cssselect("h1")[0].text_content()
             if str(self.options['date']) not in str(date):
-                break
+                continue
             link = article.cssselect("h1 a")[0].get('href')
             yield HTMLDocument(url=link,headline=headline,author=author)
         
@@ -57,7 +57,10 @@ class Gezondheid_blog_nlScraper(HTTPScraper, DatedScraper):
         doc.prepare(self)
         doc.doc = self.getdoc(doc.props.url)
         doc.props.text = doc.doc.cssselect("div.post div.postEntry")[0].text_content()
-        doc.props.source = doc.doc.cssselect("div.post div.postEntry p em a")[0].get('href')
+        try:
+            doc.props.source = doc.doc.cssselect("div.post div.postEntry p em a")[0].get('href')
+        except IndexError:
+            pass
         yield doc
 
 

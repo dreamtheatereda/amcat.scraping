@@ -44,7 +44,7 @@ class Zorgportaal_nlNieuwsScraper(HTTPScraper, DatedScraper):
                 _date = entry.cssselect("pubdate")[0].text
                 date = readDate(_date)
                 if str(self.options['date']) in str(date):
-                    href = entry.cssselect("link")[0].tail
+                    href = entry.cssselect("link")[0].tail.strip()
                     yield HTMLDocument(url=href, date=date)
 
         

@@ -45,7 +45,7 @@ class WebTelegraafScraper(HTTPScraper, DatedScraper):
             date = _date.today()
             href = urljoin("http://www.telegraaf.nl",section.get('href'))
             if "digitaal/games" in href:
-                href = "http://www.telegraaf.nl/snelnieuws/index.jsp?sec=games"
+                continue
 
 
             ipage = self.getdoc(href)

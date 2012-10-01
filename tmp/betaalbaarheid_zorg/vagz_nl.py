@@ -39,17 +39,18 @@ class Vagz_nlScraper(HTTPScraper, DatedScraper):
 
       
         index = self.getdoc(INDEX_URL) 
-        
-        
-        articles = index.cssselect('table.contentpane tr.sectiontableentry2')
-        articles2 = index.cssselect('table.contentpane tr.sectiontableentry1')
-        articles.extend(articles2)
-        for article in articles:
-            date = article.cssselect('td')[2].text
-            if str(self.options['date']) in str(readDate(date)):
-                link = article.cssselect('td')[1].cssselect('a')[0].get('href')
-                href = urljoin(INDEX_URL,link)
-                yield HTMLDocument(url=href, date=readDate(date))
+        pages = [INDEX_URL] + [urljoin(INDEX_URL,l.get('href')) for l in index.cssselect("ul.pagination li a")[3:]]
+        for p in pages:
+            doc = self.getdoc(p)
+            articles = doc.cssselect('table.contentpane tr.sectiontableentry2')
+            articles2 = doc.cssselect('table.contentpane tr.sectiontableentry1')
+            articles.extend(articles2)
+            for article in articles:
+                date = article.cssselect('td')[2].text
+                if str(self.options['date']) in str(readDate(date)):
+                    link = article.cssselect('td')[1].cssselect('a')[0].get('href')
+                    href = urljoin(INDEX_URL,link)
+                    yield HTMLDocument(url=href, date=readDate(date))
 
 
 
@@ -122,8 +123,8 @@ class Vagz_nlScraper(HTTPScraper, DatedScraper):
                  ('clinicalaudit.nl','div#content'),
                  ('maastrichtuniversity.nl','div#maincontent'),
                  ('pvda.nl','div.post-content'),
-                 ('nvag.nl','hoofd-discussie-container')
-                 
+                 ('nvag.nl','hoofd-discussie-container'),
+                 ('vkbanen.nl','div.str_col3')
                  ]
         
         paths = [medium[1] for medium in MEDIA]
