@@ -104,7 +104,8 @@ fields = [
     'witheld_scope',
     'retweeted_status',
     'possibly_sensitive_editable',
-    'limit'
+    'limit',
+    'disconnect'
     ]
 
 
@@ -122,7 +123,11 @@ class Listener(StreamListener):
         if 'limit' in data.keys():
             sleep(10)
         _data = self.dict_unicode_to_str(data)
-        
+        for k,v in _data.items():
+            if k=='disconnect':
+                sleep(10*60)
+            if k not in fields:
+                return
         self.writer.writerow(_data)
         return True
 
