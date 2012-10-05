@@ -29,6 +29,8 @@ except ImportError:
 
 import re
 from urllib import urlencode
+from httplib2 import iri2uri
+
 
 INDEX_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/load/newspaper.php?pSetup={paper}&userid=NOUSER&date=0@/{paper}/{year}{month}{day}"
 
@@ -40,6 +42,20 @@ LOGIN_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea
 class TubantiaScraper(HTTPScraper, DBScraper):
     medium_name = "Tubantia"
     paper = "tubantia"
+
+    def open(self,url,encoding=None):
+        try:
+            return self.opener.opener.open(url,encoding)
+        except UnicodeEncodeError:
+            url = iri2uri(url)
+            return self.opener.opener.open(url,encoding)
+    
+    def getdoc(self,url,encoding=None):
+        try:
+            return self.opener.getdoc(url,encoding)
+        except UnicodeEncodeError:
+            url = iri2uri(url)
+            return self.opener.getdoc(url,encoding)
 
 
     def __init__(self, *args, **kwargs):

@@ -27,9 +27,22 @@ from amcat.tools.toolkit import readDate
 class DeAmazonesScraper(PhpBBScraper,DatedScraper):
     index_url = "http://www.de-amazones.nl/phpbbforum/"
     medium_name = "de-amazones.nl - forum"
-    i = 0
-    def _scrape_unit(self, thread):
-        p = 0
+    
+    def _get_units(self):
+        """
+        PhpBB forum scraper
+        """
+        index = self.getdoc(self.index_url)
+
+        for cat_title, cat_doc in self.get_categories(index):
+            for page in self.get_pages(cat_doc):
+                for fbg in page.cssselect('.forumbg'):
+                    for a in fbg.cssselect('.topics > li a.topictitle'):
+                        url = urljoin(self.index_url, a.get('href'))
+                        yield HTMLDocument(headline=a.text, url=url, category=cat_title)
+
+def _scrape_unit(self, thread):
+
         fipo = True
         thread.doc = self.getdoc(thread.props.url)
         for page in self.get_pages(thread.doc):
