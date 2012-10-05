@@ -61,8 +61,8 @@ class FDScraper(HTTPScraper, DBScraper):
 
         # only god knows why opening this particular url twice works, but its the only thing that works..
         url = "http://digikrant.fd.nl/go?url=digikrant-archief.fd.nl/vw/edition.do?forward=true%26dp=FD%26altd=true%26date={y:04d}{m:02d}{d:02d}%26uid=2570808%26oid=%26abo=DIGITAAL2011%26ed=00".format(**data)
-        for x in range(2):
-            self.open(url)
+        self.open(url)
+        self.open(url)
             
 
     def _get_units(self):
