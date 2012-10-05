@@ -19,61 +19,17 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.phpbbscraper import PhpBBScraper
-from amcat.scraping.scraper import DatedScraper
+from amcat.scraping.phpbbscraper import PhpBBScraper, DatedPhpBBScraper
 from amcat.tools.toolkit import readDate
 
-
-class DeAmazonesScraper(PhpBBScraper,DatedScraper):
+class DeAmazonesScraper(PhpBBScraper):
     index_url = "http://www.de-amazones.nl/phpbbforum/"
     medium_name = "de-amazones.nl - forum"
-    
-    def _get_units(self):
-        """
-        PhpBB forum scraper
-        """
-        index = self.getdoc(self.index_url)
 
-        for cat_title, cat_doc in self.get_categories(index):
-            for page in self.get_pages(cat_doc):
-                for fbg in page.cssselect('.forumbg'):
-                    for a in fbg.cssselect('.topics > li a.topictitle'):
-                        url = urljoin(self.index_url, a.get('href'))
-                        yield HTMLDocument(headline=a.text, url=url, category=cat_title)
 
-def _scrape_unit(self, thread):
-
-        fipo = True
-        thread.doc = self.getdoc(thread.props.url)
-        for page in self.get_pages(thread.doc):
-            p += 1
-            for post in page.cssselect('.post'):
-                self.i += 1
-                ca = thread if fipo else thread.copy(parent=thread)
-                ca.props.date = readDate(post.cssselect('.author')[0].text_content()[-22:])
-                ca.props.text = post.cssselect('.content')
-
-                title = post.cssselect('.postbody h3 a')[0].text
-                if fipo:
-                    optitle = title
-                if title:
-                    ca.props.headline = title
-                else:
-                    ca.props.headline = 're: {}'.format( optitle )
-
-                try:
-                    ca.props.author = post.cssselect('.author strong')[0].text_content()
-                except:
-                    try:
-                        ca.props.author = post.cssselect('.author a')[0].text_content()
-                    except:
-                        # Least reliable method
-                        ca.props.author = post.cssselect('.author')[0].text_content().split()[0]
-                
-                if ca.props.date.date() == self.options['date']:        
-                    yield ca
-
-                fipo = False
+class DeAmazonesDatedScraper(DatedPhpBBScraper):
+    index_url = "http://www.de-amazones.nl/phpbbforum/"
+    medium_name = "de-amazones.nl - forum"
 
 
 if __name__ == '__main__':
