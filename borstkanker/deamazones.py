@@ -20,11 +20,49 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.phpbbscraper import PhpBBScraper
+from amcat.scraping.scraper import DatedScraper
+from amcat.tools.toolkit import readDate
 
-class DeAmazonesScraper(PhpBBScraper):
+
+class DeAmazonesScraper(PhpBBScraper,DatedScraper):
     index_url = "http://www.de-amazones.nl/phpbbforum/"
     medium_name = "de-amazones.nl - forum"
-    
+    i = 0
+    def _scrape_unit(self, thread):
+        p = 0
+        fipo = True
+        thread.doc = self.getdoc(thread.props.url)
+        for page in self.get_pages(thread.doc):
+            p += 1
+            for post in page.cssselect('.post'):
+                self.i += 1
+                ca = thread if fipo else thread.copy(parent=thread)
+                ca.props.date = readDate(post.cssselect('.author')[0].text_content()[-22:])
+                ca.props.text = post.cssselect('.content')
+
+                title = post.cssselect('.postbody h3 a')[0].text
+                if fipo:
+                    optitle = title
+                if title:
+                    ca.props.headline = title
+                else:
+                    ca.props.headline = 're: {}'.format( optitle )
+
+                try:
+                    ca.props.author = post.cssselect('.author strong')[0].text_content()
+                except:
+                    try:
+                        ca.props.author = post.cssselect('.author a')[0].text_content()
+                    except:
+                        # Least reliable method
+                        ca.props.author = post.cssselect('.author')[0].text_content().split()[0]
+                
+                if ca.props.date.date() == self.options['date']:        
+                    yield ca
+
+                fipo = False
+
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging

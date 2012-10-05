@@ -55,9 +55,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         form = toolkit.parse_form(page)
         form["username"] = str(username)
         form["password"] = str(password)
-
-        page = self.opener.opener.open(url, urlencode(form))
-        
+        page = self.open(url, urlencode(form))
 
         cookies=page.info()["Set-Cookie"]
         tauidloc = cookies.rfind("TAUID")
@@ -69,7 +67,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         machineid_expires = cookies[cookies.find("expires",machineidloc):cookies.find(";",cookies.find(";",machineidloc)+1)]
         cookieheader = machineid+"; "+tauid
         self.opener.opener.addheaders.append(("Cookie",cookieheader))
-        page = self.opener.opener.open(url, urlencode(form))
+        page = self.open(url, urlencode(form))
 
     def _get_units(self):
         """papers are often organised in blocks (pages) of articles, this method gets the blocks, articles are to be gotten later"""
@@ -108,9 +106,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
     def _scrape_unit(self, ipage):
         page = ipage
         ipage = HTMLDocument(ipage)
-        
-        
-        ipage.doc = self.opener.opener.open(page['url'])
+        ipage.doc = self.open(page['url'])
         ipage.page = page['pagenum']
         ipage.props.category = page['section']
         
