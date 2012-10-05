@@ -69,14 +69,14 @@ class Vagz_nlScraper(HTTPScraper, DatedScraper):
         for f in forwards:
             if "Lees verder..." in f.text:
                 link = f.get('href')
-        
-        if len(link)>=5:
-            if not "Bron: ministerie" in page.doc.cssselect("div.article-content p")[-1].text:
-                page.props.text = self.get_text(link)
-            else: #VWS uses pdfs in all publications...
+        if link:
+            if len(link)>=5:
+                if not "Bron: ministerie" in page.doc.cssselect("div.article-content p")[-1].text:
+                    page.props.text = self.get_text(link)
+                else: #VWS uses pdfs in all publications...
+                    page.props.text = page.doc.cssselect("div.article-content")[0].text_content()
+            else: #pdf format
                 page.props.text = page.doc.cssselect("div.article-content")[0].text_content()
-        else: #pdf format
-            page.props.text = page.doc.cssselect("div.article-content")[0].text_content()
            
         
         if page.props.text == None:
