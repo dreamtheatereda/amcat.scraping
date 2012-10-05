@@ -23,7 +23,7 @@ from amcat.scraping.document import Document, HTMLDocument, IndexDocument
 
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
-
+from urllib2 import HTTPError
 
 INDEX_URL = "http://www.nrc.nl/{}/"
 
@@ -48,6 +48,10 @@ class WeblogNRCScraper(HTTPScraper, DatedScraper):
             m = self.options['date'].month
 
             link = urljoin(url,"{y:04d}/{m:02d}/".format(**locals()))
+            try:
+                self.open(link)
+            except HTTPError: #not up to date
+                continue
             yield IndexDocument(url=link, date=self.options['date'])
             
 

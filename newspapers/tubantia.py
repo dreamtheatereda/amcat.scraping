@@ -43,20 +43,6 @@ class TubantiaScraper(HTTPScraper, DBScraper):
     medium_name = "Tubantia"
     paper = "tubantia"
 
-    def open(self,url,encoding=None):
-        try:
-            return self.opener.opener.open(url,encoding)
-        except UnicodeEncodeError:
-            url = iri2uri(url)
-            return self.opener.opener.open(url,encoding)
-    
-    def getdoc(self,url,encoding=None):
-        try:
-            return self.opener.getdoc(url,encoding)
-        except UnicodeEncodeError:
-            url = iri2uri(url)
-            return self.opener.getdoc(url,encoding)
-
 
     def __init__(self, *args, **kwargs):
         super(TubantiaScraper, self).__init__(*args, **kwargs)

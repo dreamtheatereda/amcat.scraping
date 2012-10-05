@@ -43,6 +43,12 @@ class FDScraper(HTTPScraper, DBScraper):
 
     def _login(self, username, password):
 
+        data = {
+            'y':self.options['date'].year,
+            'm':self.options['date'].month,
+            'd':self.options['date'].day
+            }
+
         initial = self.opener.opener.open("http://digikrant.fd.nl")
         form = {
             'email' : username,
@@ -50,24 +56,23 @@ class FDScraper(HTTPScraper, DBScraper):
             }
         pg = self.opener.opener.open(LOGIN_URL,urlencode(form))
 
-        # url below generates a cookie which allows access to archive,
-        # i need to get a medal for finding this.
 
-        url2 = "http://digikrant-archief.fd.nl/vw/edition.do?forward=true&dp=FD&altd=true&date={y:04d}{m:02d}{d:02d}&uid=2570808&oid=&abo=DIGITAAL2011&ed=00&rxst=VDVtb3M5L0pORGhVMG1MUytrb2RpUT09".format(y=self.options['date'].year,m=self.options['date'].month,d=self.options['date'].day)
+        
 
-        pg2 = self.opener.opener.open(url2)
-
+        # only god knows why opening this particular url twice works, but its the only thing that works..
+        url = "http://digikrant.fd.nl/go?url=digikrant-archief.fd.nl/vw/edition.do?forward=true%26dp=FD%26altd=true%26date={y:04d}{m:02d}{d:02d}%26uid=2570808%26oid=%26abo=DIGITAAL2011%26ed=00".format(**data)
+        for x in range(2):
+            self.open(url)
+            
 
     def _get_units(self):
         """get pages"""
-
             
         y = self.options['date'].year
         m = self.options['date'].month
         d = self.options['date'].day
         _url = INDEX_URL.format(**locals())
         index = self.getdoc(_url)
-
         for option in index.cssselect("#selectPage option"):
             page_id = option.get('value')
             page_category = option.text.split("-")[1].strip()
@@ -86,7 +91,6 @@ class FDScraper(HTTPScraper, DBScraper):
         ipage.doc = self.getdoc(ipage.props.url)
         ipage.props.category = p['category']
         ipage.page = p['page']
-
         for a in ipage.doc.cssselect("td.arthref2 a"):
             
 
