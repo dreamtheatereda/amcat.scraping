@@ -74,39 +74,7 @@ class TwitterFilterScript(Script):
         l.stream = stream
         return stream
 
-fields = [
-    'annotations',
-    'contributors',
-    'coordinates',
-    'created_at',
-    'current_user_retweet',
-    'entities',
-    'favorited',
-    'geo',
-    'id',
-    'id_str',
-    'in_reply_to_screen_name',
-    'in_reply_to_status_id',
-    'in_reply_to_status_id_str',
-    'in_reply_to_user_id',
-    'in_reply_to_user_id_str',
-    'place',
-    'possibly_sensitive',
-    'scopes',
-    'retweet_count',
-    'retweeted',
-    'source',
-    'text',
-    'truncated',
-    'user',
-    'witheld_copyright',
-    'witheld_in_countries',
-    'witheld_scope',
-    'retweeted_status',
-    'possibly_sensitive_editable',
-    'limit',
-    'disconnect'
-    ]
+
 
 
 class Listener(StreamListener):

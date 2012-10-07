@@ -22,7 +22,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 from amcat.scraping import toolkit as stoolkit
-
+import time
 from urllib import urlencode
 
 
@@ -55,7 +55,7 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         lines = JS_text.split(";")
         pages = []
         for line in lines:
-            if "pageTable.add( \"DDL" in line:
+            if "pageTable.add( \"DDL" in line and not "Advertentie" in line:
                 args = line[line.find("Array"):].split(",")
                 pages.append({'date' : args[1],'link' : args[2].strip().strip('"').lstrip("/"),'pagenum' : args[3],'category' : args[6]})
         return pages
@@ -67,13 +67,8 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         index = self.getdoc(index_url)
         
         for page in self._get_pages_links(index):
-            
             href = PAGE_URL.format(self.options['date'],pageurl = page['link'])
             yield IndexDocument(url=href, date=self.options['date'],category = page['category'],page=page['pagenum'])
-
-
-
-
 
 
         
@@ -85,13 +80,19 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         ipage.doc = self.getdoc(ipage.props.url)
         ipage.props.category = "" #add ipage category if present
         for article in ipage.doc.cssselect("body div.overlay"):
+
+            time.sleep(1)
+
             text = article.text_content()
             onclick = text[text.find("onClick"):]
             article_id = onclick.split(",")[0].split("'")[1]
             url = ARTICLE_URL.format(self.options['date'],pageid = pageid,articleid = article_id)
             
             page = HTMLDocument(date = ipage.props.date,url=url)
+<<<<<<< local
+=======
             
+>>>>>>> other
             page.prepare(self)
             page.doc = self.getdoc(page.props.url)
             yield self.get_article(page)
