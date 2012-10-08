@@ -31,6 +31,8 @@ import re
 from lxml import etree
 INDEX_URL = "http://www.nujij.nl/"
 
+
+
 class NuJijScraper(HTTPScraper, DatedScraper):
     medium_name = "Nujij.nl"
 
@@ -52,6 +54,8 @@ class NuJijScraper(HTTPScraper, DatedScraper):
                 nxt = self.getdoc(nxt_url)
                 for doc in self.get_articles(nxt):
                     yield doc
+
+
             
     def get_articles(self,page):
         for article in page.cssselect("div.columnLeft div.bericht"):
@@ -59,7 +63,7 @@ class NuJijScraper(HTTPScraper, DatedScraper):
             datum = readDate(_datum)
             print("checking date for {url}".format(url=article.cssselect("h3.title a")[0].get('href')))
             print("Scraped date: {sdate}. Article date: {adate}. Correct? -> {correct}".format(sdate=self.options['date'],adate=_datum,correct=(self.options['date'].__str__() in datum.__str__())))
-            if str(self.options['date']) in str(datum):
+            if self.options['date'] == datum.date():
                 href = article.cssselect("h3.title a")[0].get('href')+"?pageStart=1"
                 yield HTMLDocument(url=href)
             
