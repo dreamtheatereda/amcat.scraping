@@ -30,8 +30,8 @@ from urlparse import urljoin
 from urllib import urlencode
 
 class NRCScraper(HTTPScraper, DBScraper):
-    #medium_name = #"NRC Handelsblad"
-    nrc_version = None
+    medium_name = "NRC Handelsblad"
+    nrc_version = "NH"
 
     def _login(self, username, password):
         page = self.getdoc(LOGIN_URL)
@@ -56,6 +56,7 @@ class NRCScraper(HTTPScraper, DBScraper):
             'month_minus' : date.month - 1,
             'version' : self.nrc_version
         }
+        print(index)
         sections = self.getdoc(index).cssselect('#Sections a.thumbnail-link')
         for s in sections:
             url = urljoin(index, s.get('href'))
@@ -90,3 +91,10 @@ class NRCScraper(HTTPScraper, DBScraper):
 
         return page
 
+
+if __name__ == '__main__':
+    from amcat.scripts.tools import cli
+    from amcat.tools import amcatlogging
+    amcatlogging.debug_module("amcat.scraping.scraper")
+    amcatlogging.debug_module("amcat.scraping.document")
+    cli.run_cli(NRCScraper)

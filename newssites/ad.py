@@ -57,7 +57,10 @@ class WebADScraper(HTTPScraper, DatedScraper):
         
 
     def get_article(self, page):
-        page.props.author = etree.tostring(page.doc.cssselect("span.author")[0]).split("<br>")[0].split(":")[1].strip()
+        try:
+            page.props.author = etree.tostring(page.doc.cssselect("span.author")[0]).split("<br>")[0].split(":")[1].strip()
+        except IndexError:
+            page.props.author = "onbekend"
         page.props.headline = page.doc.cssselect("#articleDetailTitle")[0].text
         page.props.text = page.doc.cssselect("section#detail_content")[0].text_content() #yay for html5
         return page

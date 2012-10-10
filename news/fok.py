@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 
-from amcat.scraping.scraper import DBScraper, HTTPScraper
+from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 
 
@@ -28,17 +28,17 @@ from amcat.scraping.document import HTMLDocument, IndexDocument
 
 
 FRONTPAGE_URL = "http://frontpage.fok.nl"
-INDEX_URL = "http://frontpage.fok.nl/nieuws/archief/{year}/{month}/{day}"
+INDEX_URL = "http://frontpage.fok.nl/nieuws/archief/{y:04d}/{m:02d}/{d:02d}"
 
-class FokScraper(HTTPScraper, DBScraper):
+class FokScraper(HTTPScraper, DatedScraper):
     medium_name = "fok nieuws"
 
     def __init__(self, *args, **kwargs):
         
         super(FokScraper, self).__init__(*args, **kwargs)
 
-    def _login(self,username,password):
-        """Not used for logging in, but to avoid the pop up screen about cookies, which ironically needs a cookie to avoid."""
+    def _cookie(self):
+
         page = self.opener.opener.open(FRONTPAGE_URL)
 
         cookie_string = page.info()["Set-Cookie"]
@@ -49,18 +49,14 @@ class FokScraper(HTTPScraper, DBScraper):
 
     def _get_units(self):
         """papers are often organised in blocks (pages) of articles, this method gets the blocks, articles are to be gotten later"""
+        self._cookie()
+        index_dict = {
+            'y' : self.options['date'].year,
+            'm' : self.options['date'].month,
+            'd' : self.options['date'].day
+        }
 
-        year = str(self.options['date'].year)
-        month = str(self.options['date'].month)
-        day = str(self.options['date'].day)
-        #creating correct format
-        if len(month) == 1:
-            month = "0"+month
-        if len(day) == 1:
-            day = "0"+day
-
-
-        url = INDEX_URL.format(year = year, month = month, day = day)
+        url = INDEX_URL.format(**index_dict)
         index = self.getdoc(url)
         articles = index.cssselect('.title')
         for article_unit in articles:

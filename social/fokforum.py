@@ -19,7 +19,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.scraper import DBScraper, HTTPScraper
+from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 
 
@@ -39,7 +39,7 @@ CATEGORIES_TO_SCRAPE = [
 
 INDEX_URL = "http://forum.fok.nl"
 
-class FokForumScraper(HTTPScraper, DBScraper):
+class FokForumScraper(HTTPScraper, DatedScraper):
     medium_name = "Fok Forum"
 
     def __init__(self, *args, **kwargs):

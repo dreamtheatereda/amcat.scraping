@@ -89,10 +89,6 @@ class LimburgerScraper(HTTPScraper, DBScraper):
             url = ARTICLE_URL.format(self.options['date'],pageid = pageid,articleid = article_id)
             
             page = HTMLDocument(date = ipage.props.date,url=url)
-<<<<<<< local
-=======
-            
->>>>>>> other
             page.prepare(self)
             page.doc = self.getdoc(page.props.url)
             yield self.get_article(page)

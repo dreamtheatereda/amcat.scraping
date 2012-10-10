@@ -20,13 +20,13 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 
-from amcat.scraping.scraper import DBScraper, HTTPScraper
+from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, IndexDocument
 
 
 INDEX_URL = "http://www.geenstijl.nl/mt/archieven/maandelijks/{y}/{m}/"
 
-class GeenstijlScraper(HTTPScraper, DBScraper):
+class GeenstijlScraper(HTTPScraper, DatedScraper):
     medium_name = "geenstijl.nl"
 
     def __init__(self, *args, **kwargs):

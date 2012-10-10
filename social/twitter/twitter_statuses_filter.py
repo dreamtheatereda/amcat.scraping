@@ -37,10 +37,45 @@ consumer_secret="UkEZhOEPI0Ydft85PDF3S2KLrV2AlhZqXMtGVnNSEAc"
 access_token="816243289-14u7zplDIiAkTf1fomp9ZUg62eDlzFspXXZv9bty"
 access_token_secret="0FncNCYPgBfQvzwqV0a0kJ7Orr4mQUFsDwkPkrCvo"
 
+fields = [
+    'annotations',
+    'contributors',
+    'coordinates',
+    'created_at',
+    'current_user_retweet',
+    'entities',
+    'favorited',
+    'geo',
+    'id',
+    'id_str',
+    'in_reply_to_screen_name',
+    'in_reply_to_status_id',
+    'in_reply_to_status_id_str',
+    'in_reply_to_user_id',
+    'in_reply_to_user_id_str',
+    'place',
+    'possibly_sensitive',
+    'scopes',
+    'retweet_count',
+    'retweeted',
+    'source',
+    'text',
+    'truncated',
+    'user',
+    'witheld_copyright',
+    'witheld_in_countries',
+    'witheld_scope',
+    'retweeted_status',
+    'possibly_sensitive_editable',
+    'limit',
+    'disconnect'
+    ]
+
 
 
 class TwitterFilterForm(forms.Form):
     track_file = forms.CharField(required=False)
+    date = forms.DateField()
 
 class TwitterFilterScript(Script):
     options_form = TwitterFilterForm
@@ -69,18 +104,17 @@ class TwitterFilterScript(Script):
     def stream(self):
         auth = OAuthHandler(consumer_key,consumer_secret)
         auth.set_access_token(access_token,access_token_secret)
-        l = Listener()
+        l = Listener(self.options['date'])
         stream = Stream(auth,l)
         l.stream = stream
         return stream
 
 
 
-
 class Listener(StreamListener):
 
-    def __init__(self):
-        f = "{}tweets/{}".format(environ.get('PYTHONPATH'),date.today().strftime("filter_%Y-%m-%d.csv"))
+    def __init__(self,date):
+        f = "{}tweets/{}".format(environ.get('PYTHONPATH'),date.strftime("filter_%Y-%m-%d.csv"))
         outputfile = open(f,'a+')
         self.writer = csv.DictWriter(outputfile,fieldnames=fields)
 
