@@ -20,9 +20,6 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.document import HTMLDocument
-
-#from urllib import urlencode
-#from urlparse import urljoin
 from amcat.tools.toolkit import readDate
 
 
@@ -40,11 +37,10 @@ class Nieuws_nlScraper(HTTPScraper, DatedScraper):
     def _get_units(self):
 
         url = INDEX_URL
-        index = self.getdoc(url) 
-        
-        for unit in index.cssselect('div.submenu'):
-            href = unit.cssselect('a')[0].get('href')
-            print(href)
+        index = self.getdoc(url)
+        for unit in index.cssselect('div.submenu a'):
+            href = unit.get('href')
+            print("\n"+href+"\n")
             for page in self.get_pages(self.getdoc(href)):
                 i = 0
                 for _article in page.cssselect("#mainlayout_rundown .mainlayout_datum"):
@@ -54,10 +50,11 @@ class Nieuws_nlScraper(HTTPScraper, DatedScraper):
                     if i > 0:
                         yield HTMLDocument(url=article.get('href'),headline=article.get('title'))
                     i-=1
-THIS IS NOT DONE!
+
+
                     
     def get_pages(self, doc):
-        for page in doc.cssselect("#page_navigation_bar a"):
+        for page in doc.cssselect("#page_navigation_bar a")[:-1]:
             url = page.get('href')
             yield self.getdoc(url)
 
