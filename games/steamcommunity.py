@@ -29,13 +29,16 @@ from urlparse import urljoin
 import json
 import math
 from lxml import etree
+import re
+from lxml.html.soupparser import fromstring
+
 
 INDEX_URL = "http://steamcommunity.com/apps"
 FORUM_URL = "http://steamcommunity.com/forum/{f_id}/General/render/0/?start={start}&count=15"
 
 from amcat.scraping.scraper import HTTPScraper,DBScraper,DatedScraper,Scraper
 
-class SteamScraper(HTTPScraper, DatedScraper):
+class SteamScraper(HTTPScraper):
     medium_name = "steamcommunity.com"
 
     def __init__(self, *args, **kwargs):
@@ -43,24 +46,29 @@ class SteamScraper(HTTPScraper, DatedScraper):
 
     def _get_units(self):
         index = self.getdoc(INDEX_URL) 
-        
         for unit in index.cssselect('#popular1 a'):
             href = unit.get('href')
             app = self.getdoc(href+"/discussions")
             for html in self.get_pages(app):
-                pass#TODO
+                for topic in html.cssselect("div.forum_topic"):
+                    a = topic.cssselect("a")[0]
+                    title = a.text
+                    href = a.get('href')
+                    yield HTMLDocument(url=href,headline=title)
 
     def get_pages(self,first):
         forum_id = first.cssselect("#AppHubContent div.leftcol div.forum_area")[0].get('id').split("_")[2]
-        total_topics = int(first.cssselect("#forum_General_3703047_pagetotal")[0].text.strip())
-        for x in range(math.floor(total_topics/15)+1):
+        total_topics = int(re.sub(",","",first.cssselect("#forum_General_{}_pagetotal".format(forum_id))[0].text.strip()))
+        for x in range(int(math.floor(total_topics/15)+1)):
             page_request = self.open(FORUM_URL.format(f_id=forum_id,start=x*15))
-            html = etree.parse(json.loads(page_request.read())['topics_html'])
+            print(FORUM_URL.format(f_id=forum_id,start=x*15))
+            html = fromstring(json.loads(page_request.read())['topics_html'])
             yield html
             
         
-    def _scrape_unit(self, ipage): 
-        pass #TODO
+    def _scrape_unit(self, topic): 
+        topic.doc = self.getdoc(topic.props.url)
+        topic.props.text = topic.doc.cssselect("div.forum_op div.content")[0]
 
 
 if __name__ == '__main__':
