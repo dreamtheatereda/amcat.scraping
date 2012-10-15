@@ -22,10 +22,8 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import IndexDocument, HTMLDocument, Document
 
-#from urllib import urlencode
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
-from datetime import timedelta
 from datetime import date
 import re
 from lxml import etree
@@ -45,6 +43,7 @@ class NuJijScraper(HTTPScraper, DatedScraper):
         index = self.getdoc(INDEX_URL)
         for category in index.cssselect("dl.topmenu dd a")[1:]:
             url = category.get('href').replace(" ","%20")
+            print(url)
             for doc in self.get_articles(self.getdoc(url)):
                 yield doc
             nxt = self.getdoc(url)        
@@ -62,31 +61,28 @@ class NuJijScraper(HTTPScraper, DatedScraper):
             _datum = article.cssselect("span.tijdsverschil")[0].get('publicationdate')
             datum = readDate(_datum)
             print("checking date for {url}".format(url=article.cssselect("h3.title a")[0].get('href')))
-            print("Scraped date: {sdate}. Article date: {adate}. Correct? -> {correct}".format(sdate=self.options['date'],adate=_datum,correct=(self.options['date'].__str__() in datum.__str__())))
+            print("Scraped date: {sdate}. Article date: {adate}. Correct? -> {correct}".format(sdate=self.options['date'],adate=_datum,correct=(self.options['date'] == datum.date())))
             if self.options['date'] == datum.date():
                 href = article.cssselect("h3.title a")[0].get('href')+"?pageStart=1"
                 yield HTMLDocument(url=href)
+            if self.options['date'] > datum.date():
+                break
             
 
     def _scrape_unit(self, page):
+        page.doc = self.getdoc(page.props.url)
+        page.props.section = page.doc.cssselect("div.article-header div.tabbar h2.title")[0].text
+        page.props.author = page.doc.cssselect("div.bericht-details")[0].text_content().split("door")[1].strip()
+        page.props.headline = page.doc.cssselect("div.articleheader h1.title")[0].text_content().strip()
+        page.props.text = page.doc.cssselect("div.articlecontent div.articlebody")[0].text.strip()
+        page.props.link = page.doc.cssselect("div.bericht-link")[0].get('href')
         try:
-            page.prepare(self)
-        except UnicodeEncodeError:
+            page.props.tags = page.doc.cssselect("span.bericht-tags-links")[0].text_content().rstrip(".")
+        except IndexError:
             pass
-        else:
-            page.doc = self.getdoc(page.props.url)
-            page.props.section = page.doc.cssselect("div.article-header div.tabbar h2.title")[0].text
-            page.props.author = page.doc.cssselect("div.bericht-details")[0].text_content().split("door")[1].strip()
-            page.props.headline = page.doc.cssselect("div.articleheader h1.title")[0].text_content().strip()
-            page.props.text = page.doc.cssselect("div.articlecontent div.articlebody")[0].text.strip()
-            page.props.link = page.doc.cssselect("div.bericht-link")[0].get('href')
-            try:
-                page.props.tags = page.doc.cssselect("span.bericht-tags-links")[0].text_content().rstrip(".")
-            except IndexError:
-                pass
             
-            for comment in self.scrape_comments(page):
-                yield comment
+        for comment in self.scrape_comments(page):
+            yield comment
             
         yield page
 
@@ -105,9 +101,11 @@ class NuJijScraper(HTTPScraper, DatedScraper):
                             comment.props.text = li.cssselect("div.reactie-body")[0].text.strip()
                             comment.props.author = li.cssselect("strong")[0].text
                             comment.props.date = readDate(li.cssselect("span.tijdsverschil")[0].get('publicationdate'))
-                            yield comment
                         except IndexError:
                             pass
+                        else:
+                            if comment.props.date.date() == self.options['date']:
+                                yield comment
         else:
             for li in nxt.cssselect("ol.reacties li.hidenum"):
                 comment = Document(parent=page)
