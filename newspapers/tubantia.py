@@ -38,6 +38,7 @@ PAGE_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.
 
 LOGIN_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/protection/login.php?pSetup={paper}"
 
+from ast import literal_eval
 
 class TubantiaScraper(HTTPScraper, DBScraper):
     medium_name = "Tubantia"
@@ -134,9 +135,16 @@ class TubantiaScraper(HTTPScraper, DBScraper):
                     break #when title has a linebreak it's probably not an article
                 else:
                     
-                    artpage.props.text = body
+                    p = re.compile("[\\\]udc[\w\w]")
+                    
+                    artpage.props.text = literal_eval(p.sub("",repr(body)))
+                    print(artpage.props.text)
                 
                     artpage.props.byline = byline
+                    
+                    
+                    
+                    
                     yield artpage
 
 
