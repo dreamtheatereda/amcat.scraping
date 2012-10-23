@@ -42,7 +42,6 @@ class TelegraafScraper(HTTPScraper, DBScraper):
         form = toolkit.parse_form(pagel)
         form["sso:field:username"] = username
         form["sso:field:password"] = password
-
         pagel = self.opener.opener.open(LOGIN_URL,
                                         urlencode(form))
 
@@ -67,17 +66,15 @@ class TelegraafScraper(HTTPScraper, DBScraper):
 
     def _scrape_unit(self, ipage):
         ipage.prepare(self)
-
-        # TODO: Implement images
-        # urljoin(ipage.props.url, 'page.jpg')
+        print(ipage.doc.text_content())
 
         # Articles with an id higher than 100 are advertisements,
         # which can be filtered by excluding classnames lager than
         # 9 (articleXXX).
-        articles = ipage.doc.cssselect('#page > div')
+        articles = ipage.doc.cssselect('#page div')
         articles = set(div.get('class') for div in articles
                             if len(div.get('class')) <= 9)
-
+        print(articles)
         for clsname in articles:
             page = ipage.copy()
 
