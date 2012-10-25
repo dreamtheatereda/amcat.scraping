@@ -66,6 +66,7 @@ class WebFDScraper(HTTPScraper, DBScraper):
             nxt_url = NEXT_URL.format(doc['objectid'])
             text = self.open(nxt_url).read()
             start = text.find('setTimeout("location.href=\'')+27;end = text.find('\';",',start)
+            print("start: {}, end: {}, url: {}".format(start,end,text[start:end]))
             yield HTMLDocument(url=text[start:end],date=readDate(doc['publishdate']),headline=doc['title'])
 
         

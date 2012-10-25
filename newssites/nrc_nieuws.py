@@ -60,8 +60,10 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
     def _scrape_unit(self, page): 
         page.prepare(self)
         page.doc = self.getdoc(page.props.url)
-
-        page.props.author = page.doc.cssselect("div.author a")[0].text
+        try:
+            page.props.author = page.doc.cssselect("div.author a")[0].text
+        except IndexError:
+            page.props.author = "onbekend"
         page.props.headline = page.doc.cssselect("div.article h1")[0].text
         page.props.text = page.doc.cssselect("#broodtekst")[0].text_content()
         yield page

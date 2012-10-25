@@ -132,12 +132,15 @@ class SteamScraper(HTTPScraper):
             author['name'] = profile.cssselect("title")[0].text_content().split("::")[2]
         except IndexError: #profile not yet set up
             author['name'] = _id
-        author['location'] = profile.cssselect("#profileBlock h2")[1].text
+            author['profile_private'] = False
+            return author
+
+        try:
+            author['location'] = profile.cssselect("#profileBlock h2")[1].text
+        except (UnicodeEncodeError,UnicodeDecodeError):
+            author['location'] = 'error'
 
 
-        aliases_url = url+"/ajaxaliases"
-        author['aliases'] = [alias['newname'] for alias in json.loads(self.open(aliases_url).read())]
-        
 
         private = profile.cssselect("#profileBlock p.errorPrivate")
         if private:

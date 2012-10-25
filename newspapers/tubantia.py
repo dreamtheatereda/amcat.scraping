@@ -138,7 +138,6 @@ class TubantiaScraper(HTTPScraper, DBScraper):
                     p = re.compile("[\\\]udc[\w\w]")
                     
                     artpage.props.text = literal_eval(p.sub("",repr(body)))
-                    print(artpage.props.text)
                 
                     artpage.props.byline = byline
                     
