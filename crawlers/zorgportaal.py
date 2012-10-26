@@ -19,59 +19,58 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.scraper import HTTPScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping.document import Document, HTMLDocument
+from amcat.scraping.scraper import Crawler, AuthCrawler
+import re
+from amcat.tools.toolkit import readDate
 
-from urlparse import urljoin
+class ZorgportaalCrawler(Crawler):
+    medium_name = "Zorgportaal.nl"
+    allow_url_patterns = [
+        re.compile("zorgportaal.nl")
+        ]
 
-INDEX_URL = "http://minvws.thevalleyfacebookcampagnes.nl/discussies/archief"
+    ignore_url_patterns = [
+        re.compile("/home/log-in-pagina")
+        ]
 
-class ZorgScraper(HTTPScraper):
-    medium_name = "Discussies over zorg (ministerie VWS) (Facebook)"
+    article_pattern = re.compile("(/component/content/article/[0-9]+-nieuws/[a-zA-Z0-9\-]+)|(/zorgkrant/nieuwsl-lijst/[0-9]+\-[a-zA-Z\-]+)")
+
+    initial_urls = [
+        "http://site.zorgportaal.nl/index.php/nieuws/nieuws/toon-alle-nieuwsberichten"
+        ]
 
     def __init__(self, *args, **kwargs):
-        super(ZorgScraper, self).__init__(*args, **kwargs)
-
-
-
-    def _get_units(self):
-        """get pages"""
-        ipage = self.getdoc(INDEX_URL)
-        for li in ipage.cssselect("ul#archive a"):
-            href = urljoin("http://minvws.thevalleyfacebookcampagnes.nl/",
-                          a.get('href'))
-            yield IndexDocument(url=href, date=self.options['date'])
-
+        super(ZorgportaalCrawler, self).__init__(*args, **kwargs)
         
-    def _scrape_unit(self, ipage): # 'ipage' means index page
-        """gets articles from a page"""
-
-        ipage.prepare(self)
-        ipage.bytes = ""
-        ipage.doc = self.getdoc(ipage.props.url)
-        ipage.page = ""
-        ipage.props.category = ""
-        
-            
-            page = HTMLDocument(date = ipage.props.date,url=url)
-            page.prepare(self)
-            # Get article
-            page.doc = self.getdoc(page.props.url)
-            yield self.get_article(page)
-
-            # Add article to index page
-            ipage.addchild(page)
-
-        yield ipage
+    def _scrape_unit(self, url): 
+        page = HTMLDocument(url=url)
+        page.prepare(self)
+        yield self.get_article(page)
 
     def get_article(self, page):
-        #use mainly page.doc.cssselect() to fill the following lines
-        page.props.author = ""
-        page.props.headline = ""
-        page.props.text = ""
+        nieuws_box = page.doc.cssselect("div.nieuws_box")[0]
+        for p in nieuws_box.cssselect("p"):
+
+            title = p.cssselect("b")[0].text
+            content = p.text_content().split(":")[1].strip()
+
+            if "Plaatsingsdatum" in title:
+                page.props.date = readDate(content)
+            elif "Auteur" in title:
+                page.props.author = content
+            elif "Bron" in title:
+                page.props.source = content
+
+        page.props.headline = page.doc.cssselect("div.content h2")[0].text
+        page.props.text = page.doc.cssselect("div.nieuws_tekst")[0].text_content()
+
+        if len(page.props.author)>50:
+            page.props.author = "javascript protected"
         return page
 
-
+    def get_comments(self,page):
+        pass #no comments
 
 
 if __name__ == '__main__':
@@ -79,7 +78,6 @@ if __name__ == '__main__':
     from amcat.tools import amcatlogging
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
-    cli.run_cli(TemplateScraper) #change 'TemplateScraper'
+    cli.run_cli(ZorgportaalCrawler)
 
 
-#thanks for contributing!
