@@ -28,7 +28,7 @@ from amcat.tools.toolkit import readDate
 class ADCrawler(Crawler):
     medium_name = "AD.nl"
     allow_url_patterns = [
-        re.compile("ad.nl")
+        re.compile("www.ad.nl")
         ]
 
     ignore_url_patterns = [
@@ -36,7 +36,8 @@ class ADCrawler(Crawler):
         re.compile("\?show=react"),
         re.compile("/sports/"),
         re.compile("/video/"),
-        re.compile("/weather/forecast/")
+        re.compile("/weather/forecast/"),
+        re.compile("/photo(a|A)lbum/")
         ]
 
     article_pattern = re.compile("/ad/nl/[0-9]+/[a-zA-Z]+/article/detail/([0-9]+/)+[a-zA-Z0-9_\-]+.dhtml")

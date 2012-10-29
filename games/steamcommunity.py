@@ -39,7 +39,9 @@ from amcat.scraping.scraper import HTTPScraper
 
 class SteamScraper(HTTPScraper):
     medium_name = "steamcommunity.com"
-
+    
+    classes = set([])
+    
     def __init__(self, *args, **kwargs):
         super(SteamScraper, self).__init__(*args, **kwargs)
 
@@ -62,7 +64,12 @@ class SteamScraper(HTTPScraper):
                     app_doc = self.getdoc(app_url)
                     while app_doc.cssselect("div.apphub_Card"):
                         for div in app_doc.cssselect("div.apphub_Card"):
-                            yield div
+
+                                
+
+
+
+                            #yield div
                         form = toolkit.parse_form(app_doc)
                         url = app_url
                         for inp in form.items():
@@ -71,30 +78,56 @@ class SteamScraper(HTTPScraper):
             
 
     def _scrape_unit(self, div): 
-        if "discussion" in div.get('class'):
-            for item in self.scrape_discussion(div):
+        doc = self.getdoc(div.get('onclick').split("',")[2].rstrip("'"))
+
+        if div.cssselect("div.discussion"):
+            for item in self.scrape_discussion(doc):
                 yield item
             return
 
-        _type = div.cssselect("div.CardContentType")[0].text.lower():
+        elif "/news/" in div.get('onclick'):
+            for item in self.scrape_newsitem(doc):
+                yield item
+            return
+
+        _type = div.cssselect("div.apphub_CardContentType")[0].text.lower()
         if "video" in _type:
-            for item in self.scrape_video(div):
+            for item in self.scrape_video(doc):
                 yield item
     
         elif "workshop item" in _type:
-            for item in self.scrape_workshop_item(div):
+            for item in self.scrape_workshop_item(doc):
                 yield item
                 
         elif "workshop collection" in _type:
-            for item in self.scrape_workshop_collection(div):
+            for item in self.scrape_workshop_collection(doc):
                 yield item
-        
-        ######################################################below not done
+
+        elif "screenshot" in _type:
+            for item in self.scrape_screenshot(doc):
+                yield item
+        else:
+            from lxml import etree;print(etree.tostring(div))
+            raise ValueError("wrong input")
 
 
+    def scrape_discussion(doc):
+        pass
 
+    def scrape_newsitem(doc):
+        pass
+    
+    def scrape_video(doc):
+        pass
 
+    def scrape_scrape_workshop_item(doc):
+        pass
 
+    def scrape_workshop_collection(doc):
+        pass
+
+    def scrape_screenshot(doc):
+        pass
 
 
 
