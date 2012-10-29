@@ -33,7 +33,10 @@ class ADCrawler(Crawler):
 
     ignore_url_patterns = [
         re.compile("s.ad.nl"),
-        re.compile("\?show=react")
+        re.compile("\?show=react"),
+        re.compile("/sports/"),
+        re.compile("/video/"),
+        re.compile("/weather/forecast/")
         ]
 
     article_pattern = re.compile("/ad/nl/[0-9]+/[a-zA-Z]+/article/detail/([0-9]+/)+[a-zA-Z0-9_\-]+.dhtml")
@@ -51,14 +54,10 @@ class ADCrawler(Crawler):
         for comment in self.get_comments(page):
             yield comment
         article = self.get_article(page)
-        if article != "fck this":
-            yield article
+        yield article
 
     def get_article(self, page):
-        try:
-            span = page.doc.cssselect("#detail_content span.author")[0]
-        except IndexError:
-            return "fck this"
+        span = page.doc.cssselect("#detail_content span.author")[0]
         page.props.date = readDate(tostring(span).split("<br/>")[1])
         try:
             page.props.author = span.cssselect("a")[0].text

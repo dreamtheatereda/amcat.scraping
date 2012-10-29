@@ -21,9 +21,6 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from amcat.scraping.document import Document, HTMLDocument, IndexDocument
 
-#possibly useful imports:
-
-#from urllib import urlencode
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
 
@@ -64,6 +61,8 @@ class PownewsScraper(HTTPScraper, DatedScraper):
        
         page.prepare(self)
         page.doc = self.getdoc(page.props.url)
+        for comment in self.get_comments(page):
+            yield comment
         yield self.get_article(page)
 
 
@@ -72,6 +71,16 @@ class PownewsScraper(HTTPScraper, DatedScraper):
         page.props.headline = page.doc.cssselect("div.acarhead h1")[0].text
         page.props.text = page.doc.cssselect("div.artikel-intro")[0].text_content() + page.doc.cssselect("div.artikel-main")[0].text_content()
         return page
+
+    def get_comments(self,page):
+        for div in page.doc.cssselect("#comments div.comment"):
+            comment = Document(parent=page)
+            comment.props.text = div.cssselect("p")[0].text_content()
+            footer = div.cssselect("p.footer")[0].text_content().split(" | ")
+            comment.props.author = footer[0].strip()
+            comment.props.date = readDate(footer[1].strip())
+            yield comment
+                                         
 
 
 

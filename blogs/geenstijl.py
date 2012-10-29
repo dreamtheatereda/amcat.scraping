@@ -21,7 +21,8 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping.document import HTMLDocument, IndexDocument, Document
+from amcat.tools.toolkit import readDate
 
 
 INDEX_URL = "http://www.geenstijl.nl/mt/archieven/maandelijks/{y}/{m}/"
@@ -58,6 +59,8 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
                 page.prepare(self)
                 page.doc = self.getdoc(href)
                 page = self.get_article(page)
+                for comment in self.get_comments(page):
+                    yield comment
                 yield page
                 ipage.addchild(page)
 
@@ -72,8 +75,14 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
         page.coords = ""
         return page
 
-
-
+    def get_comments(self,page):
+        for article in page.doc.cssselect("#comments article"):
+            comment = Document(parent=page)
+            footer = article.cssselect("footer")[0].text_content().split(" | ")
+            comment.props.date = readDate(footer[1])
+            comment.props.author = footer[0]
+            comment.props.text = article.cssselect("p")[0].text_content()
+            yield comment
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli

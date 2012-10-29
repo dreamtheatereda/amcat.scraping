@@ -22,21 +22,18 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.document import Document, HTMLDocument
 from amcat.scraping.scraper import Crawler
 import re
-from lxml.etree import tostring
 from amcat.tools.toolkit import readDate
 
-class ADCrawler(Crawler):
-    medium_name = "AD.nl"
+class ForumFokCrawler(Crawler):
+    medium_name = "fok.nl forum"
     allow_url_patterns = [
-        re.compile("ad.nl")
+        re.compile("forum.fok.nl")
         ]
 
     ignore_url_patterns = [
-        re.compile("s.ad.nl"),
-        re.compile("\?show=react")
         ]
 
-    article_pattern = re.compile("/ad/nl/[0-9]+/[a-zA-Z]+/article/detail/([0-9]+/)+[a-zA-Z0-9_\-]+.dhtml")
+    article_pattern = re.compile("")
 
     initial_urls = [
         "http://www.ad.nl"
