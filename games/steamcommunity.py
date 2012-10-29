@@ -21,24 +21,21 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from amcat.scraping.document import Document, HTMLDocument, IndexDocument
 
-#possibly useful imports:
-
-#from urllib import urlencode
+from urllib import urlencode
 from urlparse import urljoin
-from amcat.tools import toolkit
 import json
 import math
 from lxml import etree
 import re
 from lxml.html.soupparser import fromstring
 from datetime import date
+from amcat.scraping import toolkit
 
-INDEX_URL = "http://steamcommunity.com/apps"
-FORUM_URL = "http://steamcommunity.com/forum/{f_id}/General/render/0/?start={start}&count=15"
-PLAYERS = {}
+APP_INDEX_URL = "http://store.steampowered.com/search/results?sort_order=ASC&page={}&snr=1_7_7_230_7"
+CONTENT_INDEX_URL = "http://steamcommunity.com/app/{}/homecontent/?l=english"
 
 
-from amcat.scraping.scraper import HTTPScraper,DBScraper,DatedScraper,Scraper
+from amcat.scraping.scraper import HTTPScraper
 
 class SteamScraper(HTTPScraper):
     medium_name = "steamcommunity.com"
@@ -47,63 +44,59 @@ class SteamScraper(HTTPScraper):
         super(SteamScraper, self).__init__(*args, **kwargs)
 
     def _get_units(self):
-        index = self.getdoc(INDEX_URL) 
-        for unit in index.cssselect('#popular1 a'):
-            CURRENT_GAME = unit.cssselect("span.appHubTitle")[0].text.strip()
-            href = unit.get('href')
-            self.opener.opener.addheaders.append(('Cookie','rgDiscussionPrefs=%7B%22cTopicRepliesPerPage%22%3A50%7'))
-            # ^ for more comments per page
-            app = self.getdoc(href+"/discussions")
-            for html in self.get_pages(app):
-                for topic in html.cssselect("div.forum_topic"):
-                    a = topic.cssselect("a")[0]
-                    title = a.text
-                    href = a.get('href')
-                    yield HTMLDocument(url=href,headline=title,section=CURRENT_GAME)
-
-    def get_pages(self,first):
-        forum_id = first.cssselect("#AppHubContent div.leftcol div.forum_area")[0].get('id').split("_")[2]
-        total_topics = int(re.sub(",","",first.cssselect("#forum_General_{}_pagetotal".format(forum_id))[0].text.strip()))
-        for x in range(int(math.floor(total_topics/15)+1)):
-            page_request = self.open(FORUM_URL.format(f_id=forum_id,start=x*15))
-            print(FORUM_URL.format(f_id=forum_id,start=x*15))
-            html = fromstring(json.loads(page_request.read())['topics_html'])
-            yield html
+        app_index = self.getdoc(APP_INDEX_URL.format(1))
+        totalpages = int(app_index.cssselect("div.search_pagination_right a")[-2].text)
+        pattern = re.compile("http://store.steampowered.com/app/(\d+)/")
+        appids = set([])
+        for page in range(totalpages):
+            url = APP_INDEX_URL.format(page+1)
+            print(url)
+            doc = self.getdoc(url)
+            for app in doc.cssselect("#search_result_container a.search_result_row"):
+                match = pattern.match(app.get('href'))
+                if match:
+                    appid = match.group(1)
+                    
+                    app_url = CONTENT_INDEX_URL.format(appid)
+                    print(app_url)
+                    app_doc = self.getdoc(app_url)
+                    while app_doc.cssselect("div.apphub_Card"):
+                        for div in app_doc.cssselect("div.apphub_Card"):
+                            yield div
+                        form = toolkit.parse_form(app_doc)
+                        url = app_url
+                        for inp in form.items():
+                            url += "&{}={}".format(inp[0],inp[1])
+                        app_doc = self.getdoc(url,urlencode(form))
             
+
+    def _scrape_unit(self, div): 
+        if "discussion" in div.get('class'):
+            for item in self.scrape_discussion(div):
+                yield item
+            return
+
+        _type = div.cssselect("div.CardContentType")[0].text.lower():
+        if "video" in _type:
+            for item in self.scrape_video(div):
+                yield item
+    
+        elif "workshop item" in _type:
+            for item in self.scrape_workshop_item(div):
+                yield item
+                
+        elif "workshop collection" in _type:
+            for item in self.scrape_workshop_collection(div):
+                yield item
         
-    def _scrape_unit(self, topic): 
-        topic.doc = self.getdoc(topic.props.url)
+        ######################################################below not done
 
-        a = topic.doc.cssselect("div.forum_op div.authorline a.forum_op_author")[0]
 
-        topic = self.get_author_props(topic,a)
-        
-        topic.props.text = topic.doc.cssselect("div.forum_op div.content")[0].text_content()
-        topic.props.headline = topic.doc.cssselect("div.forum_op div.topic")[0].text_content().strip()
 
-        _date = topic.doc.cssselect("div.forum_op span.date")[0].text.split("@")[0]
-        try:
-            topic.props.date = toolkit.readDate(_date)
-        except ValueError: #holds value like 'x minutes ago'
-            topic.props.date = date.today()
 
-        for _comment in topic.doc.cssselect("div.commentthread_comment"):
-            comment = Document()
-            a = _comment.cssselect("a.commentthread_author_link")[0]
-            comment = self.get_author_props(comment,a)
-            comment.props.text = _comment.cssselect("div.commentthread_comment_text")[0].text_content()
-            _date = _comment.cssselect("span.commentthread_comment_timestamp")[0].text.split("@")[0]
-            try:
-                comment.props.date = toolkit.readDate(_date)
-            except ValueError:
-                comment.props.date = date.today()
-            comment.props.headline = "Re: {}".format(topic.props.headline)
-            comment.parent = topic
-            comment.props.section = topic.props.section
-            yield comment
 
-        yield topic
-            
+
+
 
     def get_author_props(self,document, a):
         author_onclick = a.get('onclick')
@@ -121,6 +114,8 @@ class SteamScraper(HTTPScraper):
             print("already got author in list, total: {}".format(len(PLAYERS.keys())+1))
             document.props.author_meta = PLAYERS[author_url]
         return document
+
+
 
 
 
@@ -177,6 +172,8 @@ class SteamScraper(HTTPScraper):
             author['groups'].append(_group)
 
         return author
+
+
 
 
 if __name__ == '__main__':
