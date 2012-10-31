@@ -30,10 +30,11 @@ import re
 from lxml.html.soupparser import fromstring
 from datetime import date
 from amcat.scraping import toolkit
+from amcat.tools.toolkit import readDate
 
 APP_INDEX_URL = "http://store.steampowered.com/search/results?sort_order=ASC&page={}&snr=1_7_7_230_7"
 CONTENT_INDEX_URL = "http://steamcommunity.com/app/{}/homecontent/?l=english"
-
+PLAYERS = {}
 
 from amcat.scraping.scraper import HTTPScraper
 
@@ -44,6 +45,21 @@ class SteamScraper(HTTPScraper):
     
     def __init__(self, *args, **kwargs):
         super(SteamScraper, self).__init__(*args, **kwargs)
+        
+        self.open("http://steamcommunity.com")
+        sesid = self.opener.cookiejar.cookiejar._cookies['steamcommunity.com']['/']['sessionid'].value
+
+        setpreference = {
+            'preference':'topicrepliesperpage',
+            'sessionid':sesid,
+            'value':50
+            }
+        self.open("http://steamcommunity.com/forum/0/0/setpreference",urlencode(setpreference))
+
+    
+    media = 0
+    news = 0
+    discussions = 0
 
     def _get_units(self):
         app_index = self.getdoc(APP_INDEX_URL.format(1))
@@ -62,23 +78,26 @@ class SteamScraper(HTTPScraper):
                     app_url = CONTENT_INDEX_URL.format(appid)
                     print(app_url)
                     app_doc = self.getdoc(app_url)
-                    while app_doc.cssselect("div.apphub_Card"):
+                    while app_doc is not None:
                         for div in app_doc.cssselect("div.apphub_Card"):
-
-                                
-
-
-
-                            #yield div
+                            commentcount = int(div.cssselect("div.apphub_CardCommentCount")[0].text)
+                            if commentcount > 0:
+                                yield div
                         form = toolkit.parse_form(app_doc)
                         url = app_url
                         for inp in form.items():
                             url += "&{}={}".format(inp[0],inp[1])
                         app_doc = self.getdoc(url,urlencode(form))
-            
+
+                print("media: "+str(self.media))
+                print("news: "+str(self.news))
+                print("discussions: "+str(self.discussions))
 
     def _scrape_unit(self, div): 
-        doc = self.getdoc(div.get('onclick').split("',")[2].rstrip("'"))
+        
+        url = div.get('onclick').split("(")[1].split("', '")[0].lstrip(" '")
+        print(url)
+        doc = self.getdoc(url)
 
         if div.cssselect("div.discussion"):
             for item in self.scrape_discussion(doc):
@@ -91,75 +110,195 @@ class SteamScraper(HTTPScraper):
             return
 
         _type = div.cssselect("div.apphub_CardContentType")[0].text.lower()
-        if "video" in _type:
-            for item in self.scrape_video(doc):
-                yield item
-    
-        elif "workshop item" in _type:
-            for item in self.scrape_workshop_item(doc):
-                yield item
-                
-        elif "workshop collection" in _type:
-            for item in self.scrape_workshop_collection(doc):
-                yield item
 
-        elif "screenshot" in _type:
-            for item in self.scrape_screenshot(doc):
+        if "screenshot" in _type or "video" in _type:
+            for item in self.scrape_media(doc,_type):
                 yield item
         else:
+            
+            for item in self.scrape_media(doc, _type):
+                yield item
+
+
+
             from lxml import etree;print(etree.tostring(div))
             raise ValueError("wrong input")
 
 
-    def scrape_discussion(doc):
-        pass
 
-    def scrape_newsitem(doc):
-        pass
-    
-    def scrape_video(doc):
-        pass
-
-    def scrape_scrape_workshop_item(doc):
-        pass
-
-    def scrape_workshop_collection(doc):
-        pass
-
-    def scrape_screenshot(doc):
-        pass
+    def scrape_1page_comments(self,parent):
+        for div in parent.doc.cssselect("div.commentthread_comment"):
+            comment = Document()
+            author_url = div.cssselect("a.commentthread_author_link")[0].get('href')
+            comment = self.get_author_props(comment,author_url)
+            comment.props.text = div.cssselect("div.commentthread_comment_text")[0].text
+            try:
+                comment.props.date = readDate(div.cssselect("span.commentthread_comment_timestamp")[0].text)
+            except ValueError:
+                comment.props.date = date.today()
+            comment.parent = parent
+            yield comment
 
 
 
-    def get_author_props(self,document, a):
-        author_onclick = a.get('onclick')
-        start = author_onclick.find("(");end = author_onclick.find(")",start)
-        args = [arg.strip("' ()") for arg in author_onclick[start:end].split(",")]
-        document.props.author = args[5]
-        document.props.author_text = args[6]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def scrape_discussion(self,doc):
+        self.discussions+=1
+        disc = HTMLDocument()
+        disc.doc = doc
+        disc.props.headline = doc.cssselect("div.forum_op div.topic")[0].text
+        disc.props.text = doc.cssselect("div.forum_op div.content")[0].text
+        try:
+            disc.props.date = readDate(doc.cssselect("span.date")[0].text)
+        except ValueError:
+            disc.props.date = date.today()
+        author_url = doc.cssselect("a.forum_op_author")[0].get('href')
+        disc = self.get_author_props(disc,author_url)
+
+        print(disc.doc.cssselect("div.forum_paging_summary")[0].text_content())
         
-        author_url = a.get('href')
+
+            
+        for comment in self.scrape_1page_comments(disc):
+            yield comment
+
+        yield disc
+
+
+    def scrape_newsitem(self,doc):
+        self.news +=1
+        newsitem = HTMLDocument()
+        newsitem.doc = doc
+        newsitem.props.headline = newsitem.doc.cssselect("#main_header h1")[0].text
+        newsitem.props.author = newsitem.doc.cssselect("div.headline div.feed")[0].text
+        try:
+            newsitem.props.date = readDate(newsitem.doc.cssselect("div.headline div.date")[0].text)
+        except ValueError:
+            newsitem.props.date = date.today()
+        newsitem.props.text = newsitem.doc.cssselect("#news div.body")[0].text_content()
+
+        if not newsitem.doc.cssselect("div.commentthread_paging")[0].get('style'):
+            for comment in self.scrape_1page_comments(newsitem):
+                yield comment
+
+        else:
+            raise NotImplementedError
+
+        yield newsitem
+
+    def scrape_media(self,doc,_type):
+        self.media +=1
+        scrn = HTMLDocument()
+        scrn.doc = doc
+        try:
+            scrn.props.text = scrn.doc.cssselect("div.mediaDescription")[0].text
+        except IndexError:
+            scrn.props.text = "none"
+
+        try:
+            scrn.props.headline = "{} {}".format(scrn.doc.cssselect("div.screenshotAppName")[0].text,_type)
+        except IndexError:
+            scrn.props.headline = "unknown"
+
+        author_url = "/".join(scrn.doc.cssselect("div.linkAuthor a")[0].get('href').split("/")[:-2])
+        scrn = self.get_author_props(scrn, author_url)
+
+        for obj in scrn.doc.cssselect("div.rightDetailsBlock div.detailsStatRight"):
+            try:
+                scrn.props.date = readDate(obj.text)
+            except ValueError:
+                continue
+            else:
+                break
+
+        if not scrn.doc.cssselect("div.commentthread_paging"):
+            yield scrn;return
+        if not scrn.doc.cssselect("div.commentthread_header div.commentthread_paging span")[1].text_content():
+            for comment in self.scrape_1page_comments(scrn):
+                yield comment
+        else:
+            raise NotImplementedError
+
+        yield scrn
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def get_author_props(self,document, author_url):
+        print("getting author meta")
+        document.props.author = author_url
         if author_url not in PLAYERS.keys():
-            meta = self.get_author_meta(author_url,args[5])
+            meta = self.get_author_meta(author_url)
             document.props.author_meta = meta
             PLAYERS[author_url] = meta
         else:
             print("already got author in list, total: {}".format(len(PLAYERS.keys())+1))
             document.props.author_meta = PLAYERS[author_url]
+        print("done")
         return document
 
 
-
-
-
-    def get_author_meta(self, url, _id):
+    def get_author_meta(self, url):
         profile = self.getdoc(url)
-        author = {'name':'','location':'','url':'','id':_id,'url':url,'aliases':[],'games':[],'groups':[]}
+        author = {'name':'','location':'','id':url,'url':url,'aliases':[],'games':[],'groups':[]}
 
         try:
             author['name'] = profile.cssselect("title")[0].text_content().split("::")[2]
         except IndexError: #profile not yet set up
-            author['name'] = _id
+            author['name'] = url
             author['profile_private'] = False
             return author
 
@@ -190,19 +329,6 @@ class SteamScraper(HTTPScraper):
                 'hours played':float(re.sub(",","",unicode(game['hours_forever'])))
                 }
             author['games'].append(_game)
-
-
-
-        groups_url = url+"/groups"
-        groups_doc = self.getdoc(groups_url)
-        for group in groups_doc.cssselect("#BG_bottom div.resultItem"):
-            a = group.cssselect("a.linkTitle")[0]
-            _group = {
-                'name':a.text_content(),
-                'url':a.get('href'),
-                'tag':a.get('href').split("/")[-1]
-                }
-            author['groups'].append(_group)
 
         return author
 
