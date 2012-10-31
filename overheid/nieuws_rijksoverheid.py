@@ -46,7 +46,6 @@ class OverheidNieuwsScraper(HTTPScraper):
 
         #scraping from today, backwards in time until hardcoded date
         _date = date.today() + timedelta(days=1)
-        _date = date(year=2012,month=9,day=22)
         while _date > FROM_DATE:
             prevdate = _date - timedelta(days=1)
             urldict = {
@@ -105,7 +104,12 @@ class OverheidNieuwsScraper(HTTPScraper):
             if "Verantwoordelijk" in title and "ministerie" in title:
                 article.props.author = "; ".join([a.text for a in block.cssselect("ul.list-common li a")])
                 break
-
+        
+        try:
+            if len(article.props.author) > 100:
+                article.props.author = article.props.author[:100]
+        except AttributeError:
+            pass
         yield article
         
 
