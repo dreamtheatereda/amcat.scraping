@@ -21,9 +21,9 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from amcat.scraping.document import Document, HTMLDocument, IndexDocument
 from lxml import etree
+from amcat.tools.toolkit import readDate
 
 INDEX_URL = "http://www.ad.nl/ad/nl/1401/archief/integration/nmc/frameset/archive/archiveDay.dhtml?archiveDay={y:04d}{m:02d}{d:02d}"
-
 
 from amcat.scraping.scraper import HTTPScraper,DatedScraper
 
@@ -53,6 +53,9 @@ class WebADScraper(HTTPScraper, DatedScraper):
         
         page.prepare(self)
         page.doc = self.getdoc(page.props.url)
+        for comment in self.get_comments(page):
+            yield comment
+        
         yield self.get_article(page)
         
 
@@ -62,10 +65,44 @@ class WebADScraper(HTTPScraper, DatedScraper):
         except IndexError:
             page.props.author = "onbekend"
         page.props.headline = page.doc.cssselect("#articleDetailTitle")[0].text
-        page.props.text = page.doc.cssselect("section#detail_content")[0].text_content() #yay for html5
+        page.props.text = page.doc.cssselect("section#detail_content")[0].text_content() 
+        page.props.date = readDate(etree.tostring(page.doc.cssselect("span.author")[0]).split("<br/>")[1])
+        
+        
+
+
         return page
 
+    def get_comments(self,page):
+        for doc in self.get_reactions_pages(page.doc):
+            for li in doc.cssselect("ul li"):
+                comment = Document()
+                comment.props.author = li.cssselect("cite")[0].text.strip()
+                comment.props.text = li.cssselect("blockquote")[0].text_content().strip()
+                comment.props.date = readDate(li.cssselect("span.time")[0].text)
+                comment.parent = page
+                yield comment
 
+
+
+    def get_reactions_pages(self,doc):
+        if doc.cssselect("#reaction"):
+            yield doc.cssselect("#reaction")[0]
+        else:
+            return
+        try:
+            total = int(doc.cssselect("div.pagenav")[0].text.split(" van ")[1])
+        except IndexError:
+            return
+        for x in range(total-1):
+            for a in doc.cssselect("div.pagenav a"):
+                if "volgende" in a.text:
+                    onclick = a.get('onclick')
+            start=onclick.find("getReactions(");end=onclick.find(")",start)
+            args = [arg.strip("\"';() ") for arg in onclick[start:end].split(",")]
+            href = args[0]
+            url = urljoin("http://www.ad.nl",href)
+            yield self.getdoc(url)
 
 
 if __name__ == '__main__':
