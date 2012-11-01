@@ -19,8 +19,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.document import Document
-from amcat.scraping.scraper import ScraperForm
+from amcat.scraping.scraper import ArchiveForm
 
 try:
     from amcatscraping.news.pownews import PownewsScraper
@@ -29,17 +28,15 @@ except ImportError:
 
 from datetime import date,timedelta
 
-FROMDATE = date(year=2010,month=1,day=1)
-
-class PownewstmpScraper(PownewsScraper):
-    options_form = ScraperForm
+class PownewsArchiveScraper(PownewsScraper):
+    options_form = ArchiveForm
     
-    def _get_units(self):
-        self.options['date'] = date.today()
-        while self.options['date'] > FROMDATE:
-            for unit in super(PownewstmpScraper,self)._get_units():
+    def get_units(self):
+        self.options['date'] = self.options['first_date']
+        while self.options['date'] <= self.options['last_date']:
+            for unit in super(PownewsArchiveScraper,self).get_units():
                 yield unit
-            self.options['date'] -= timedelta(days=1)
+            self.options['date'] += timedelta(days=1)
 
 
 
@@ -48,5 +45,5 @@ if __name__ == '__main__':
     from amcat.tools import amcatlogging
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
-    cli.run_cli(PownewstmpScraper)
+    cli.run_cli(PownewsArchiveScraper)
 

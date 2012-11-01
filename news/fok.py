@@ -21,10 +21,8 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
-
-
-
+from amcat.scraping.document import HTMLDocument, Document
+from amcat.tools.toolkit import readDate
 
 
 FRONTPAGE_URL = "http://frontpage.fok.nl"
@@ -48,7 +46,6 @@ class FokScraper(HTTPScraper, DatedScraper):
 
 
     def _get_units(self):
-        """papers are often organised in blocks (pages) of articles, this method gets the blocks, articles are to be gotten later"""
         self._cookie()
         index_dict = {
             'y' : self.options['date'].year,
@@ -64,9 +61,7 @@ class FokScraper(HTTPScraper, DatedScraper):
             yield HTMLDocument(url=href, date=self.options['date'])
 
     def _scrape_unit(self, page):
-        """units are articles here, not pages"""
         page.prepare(self)
-        page.page = ""
         page.doc = self.getdoc(page.props.url)
         txt = ""
         for paragraph in page.doc.cssselect("div.itemBody p"):
@@ -78,9 +73,21 @@ class FokScraper(HTTPScraper, DatedScraper):
         byline = page.doc.cssselect("span.postedbyline")[0].text_content()
         page.props.author = byline[byline.find("Geschreven door")+16:byline.find(" op ")]
         page.props.headline = page.doc.cssselect("h1.title")[0].text.strip("\n")
-
+        page.props.date = readDate(page.doc.cssselect("span.postedbyline")[0].text_content().split(" op ")[1])
+        for comment in self.get_comments(page):
+            yield comment
         
         yield page
+
+    def get_comments(self,page):
+        
+        for div in page.doc.cssselect("div.reactieHolder"):
+            comment = Document()
+            comment.props.author = div.cssselect("span.left a")[0].text
+            comment.props.date = readDate(div.cssselect("a.timelink")[0].text)
+            comment.props.text = div.cssselect("div.reactieBody")[0].text_content()
+            comment.parent = page
+            yield comment
 
 
 

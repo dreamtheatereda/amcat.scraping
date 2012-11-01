@@ -25,19 +25,22 @@ except ImportError:
     from amcatscraping.newspapers.fd import FDScraper
 
 from datetime import date,timedelta
-from amcat.scraping.scraper import AuthForm
+from amcat.scraping.scraper import AuthForm,ArchiveForm
 
-FROMDATE = date(year=2012,month=8,day=13)
+class FDForm(AuthForm,ArchiveForm):
+    pass
 
-class FDtmpScraper(FDScraper):
+
+class FDArchiveScraper(FDScraper):
+    options_form = FDForm
     def __init__(self,*args,**kwargs):
-        super(FDtmpScraper,self).__init__(*args,**kwargs)
-        self.options['date'] = date.today()
-    options_form = AuthForm
+        super(FDArchiveScraper,self).__init__(*args,**kwargs)
+        self.options['date'] = self.options['first_date']
+
     def _get_units(self):
-        while self.options['date'] > FROMDATE:
-            self.options['date'] -= timedelta(days=1)
-            for unit in super(FDtmpScraper,self)._get_units():
+        while self.options['date'] <= self.options['last_date']:
+            self.options['date'] += timedelta(days=1)
+            for unit in super(FDArchiveScraper,self)._get_units():
                 yield unit
 
 
@@ -47,4 +50,4 @@ if __name__ == '__main__':
     from amcat.tools import amcatlogging
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
-    cli.run_cli(FDtmpScraper)
+    cli.run_cli(FDArchiveScraper)

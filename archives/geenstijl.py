@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 
-from amcat.scraping.scraper import ScraperForm
+from amcat.scraping.scraper import ArchiveForm
 
 try:
     from scraping.blogs.geenstijl import GeenstijlScraper
@@ -29,17 +29,16 @@ except ImportError:
 
 from datetime import date,timedelta
 
-FROM_DATE = date(year=2012,month=01,day=01)
 
 class GeenstijlArchiveScraper(GeenstijlScraper):
-    options_form = ScraperForm
+    options_form = ArchiveForm
     
-    def _get_units(self):
-        self.options['date'] = date.today()
-        while self.options['date'] >= FROM_DATE:
-            for unit in super(GeenstijlArchiveScraper,self)._get_units():
+    def get_units(self):
+        self.options['date'] = self.options['first_date']
+        while self.options['date'] <= self.options['last_date']:
+            for unit in super(GeenstijlArchiveScraper,self).get_units():
                 yield unit
-            self.options['date'] -= timedelta(days=1)
+            self.options['date'] += timedelta(days=1)
 
 
 
