@@ -26,7 +26,7 @@ from amcat.scraping.document import Document, HTMLDocument, IndexDocument
 #from urllib import urlencode
 #from urlparse import urljoin
 #from amcat.tools.toolkit import readDate
-
+#from amcat.scraping.tools import toolkit
 
 INDEX_URL = "" #Add url which contains links to all pages
 LOGIN_URL = "" #Add login url
@@ -49,10 +49,10 @@ class TemplateScraper(HTTPScraper, DBScraper): #change class name
         
         #one of the following code blocks should be implemented and adjusted, not either.
         page = self.getdoc(LOGIN_URL)
-        form = stoolkit.parse_form(page)
+        form = toolkit.parse_form(page)
         form['username'] = username
         form['password'] = password
-        self.opener.opener.open(LOGIN_URL, urlencode(form))
+        self.open(LOGIN_URL, urlencode(form))
 
         #if that didn't work, add form keys manually:
         POST_DATA = {

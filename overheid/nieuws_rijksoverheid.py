@@ -28,10 +28,10 @@ from amcat.tools.toolkit import readDate
 from datetime import date
 from datetime import timedelta
 
-FROM_DATE = date(year=2012,month=10,day=1)
+FROM_DATE = date(year=2012,month=1,day=1)
 
 INDEX_URL = "http://www.rijksoverheid.nl/nieuws/nieuwsoverzicht"
-ARCHIVE_URL = "http://www.rijksoverheid.nl/nieuws/nieuwsoverzicht?keyword=&form-period-from={d}-{m}-{y}&form-period-to={nd}-{nm}-{ny}&form-department="
+ARCHIVE_URL = "http://www.rijksoverheid.nl/nieuws/nieuwsoverzicht?keyword=&form-period-from={d:02d}-{m:02d}-{y:04d}&form-period-to={nd:02d}-{nm:02d}-{ny:04d}&form-department="
 
 from amcat.scraping.scraper import HTTPScraper
 
@@ -58,10 +58,12 @@ class OverheidNieuwsScraper(HTTPScraper):
                 }
             url = ARCHIVE_URL.format(**urldict)
             doc = self.getdoc(url)
+            
+            print("\n"+url+"\n")
             for page in self.get_pages(doc,url):
+                
                 for _url in [urljoin(url,a.get('href')) for a in page.cssselect("div.search-results a")]:
                     yield _url
-
             _date = prevdate
 
 
@@ -74,7 +76,6 @@ class OverheidNieuwsScraper(HTTPScraper):
             yield doc;return
         else:
             yield doc
-        
         for x in range(lastpage):
             href = "{}&page={}".format(url,x)
             yield self.getdoc(href)
@@ -103,7 +104,12 @@ class OverheidNieuwsScraper(HTTPScraper):
             if "Verantwoordelijk" in title and "ministerie" in title:
                 article.props.author = "; ".join([a.text for a in block.cssselect("ul.list-common li a")])
                 break
-
+        
+        try:
+            if len(article.props.author) > 100:
+                article.props.author = article.props.author[:100]
+        except AttributeError:
+            pass
         yield article
         
 
