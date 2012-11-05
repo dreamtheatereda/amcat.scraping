@@ -39,16 +39,20 @@ class PownewsScraper(HTTPScraper, DatedScraper):
     def _get_units(self):
 
         start = self.getdoc(START_URL) 
-        index_url = urljoin(BASE_URL,start.cssselect("#sidebar a.buttonarrow")[0].get('href'))
-        page = self.getdoc(index_url)
-        year = " "+index_url.split("/")[4]
+        new_url = urljoin(BASE_URL,start.cssselect("#sidebar a.buttonarrow")[0].get('href'))
+        page = self.getdoc(new_url)
+        year = " "+new_url.split("/")[4]
+                
         date = readDate(page.cssselect('ul.articlelist li span.t')[0].text[:-5] + year).date()
         while date >= self.options['date']:
+            year = " "+new_url.split("/")[4]
+ 
             for unit in page.cssselect('ul.articlelist li'):
                 date = readDate(unit.cssselect("span.t")[0].text[:-5] +year).date()
                 if str(self.options['date']) in str(date):
                     href = unit.cssselect('a')[0].get('href')
                     yield HTMLDocument(url=href, date=self.options['date'])
+            print(new_url)
             new_url = page.cssselect("#maincol-large div a.left")[0].get('href')
             page = self.getdoc(new_url)
 
