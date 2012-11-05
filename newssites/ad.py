@@ -22,8 +22,11 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.document import Document, HTMLDocument, IndexDocument
 from lxml import etree
 from amcat.tools.toolkit import readDate
+from urlparse import urljoin
 
 INDEX_URL = "http://www.ad.nl/ad/nl/1401/archief/integration/nmc/frameset/archive/archiveDay.dhtml?archiveDay={y:04d}{m:02d}{d:02d}"
+REACT_URL = "http://www.ad.nl/ad/reaction/listContent.do?componentId={cid}&navigationItemId={nid}&language=nl&pageType=articleDetail&reactionLayout=small&page={page}"
+
 
 from amcat.scraping.scraper import HTTPScraper,DatedScraper
 
@@ -74,7 +77,7 @@ class WebADScraper(HTTPScraper, DatedScraper):
         return page
 
     def get_comments(self,page):
-        for doc in self.get_reactions_pages(page.doc):
+        for doc in self.get_reactions_pages(page):
             for li in doc.cssselect("ul li"):
                 comment = Document()
                 comment.props.author = li.cssselect("cite")[0].text.strip()
@@ -85,23 +88,30 @@ class WebADScraper(HTTPScraper, DatedScraper):
 
 
 
-    def get_reactions_pages(self,doc):
-        if doc.cssselect("#reaction"):
-            yield doc.cssselect("#reaction")[0]
-        else:
+    def get_reactions_pages(self,page):
+        if not page.doc.cssselect("#reaction"):
             return
+        split = page.props.url.split("/")
+        c_id = split[9]
+        n_id = split[5]
+        firstpage = REACT_URL.format(page=0,cid=c_id,nid=n_id)
+        print(firstpage)
+        doc = self.getdoc(firstpage)
         try:
             total = int(doc.cssselect("div.pagenav")[0].text.split(" van ")[1])
         except IndexError:
+            yield doc;return
+        except AttributeError: #no comments, page is nonetype
             return
         for x in range(total-1):
             for a in doc.cssselect("div.pagenav a"):
                 if "volgende" in a.text:
                     onclick = a.get('onclick')
-            start=onclick.find("getReactions(");end=onclick.find(")",start)
+            start=onclick.find("getReactions(")+13;end=onclick.find(")",start)
             args = [arg.strip("\"';() ") for arg in onclick[start:end].split(",")]
             href = args[0]
-            url = urljoin("http://www.ad.nl",href)
+            url = urljoin("http://www.ad.nl/",href)
+            print(url)
             yield self.getdoc(url)
 
 
