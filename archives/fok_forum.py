@@ -30,8 +30,12 @@ from amcat.tools.toolkit import readDate
 
 CATEGORIES_TO_SCRAPE = [
     #('forum name','forum id'),
-    ('klaagbaak',5)
+    ('klaagbaak',5),
+    ('politiek',56),
+    ('Nieuws & Achtergronden',4)
     ]
+
+SEARCHTERMS = ["huisarts","spreekuur","dokter","wachtrijen","praktijk","zorgkosten","arts"] #only pages whose text_content() contain one of the search terms are scraped
 
 FROMDATE = date(year=2012,month=05,day=01)
 
@@ -90,9 +94,11 @@ class FokForumScraper(HTTPScraper):
                              section=tr.cssselect("td.tFolder")[0].text_content())
         
         topic.prepare(self)
-        for comment in self.get_comments(topic):
-            yield comment
-        yield self.get_article(topic)
+        content = topic.doc.text_content()
+        if any([(s in content) for s in SEARCHTERMS]):
+            for comment in self.get_comments(topic):
+                yield comment
+            yield self.get_article(topic)
 
 
 
