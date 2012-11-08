@@ -34,13 +34,24 @@ class NRCScraper(HTTPScraper, DBScraper):
     nrc_version = "NH"
 
     def _login(self, username, password):
-        page = self.getdoc(LOGIN_URL)
 
-        form = stoolkit.parse_form(page)
-        form['username'] = username
-        form['password'] = password
+        note = """
 
-        self.opener.opener.open(LOGIN_URL, urlencode(form))
+     NOTE: There is something wrong with the nrc website,
+     the paper is accessible without logging in, 
+     trying to log in causes an endless wait.
+        
+     In case this no longer happens, uncomment the _login function in the scraper.
+
+"""
+        print(note)
+
+        #page = self.getdoc(LOGIN_URL)
+
+        #form = stoolkit.parse_form(page)
+        #form['username'] = username
+        #form['password'] = password
+        #self.opener.opener.open(LOGIN_URL, urlencode(form))
 
     def _get_units(self):
         """
@@ -56,16 +67,14 @@ class NRCScraper(HTTPScraper, DBScraper):
             'month_minus' : date.month - 1,
             'version' : self.nrc_version
         }
-        print(index)
         sections = self.getdoc(index).cssselect('#Sections a.thumbnail-link')
         for s in sections:
             url = urljoin(index, s.get('href'))
             yield IndexDocument(url=url, date=date)
 
-    def _scrape_unit(self, ipage): # ipage --> index_page
+    def _scrape_unit(self, ipage):
         ipage.doc = self.getdoc(ipage.props.url)
         ipage.page = int(ipage.props.url.split('_')[-1].split('/')[0])
-        print(ipage.page)
         imgurl = urljoin(ipage.props.url, 'page.jpg')
         ipage.bytes = self.opener.opener.open(imgurl).read()
 
