@@ -26,71 +26,61 @@ from amcat.tools import toolkit
 
 from urlparse import urljoin
 import datetime
-import re
-from math import fabs
+from amcat.tools.toolkit import readDate
 
-START_URL="http://www.parool.nl"
-BASE_URL = "http://www.parool.nl"
-PATTERN = "/article/detail/\d+/(\d\d\d\d)/(\d\d)/(\d\d)/"
-URLS = []
-IGNORE=['photoalbum','verkiezingsuitslagen','weather','article/print','mailFriendForm']
+INDEX_URL = "http://www.parool.nl"
+CONTENT_URL = "http://www.parool.nl/parool/article/pagedListContent.do?language=nl&navigationItemId={nid}&navigation={n}&page={p}"
 
-from urllib2 import HTTPError,URLError
 
 
 class ParoolScraper(HTTPScraper, DatedScraper):
     medium_name = "Parool website"
     def _get_units(self):
-        for doc in self.scrape_page(START_URL):
-            yield doc
-
-    def scrape_page(self,url,depth=0):
-        depth = depth + 1
-        if depth < 11:
-            print("{} - {}".format(depth,url))
-            URLS.append(url)
-
-            p = re.compile(PATTERN)
-            _date = p.search(url)
-            if _date:
-                date = datetime.date(year=int(_date.group(1)),month=int(_date.group(2)),day=int(_date.group(3)))
-
-            if ("article/detail" not in url or date >= self.options['date']):
-                try:
-                    doc = self.getdoc(url)
-                except (HTTPError,URLError,RuntimeError):
-                    pass
+        homepage = self.getdoc(INDEX_URL)
+        for index in homepage.cssselect("div.art_box8_list h3 a"):
+            i_url = urljoin(INDEX_URL,index.get('href'))
+            indexpage = self.getdoc(i_url)
+            link = indexpage.cssselect("div.gen_box3 h2 a")[0].get('href')
+            url_contents = {
+                'p':0,
+                'nid':i_url.split("/")[5],
+                'n':i_url.split("/")[6]
+                }
+            doc = self.getdoc(CONTENT_URL.format(**url_contents))
+            while True:
+                stop=False
+                for node in doc.cssselect("ul.list_node"):
+                    artdate = readDate(node.cssselect("p a")[0].text.strip(")(")).date()
+                    if artdate > self.options['date']:
+                        pass
+                    elif artdate == self.options['date']:
+                        href = node.cssselect("a")[0].get('href')
+                        yield HTMLDocument(url=urljoin(INDEX_URL,href))
+                    elif artdate < self.options['date']:
+                        stop=True;break
+                if stop == True:
+                    break
                 else:
-                    if _date: 
-                        if date == self.options['date']:
-                            yield HTMLDocument(url=url,doc=doc)
-                    for a in doc.cssselect("a"):
-                        nxturl = urljoin(url,a.get('href'))
-                        if nxturl not in URLS:
-                            if self.validurl(nxturl) == True:
-                                for doc in self.scrape_page(nxturl,depth=depth):
-                                    yield doc
+                    href = doc.cssselect("div.gen_box3 a")[-1].get('href')
+                    print(urljoin(INDEX_URL,href))
+                    doc = self.getdoc(urljoin(INDEX_URL,href))
             
-                
+
+
     def _scrape_unit(self,page):
         page.prepare(self)
-        page.props.headline = page.doc.cssselect("#art_box2 h1.k20")[0].text.strip()
-        try:
-            page.props.author = page.doc.cssselect("#art_box2")[0].tail.split("(Door: ")[1].rstrip(")")
-        except IndexError:
-            page.props.author = "redactie"
+        page.props.headline = page.doc.cssselect("#art_box2 h1")[0].text_content()
+        page.props.author = page.doc.cssselect("div.time_post")[0].text.split(":")[-1].strip()
+        for script in page.doc.cssselect("script"):
+            script.drop_tree()
+        for h1 in page.doc.cssselect("h1"):
+            h1.drop_tree()
         page.props.text = page.doc.cssselect("#art_box2")[0].text_content()
+        page.props.date = readDate(page.doc.cssselect("div.time_post")[0].text.split("Bron:")[0])
         yield page
 
 
-    def validurl(self,url):
-        if 'http://www.parool.nl' in url:
-            if not ('photoalbum' in url or 'verkiezingsuitslagen' in url or 'article/print' in url or 'weather' in url or 'mailFriendForm' in url):
-                return True
-            else:
-                return False
-        else:
-            return False
+
 
 if __name__ == '__main__':
     import sys
