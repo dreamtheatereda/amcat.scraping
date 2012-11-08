@@ -42,6 +42,8 @@ MONTHS = [
     'december'
 ]
 
+from urllib2 import HTTPError
+
 class NuScraper(HTTPScraper, DatedScraper):
     medium_name = "Nu.nl"
 
@@ -68,7 +70,10 @@ class NuScraper(HTTPScraper, DatedScraper):
                                 
 
     def _scrape_unit(self, page):
-        page.prepare(self)
+        try:
+            page.prepare(self)
+        except HTTPError:
+            return
         date = readDate(page.doc.cssselect("div.dateplace-data")[0].text_content().split("\n")[1])
         if date.date() != self.options['date']: 
             # nu.nl search sometimes returns wrong results

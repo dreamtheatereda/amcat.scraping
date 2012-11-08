@@ -81,8 +81,6 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         ipage.props.category = "" #add ipage category if present
         for article in ipage.doc.cssselect("body div.overlay"):
 
-            time.sleep(1)
-
             text = article.text_content()
             onclick = text[text.find("onClick"):]
             article_id = onclick.split(",")[0].split("'")[1]
