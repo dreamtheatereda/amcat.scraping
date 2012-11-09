@@ -37,44 +37,14 @@ consumer_secret="UkEZhOEPI0Ydft85PDF3S2KLrV2AlhZqXMtGVnNSEAc"
 access_token="816243289-14u7zplDIiAkTf1fomp9ZUg62eDlzFspXXZv9bty"
 access_token_secret="0FncNCYPgBfQvzwqV0a0kJ7Orr4mQUFsDwkPkrCvo"
 
-fields = [
-    'annotations',
-    'contributors',
-    'coordinates',
-    'created_at',
-    'current_user_retweet',
-    'entities',
-    'favorited',
-    'geo',
-    'id',
-    'id_str',
-    'in_reply_to_screen_name',
-    'in_reply_to_status_id',
-    'in_reply_to_status_id_str',
-    'in_reply_to_user_id',
-    'in_reply_to_user_id_str',
-    'place',
-    'possibly_sensitive',
-    'scopes',
-    'retweet_count',
-    'retweeted',
-    'source',
-    'text',
-    'truncated',
-    'user',
-    'witheld_copyright',
-    'witheld_in_countries',
-    'witheld_scope',
-    'retweeted_status',
-    'possibly_sensitive_editable',
-    'limit',
-    'disconnect'
-    ]
-
+try:
+    from amcatscraping.social.twitter.csv_scraper import fields
+except ImportError:
+    from scraping.social.twitter.csv_scraper import fields
 
 
 class TwitterFilterForm(forms.Form):
-    track_file = forms.CharField(required=False)
+    query_file = forms.CharField(required=False)
     date = forms.DateField()
 
 class TwitterFilterScript(Script):
@@ -84,13 +54,13 @@ class TwitterFilterScript(Script):
         super(TwitterFilterScript, self).__init__(*args, **kargs)
 
     def run(self, _input):
-        if len(self.options['track_file'])<=1:
+        if not self.options['query_file']:
             if path.exists(environ.get('PYTHONPATH')+"scraping"):
-                self.options['track_file']='{}scraping/social/twitter/track.txt'.format(environ.get('PYTHONPATH'))
+                self.options['query_file']='{}scraping/social/twitter/filter_query.txt'.format(environ.get('PYTHONPATH'))
             else:
-                self.options['track_file']='{}amcatscraping/social/twitter/track.txt'.format(environ.get('PYTHONPATH'))
+                self.options['query_file']='{}amcatscraping/social/twitter/filter_query.txt'.format(environ.get('PYTHONPATH'))
         words = []
-        word_file = open(self.options['track_file'])
+        word_file = open(self.options['query_file'])
         for l in word_file.readlines():
             if not l.startswith("#"):
                 [words.append(w.strip()) for w in l.strip("\n").split(",") if len(w.strip())>1]

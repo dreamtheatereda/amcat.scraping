@@ -34,11 +34,11 @@ from datetime import date
 import csv
 import os
 
-target = os.environ.get('PYTHONPATH')+"/{scraping_module}/social/twitter/twitter.csv"
+target = os.environ.get('PYTHONPATH')+"/{scraping_module}/social/twitter/users.csv"
 if os.path.exists(target.format(scraping_module="scraping")):
-    CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'/scraping/social/twitter/twitter.csv','rb'))
+    CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'/scraping/social/twitter/users.csv','rb'))
 elif os.path.exists(target.format(scraping_module="amcatscraping")):
-    CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'/amcatscraping/social/twitter/twitter.csv','rb'))
+    CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'/amcatscraping/social/twitter/users.csv','rb'))
 
 
 INDEX_URL = "https://www.twitter.com"
