@@ -19,21 +19,21 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-
 try:
-    from scraping.newssites.ad import WebADScraper
+    from scraping.archives.dekrantvantoen import DeKrantVanToenScraper
 except ImportError:
-    from amcatscraping.newssites.ad import WebADScraper
+    from amcatscraping.archives.dekrantvantoen import DeKrantVanToenScraper
 
-from datetime import timedelta
 
-class WebADArchiveScraper(WebADScraper):
-    options_form = ArchiveScraperForm
+class DVHNArchiveScraper(DeKrantVanToenScraper):
+    paper="DVHN"
     
-    def get_units(self):
-        self.options['date'] = self.options['first_date']
-        while self.options['date'] <= self.options['last_date']:
-            for unit in super(WebADArchiveScraper,self).get_units():
-                yield unit
-            self.options['date'] += timedelta(days=1)
-                  
+
+
+
+if __name__ == '__main__':
+    from amcat.scripts.tools import cli
+    from amcat.tools import amcatlogging
+    amcatlogging.debug_module("amcat.scraping.scraper")
+    amcatlogging.debug_module("amcat.scraping.document")
+    cli.run_cli(DVHNArchiveScraper)

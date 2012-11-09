@@ -114,7 +114,8 @@ class NuJijScraper(HTTPScraper, DatedScraper):
                         comment.props.text = li.cssselect("div.reactie-body")[0].text.strip()
                         comment.props.author = li.cssselect("strong")[0].text
                         comment.props.date = readDate(li.cssselect("span.tijdsverschil")[0].get('publicationdate'))
-                        yield comment
+                        if comment.props.date.date() == self.options['date']:
+                            yield comment
                     except IndexError:
                         pass
 

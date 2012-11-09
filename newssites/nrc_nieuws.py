@@ -26,8 +26,11 @@ from urlparse import urljoin
 
 
 INDEX_URL = "http://www.nrc.nl/nieuws/overzicht/{y:04d}/{m:02d}/{d:02d}/"
+COMMENTS_URL = "http://nrcnl.disqus.com/thread.js?slug={t}&p={p}"
 
+import json
 from amcat.scraping.scraper import HTTPScraper,DatedScraper
+from amcat.tools.toolkit import readDate
 
 class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
     medium_name = "NRC website - nieuws"
@@ -47,7 +50,9 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
         url = INDEX_URL.format(**locals())
         index = self.getdoc(url)
         index.cssselect("div.watskeburt section")[1].drop_tree()
-        for unit in index.cssselect('div.watskeburt article'): #long live the semantic web!
+        articles = index.cssselect('div.watskeburt article')+index.cssselect("div.watisnjouw_articles article")
+        print(articles)
+        for unit in articles:
             try:
                 href = unit.cssselect('h2 a')[0].get('href').lstrip("./")
             except IndexError:
@@ -66,8 +71,58 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
             page.props.author = "onbekend"
         page.props.headline = page.doc.cssselect("div.article h1")[0].text
         page.props.text = page.doc.cssselect("#broodtekst")[0].text_content()
+        
+        if "tim" in page.props.url:
+            print("\n\ntimmehh!\n\n")
+
+
+        if page.doc.cssselect("#disqus_thread"):
+            for comment in self.get_comments(page):
+                yield comment
+                
         yield page
 
+
+    def get_comments(self, page):
+        print("get_comments")
+        title = page.props.url.split("/")[-2].replace("-","_")
+        
+        firsturl = COMMENTS_URL.format(t=title,p=1)
+        txt = self.open(firsturl).read()
+        nexturl = COMMENTS_URL.format(t=title,p=2)
+        nxt = self.open(nexturl).read()
+
+        i = 1
+
+        comments = {}
+
+        while txt != nxt:
+            start = txt.find("jsonData = {")+11;end = txt.find("}}; ")+2
+            _json = txt[start:end]
+            data = json.loads(_json)
+            for post in data['posts'].items():
+                comment = Document()
+                cid = post[0]
+                post = post[1]
+                comment.props.author = post['user_key']
+                comment.props.text = post['raw_message']
+                comment.props.date = readDate(post['real_date'])
+                comment.parent = post['parent_post_id']
+                comments[str(cid)] = comment
+            nexturl = COMMENTS_URL.format(t=title,p=i+1)
+            txt = nxt
+            nxt = self.open(nexturl).read()
+            
+        for comment in comments.values():
+            if comment.parent:
+                comment.parent = comments[str(comment.parent)]
+            else:
+                comment.parent = page
+
+            print(comment.parent)
+            yield comment
+
+            
 
 
 

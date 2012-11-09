@@ -38,6 +38,8 @@ PAGE_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.
 
 LOGIN_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/protection/login.php?pSetup={paper}"
 
+from httplib import BadStatusLine
+
 from ast import literal_eval
 
 class TubantiaScraper(HTTPScraper, DBScraper):
@@ -55,6 +57,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         """
         url = LOGIN_URL.format(paper=self.paper)
         page = self.getdoc(url)
+            
         form = toolkit.parse_form(page)
         form["username"] = str(username)
         form["password"] = str(password)
@@ -109,7 +112,10 @@ class TubantiaScraper(HTTPScraper, DBScraper):
     def _scrape_unit(self, ipage):
         page = ipage
         ipage = HTMLDocument(ipage)
-        ipage.doc = self.open(page['url'])
+        try:
+            ipage.doc = self.open(page['url'])
+        except BadStatusLine:
+            return
         ipage.page = page['pagenum']
         ipage.props.category = page['section']
         
