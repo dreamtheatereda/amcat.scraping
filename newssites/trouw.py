@@ -53,7 +53,6 @@ class TrouwWebScraper(HTTPScraper, DatedScraper):
             href = unit.cssselect('a')[0].get('href')
             unit.cssselect('span')[0].drop_tree()
             title = unit.cssselect('a')[0].text_content()
-            print(title)
             yield HTMLDocument(url=href, headline = title)
         
 
@@ -63,7 +62,6 @@ class TrouwWebScraper(HTTPScraper, DatedScraper):
 
         try:
             header = page.doc.cssselect("div.time_post")[0].text_content()
-            print(header)
         except IndexError as e:
             print(e)
             return
@@ -81,7 +79,7 @@ class TrouwWebScraper(HTTPScraper, DatedScraper):
             elif groups[1]:
                 page.props.author = groups[1]
 
-        if not page.props.author and page.doc.cssselect("span.author"):
+        if not hasattr(page.props,"author") and page.doc.cssselect("span.author"):
             page.props.author = page.doc.cssselect("span.author")[0].text_content()[:100]
 
         page.props.text = "\n\n".join([p.text_content() for p in page.doc.cssselect("#art_box2 p")])
