@@ -64,6 +64,7 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         """get pages"""
 
         index_url = INDEX_URL.format(self.options['date'])
+        print(index_url)
         index = self.getdoc(index_url)
         
         for page in self._get_pages_links(index):
