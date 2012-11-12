@@ -23,9 +23,10 @@ from amcat.scraping.scraper import ArchiveForm
 from amcat.scraping.googlescraper import GoogleScraper
 
 from amcat.tools.toolkit import readDate
-from amcat.scraping.document import HTMLDocument
+from amcat.scraping.document import HTMLDocument,Document
 
 from datetime import timedelta
+import re
 
 def makequery(date):
     months_abbrev = [
@@ -42,7 +43,7 @@ def makequery(date):
 class WebTelegraafArchiveScraper(GoogleScraper):
     medium_name="telegraaf.nl"
     options_form = ArchiveForm
-    
+    article_url_pattern = re.compile("__[a-zA-Z0-9_]+__.html")
     def get_units(self):
         self.date = self.options['first_date']
         while self.date <= self.options['last_date']:
@@ -57,20 +58,28 @@ class WebTelegraafArchiveScraper(GoogleScraper):
         page.props.headline = page.doc.cssselect("#artikel h1")[0].text_content().strip()
         page.doc.cssselect("div.broodMediaBox")[0].drop_tree()
         page.props.text = page.doc.cssselect("#artikelKolom")[0].text_content()
+        page.props.section = page.doc.cssselect("#breadcrumbs a")[-1].text
+        for comment in self.scrape_comments(page):
+            yield comment
+
+
+
         yield page
 
-        def scrape_comments(self,page):
-            url = page.doc.cssselect("ul.pager li.pager-last")[0].text
-            p = url.split("page=")[0]+"page={}"
-            docs = [self.getdoc(p.format(x)) for x in range(int(url.split("page=")[-1]))]
-            for doc in docs:
-                for div in doc.cssselect("#comments div.comment"):
-                    comment = Document()
-                    comment.props.text = div.cssselect("div.content")[0].text_content()
-                    comment.props.author = div.cssselect("span.submitted-username")[0].text_content()
-                    comment.props.date = readDate(div.cssselect("div.submitted div.floatr")[0])
-                    comment.parent = page
-                    yield comment
+    def scrape_comments(self,page):
+        p = page.props.url+"?page={}"
+        if not page.doc.cssselect("ul.pager"):
+            return
+        total = int(page.doc.cssselect("ul.pager li.pager-last a")[0].get('href').split("page=")[-1].split("&")[0]) + 1
+        docs = [self.getdoc(p.format(x)) for x in range(total)]
+        for doc in docs:
+            for div in doc.cssselect("#comments div.comment"):
+                comment = Document()
+                comment.props.text = div.cssselect("div.content")[0].text_content()
+                comment.props.author = div.cssselect("span.submitted-username")[0].text_content()
+                comment.props.date = readDate(div.cssselect("div.submitted div.floatr")[0].text_content())
+                comment.parent = page
+                yield comment
 
 
 
