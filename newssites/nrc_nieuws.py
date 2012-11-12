@@ -51,7 +51,6 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
         index = self.getdoc(url)
         index.cssselect("div.watskeburt section")[1].drop_tree()
         articles = index.cssselect('div.watskeburt article')+index.cssselect("div.watisnjouw_articles article")
-        print(articles)
         for unit in articles:
             try:
                 href = unit.cssselect('h2 a')[0].get('href').lstrip("./")
@@ -66,25 +65,26 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
         page.prepare(self)
         page.doc = self.getdoc(page.props.url)
         try:
-            page.props.author = page.doc.cssselect("div.author a")[0].text
+            page.props.author = page.doc.cssselect("div.author a")[0].text_content()
         except IndexError:
             page.props.author = "onbekend"
-        page.props.headline = page.doc.cssselect("div.article h1")[0].text
-        page.props.text = page.doc.cssselect("#broodtekst")[0].text_content()
-        
-        if "tim" in page.props.url:
-            print("\n\ntimmehh!\n\n")
-
-
-        if page.doc.cssselect("#disqus_thread"):
+        page.props.headline = page.doc.cssselect("div.article h1")[0].text_content()
+        try:
+            page.props.text = page.doc.cssselect("#broodtekst")[0].text_content()
+        except IndexError: #next checkt
+            page.props.text = "\n\n".join([p.text_content() for p in page.doc.cssselect("div.article p")])
             for comment in self.get_comments(page):
                 yield comment
+        else:
+
+            if page.doc.cssselect("#disqus_thread"):
+                for comment in self.get_comments(page):
+                    yield comment
                 
         yield page
 
 
     def get_comments(self, page):
-        print("get_comments")
         title = page.props.url.split("/")[-2].replace("-","_")
         
         firsturl = COMMENTS_URL.format(t=title,p=1)
@@ -118,8 +118,6 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
                 comment.parent = comments[str(comment.parent)]
             else:
                 comment.parent = page
-
-            print(comment.parent)
             yield comment
 
             

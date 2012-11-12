@@ -80,7 +80,7 @@ class TrouwWebScraper(HTTPScraper, DatedScraper):
                 page.props.author = groups[1]
 
         if not hasattr(page.props,"author") and page.doc.cssselect("span.author"):
-            page.props.author = page.doc.cssselect("span.author")[0].text_content()[:100]
+            page.props.author = page.doc.cssselect("span.author")[0].text_content()[:99]
 
         page.props.text = "\n\n".join([p.text_content() for p in page.doc.cssselect("#art_box2 p")])
         try:
