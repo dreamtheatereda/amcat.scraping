@@ -29,16 +29,19 @@ from datetime import timedelta
 import re
 
 def makequery(date):
+    print(date)
     months_abbrev = [
         'jan','feb','mrt','apr',
         'mei','jun','jul','aug',
         'sep','okt','nov','dec'
         ]
-
-    return "site:http://www.telegraaf.nl \"{:02d} {} {:04d}\"".format(
+    query = "site:http://www.telegraaf.nl \"{:02d} {} {:04d}\"".format(
         date.day,
         months_abbrev[date.month],
         date.year)
+    print(query)
+    return query
+
 
 class WebTelegraafArchiveScraper(GoogleScraper):
     medium_name="telegraaf.nl"
