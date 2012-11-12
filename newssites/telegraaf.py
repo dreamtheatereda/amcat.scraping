@@ -81,12 +81,31 @@ class WebTelegraafScraper(HTTPScraper, DatedScraper):
         
     def _scrape_unit(self, page): 
         page.prepare(self)
+        page.props.date = readDate(page.doc.cssselect("span.datum")[0].text_content())
         page.props.author = "Unknown"
         page.props.headline = page.doc.cssselect("#artikel h1")[0].text_content().strip()
         page.doc.cssselect("div.broodMediaBox")[0].drop_tree()
         page.props.text = page.doc.cssselect("#artikelKolom")[0].text_content()
+
+        for comment in self.scrape_comments(page):
+            yield comment
+
         yield page
 
+
+    def scrape_comments(self,page):
+        url = page.doc.cssselect("ul.pager li.pager-last")[0].text
+        p = url.split("page=")[0]+"page={}"
+        docs = [self.getdoc(p.format(x)) for x in range(int(url.split("page=")[-1]))]
+        for doc in docs:
+            for div in doc.cssselect("#comments div.comment"):
+                comment = Document()
+                comment.props.text = div.cssselect("div.content")[0].text_content()
+                comment.props.author = div.cssselect("span.submitted-username")[0].text_content()
+                comment.props.date = readDate(div.cssselect("div.submitted div.floatr")[0])
+                comment.parent = page
+                yield comment
+            
 
 
 
