@@ -32,7 +32,7 @@ from amcat.scraping.scraper import HTTPScraper,DatedScraper
 class WeblogNRCScraper(HTTPScraper, DatedScraper):
     medium_name = "NRC website - blogs"
     t = "weblogs"
-
+    nextcheckt = False
     def __init__(self, *args, **kwargs):
         super(WeblogNRCScraper, self).__init__(*args, **kwargs)
 
@@ -74,6 +74,15 @@ class WeblogNRCScraper(HTTPScraper, DatedScraper):
                 page = HTMLDocument(date = ipage.props.date,url=url)
                 page.prepare(self)
                 page.doc = self.getdoc(page.props.url)
+
+
+                try:
+                    page.props.text = page.doc.cssselect("#broodtekst")[0].text_content()
+                except IndexError: #next checkt
+                    page.props.text = "\n\n".join([p.text_content() for p in page.doc.cssselect("div.article p")])
+                    for comment in self.get_comments(page):
+                        yield comment
+
                 yield self.get_article(page)
 
                 ipage.addchild(page)
@@ -86,9 +95,17 @@ class WeblogNRCScraper(HTTPScraper, DatedScraper):
         except IndexError:
             page.props.author = "unknown"
         page.props.headline = page.doc.cssselect("div.article h1")[0]
-        page.props.text = page.doc.cssselect("#broodtekst")[0].text_content()
         page.coords = ""
         return page
+
+    def get_comments(self,page):
+        for div in page.doc.cssselect("div.comment"):
+            comment = Document()
+            comment.props.text = div.cssselect("div.reactie")[0].text_content()
+            comment.props.author = div.cssselect("li.naam")[0].text_content()
+            comment.props.date = readDate(div.cssselect("li.date")[0].text_content())
+            comment.parent = page
+            yield comment
 
 
 

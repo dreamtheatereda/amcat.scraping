@@ -19,116 +19,70 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-
-
-from amcat.scraping.scraper import DBScraper, HTTPScraper
-from amcat.scraping.document import Document, HTMLDocument
-
-
-from urllib import urlencode
-from urllib2 import HTTPError
-from urlparse import urljoin
-from amcat.tools.toolkit import readDate
-from datetime import date
+try:
+    from amcatscraping.social.twitter.twitter_statuses_user_timeline import TwitterStatusesUserTimelineScraper
+except ImportError:
+    from scraping.social.twitter.twitter_statuses_user_timeline import TwitterStatusesUserTimelineScraper
 
 import csv
 import os
 
 target = os.environ.get('PYTHONPATH')+"/{scraping_module}/social/twitter/users.csv"
 if os.path.exists(target.format(scraping_module="scraping")):
-    CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'/scraping/social/twitter/users.csv','rb'))
+    CSV_READ = csv.reader(open(os.environ.get('PYTHONPATH')+'/scraping/social/twitter/users.csv','rb'))
 elif os.path.exists(target.format(scraping_module="amcatscraping")):
-    CSV_FILE = csv.reader(open(os.environ.get('PYTHONPATH')+'/amcatscraping/social/twitter/users.csv','rb'))
+    CSV_READ = csv.reader(open(os.environ.get('PYTHONPATH')+'/amcatscraping/social/twitter/users.csv','rb'))
 
-
-INDEX_URL = "https://www.twitter.com"
-
-import oauth2 as oauth
- 
-CONSUMER_KEY = 'YLDO7j9C7MigKeGnhcAjbQ'
-CONSUMER_SECRET = 'njXW1bLzPZPBpUswkOhYHbSYl8VQ80paTPtoD6NiJg'
-
-
-
-
-def oauth_req(url, key, secret, http_method="GET",post_body=None,http_headers=None):
-    consumer = oauth.Consumer(key=CONSUMER_KEY, secret=CONSUMER_SECRET)
-    token = oauth.Token(key=key, secret=secret)
-    client = oauth.Client(consumer, token)
-    resp, content = client.request(
-        url,
-        method=http_method
-        )
-    return content
 
 import json
 
+CSV_WRITE = csv.writer(open('test.csv','w'))
 
 
-
-class TwitterPoliticiScraper(HTTPScraper, DBScraper):
+class TwitterPoliticiScraper(TwitterStatusesUserTimelineScraper):
     medium_name = "Twitter - invloedrijke twitteraars en politici"
 
     def __init__(self, *args, **kwargs):
         super(TwitterPoliticiScraper, self).__init__(*args, **kwargs)
         self.notfound = open('readme.txt','w')
-
-    def _login(self, username, password):
-        
-        POST_DATA = {
-            'email' : username,
-            'password' : password
-        }
-        self.opener.opener.open(INDEX_URL, urlencode(POST_DATA))
-
+        self.newlines = []
 
     def _get_units(self):
-        """get pages"""
-        i = 0
-        for row in CSV_FILE:
-            i = i + 1
-            if i == 1:
+        first = True
+        for person in CSV_READ:
+            if first:
+                first = False
                 continue
+
+            self.options['user_id'] = None
             try:
-                url = row[7]
-                if len(url)<5:
-                    continue
-                page = self.opener.opener.open(url)
-            except:
-                msg = "{} twitter addres ({}) not found\n".format(row[0],row[7])
-                print(msg)
-                self.notfound.write(msg)
-                continue
-
-            page = HTMLDocument(url = url,date = self.options['date'])
-            yield page 
-                
-
-
-        
-
-        
-    def _scrape_unit(self, page):
-        """gets articles from a page"""
-        try:
-            page.prepare(self)
-            page.doc = self.getdoc(page.props.url)
-        except (HTTPError,ValueError):
-            return
-        FULL_NAME = page.doc.cssselect("h1.fullname")[0].text.strip()
-        for div in page.doc.cssselect("div.stream-item"):
-            if div.get('data-item-type')=="tweet":
-                t_date=readDate(div.cssselect("small.time a")[0].get('title')).date()
-                if self.options['date'] == t_date:
-                    tweet = Document()
-                    tweet.text = div.cssselect("p.js-tweet-text")[0].text_content()
-                    tweet.date = div.cssselect("small.time a")[0].get('title')
-                    tweet.author = FULL_NAME
-                    yield tweet
-                elif self.options['date']>t_date:
-                    break
+                self.options['user_id'] = person[8]
+            except IndexError:
+                self.options['url'] = person[7]
+            self.options['screenname'] = None
+            try:
+                for unit in super(TwitterPoliticiScraper, self)._get_units():
+                    yield unit
+            except ValueError: #protected tweets
+                pass
+            except super(TwitterPoliticiScraper,self).RateLimitError as e:
+                print(e)
             
+            newline = person
+            newline.append(self.options['user_id'])
+            self.newlines.append(newline)
 
+        
+
+        self.update_csvfile()
+
+    def update_csvfile(self):
+        CSV_WRITE.writerow([1,2,3,4,5,6,7,8])
+        for line in self.newlines:
+            CSV_WRITE.writerow(line)
+
+
+                
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
