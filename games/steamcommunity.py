@@ -52,7 +52,7 @@ class SteamScraper(HTTPScraper):
         setpreference = {
             'preference':'topicrepliesperpage',
             'sessionid':sesid,
-            'value':50
+            'value':60
             }
         self.open("http://steamcommunity.com/forum/0/0/setpreference",urlencode(setpreference))
 
