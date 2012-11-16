@@ -59,8 +59,9 @@ class NuScraper(HTTPScraper, DatedScraper):
         while doc.cssselect("div.searchResultItem"):
             for unit in doc.cssselect("div.searchResultItem"):
                 a = unit.cssselect("div.title a")[0]
-                date = readDate(unit.cssselect("div.updatedAt")[0].text_content().lstrip("Latse upd"))
-                print("\n{}".format(date))
+                if "NU TV Gids" in a.text_content():
+                    continue
+                date =readDate(unit.cssselect("div.updatedAt")[0].text_content().lstrip("Latse upd"))
                 yield HTMLDocument(url=a.get('href'), headline = a.text, date = date)
             if doc.cssselect("div.pagination"):
                 url_formats['p'] += 1
