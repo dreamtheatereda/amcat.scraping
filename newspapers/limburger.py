@@ -98,7 +98,7 @@ class LimburgerScraper(HTTPScraper, DBScraper):
 
     def get_article(self, page):
         try: #not always an author in text
-            page.props.author = page.doc.cssselect("font.artauthor")[0].text.lstrip("dor")
+            page.props.author = page.doc.cssselect("font.artauthor")[0].text.lstrip("dor")[0:98]
         except IndexError: #cssselect index error
             pass
         page.props.headline = page.doc.cssselect("font.artheader")[0].text
