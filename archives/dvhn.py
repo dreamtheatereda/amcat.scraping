@@ -20,9 +20,9 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 try:
-    from scraping.archives.dekrantvantoen import DeKrantVanToenScraper
-except ImportError:
     from amcatscraping.archives.dekrantvantoen import DeKrantVanToenScraper
+except ImportError:
+    from scraping.archives.dekrantvantoen import DeKrantVanToenScraper
 
 
 class DVHNArchiveScraper(DeKrantVanToenScraper):

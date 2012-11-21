@@ -26,6 +26,8 @@ from amcat.scraping.document import HTMLDocument
 from amcat.tools.toolkit import readDate
 #from amcat.scraping.tools import toolkit
 
+
+from urllib2 import HTTPError
 import re
 
 INDEX_URL = "http://www.trouw.nl/tr/nl/15/archief/integration/nmc/frameset/archive/archiveDay.dhtml?archiveDay={y:04d}{m:02d}{d:02d}"
@@ -58,7 +60,11 @@ class TrouwWebScraper(HTTPScraper, DatedScraper):
 
 
     def _scrape_unit(self, page): 
-        page.prepare(self)
+        try:
+            page.prepare(self)
+        except HTTPError as e:
+            print(e)
+            return
 
         try:
             header = page.doc.cssselect("div.time_post")[0].text_content()
@@ -80,7 +86,11 @@ class TrouwWebScraper(HTTPScraper, DatedScraper):
                 page.props.author = groups[1]
 
         if not hasattr(page.props,"author") and page.doc.cssselect("span.author"):
-            page.props.author = page.doc.cssselect("span.author")[0].text_content()[:99]
+            page.props.author = page.doc.cssselect("span.author")[0].text_content()
+
+        if hasattr(page.props,"author"):
+            if page.props.author:
+                page.props.author = page.props.author[:98]
 
         page.props.text = "\n\n".join([p.text_content() for p in page.doc.cssselect("#art_box2 p")])
         try:

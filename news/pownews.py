@@ -52,7 +52,6 @@ class PownewsScraper(HTTPScraper, DatedScraper):
                 if str(self.options['date']) in str(date):
                     href = unit.cssselect('a')[0].get('href')
                     yield HTMLDocument(url=href, date=self.options['date'])
-            print(new_url)
             new_url = page.cssselect("#maincol-large div a.left")[0].get('href')
             page = self.getdoc(new_url)
 

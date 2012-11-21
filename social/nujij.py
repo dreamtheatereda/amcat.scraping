@@ -43,13 +43,13 @@ class NuJijScraper(HTTPScraper, DatedScraper):
         index = self.getdoc(INDEX_URL)
         for category in index.cssselect("dl.topmenu dd a")[1:]:
             url = category.get('href').replace(" ","%20")
-            print(url)
+
             for doc in self.get_articles(self.getdoc(url)):
                 yield doc
             nxt = self.getdoc(url)        
             while len(nxt.cssselect("div.pages a.next"))==1:
                 nxt_url = urljoin(url,nxt.cssselect("div.pages a.next")[0].get('href'))
-                print("\n"+nxt_url+"\n")
+
                 nxt = self.getdoc(nxt_url)
                 for doc in self.get_articles(nxt):
                     yield doc
@@ -60,8 +60,6 @@ class NuJijScraper(HTTPScraper, DatedScraper):
         for article in page.cssselect("div.columnLeft div.bericht"):
             _datum = article.cssselect("span.tijdsverschil")[0].get('publicationdate')
             datum = readDate(_datum)
-            print("checking date for {url}".format(url=article.cssselect("h3.title a")[0].get('href')))
-            print("Scraped date: {sdate}. Article date: {adate}. Correct? -> {correct}".format(sdate=self.options['date'],adate=_datum,correct=(self.options['date'] == datum.date())))
             if self.options['date'] == datum.date():
                 href = article.cssselect("h3.title a")[0].get('href')+"?pageStart=1"
                 yield HTMLDocument(url=href)

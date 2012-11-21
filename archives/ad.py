@@ -38,7 +38,14 @@ class WebADArchiveScraper(WebADScraper):
             for unit in super(WebADArchiveScraper,self).get_units():
                 yield unit
             self.options['date'] += timedelta(days=1)
-                  
+    
+    def scrape_unit(self, obj):
+        units = super(WebADArchiveScraper,self).scrape_unit(obj)
+        while True:
+            try:
+                yield units.next()
+            except AttributeError:
+                pass
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli

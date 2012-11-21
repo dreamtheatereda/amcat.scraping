@@ -22,6 +22,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.document import Document, HTMLDocument, IndexDocument
 
 from urlparse import urljoin
+from urllib2 import HTTPError
 from amcat.tools.toolkit import readDate
 from datetime import datetime
 
@@ -50,7 +51,6 @@ class WebVolkskrantScraper(HTTPScraper, DatedScraper):
  
         
     def _scrape_unit(self, page): 
-
         page.prepare(self)
         try:
             author = page.doc.cssselect("span.author")[0]
@@ -61,15 +61,19 @@ class WebVolkskrantScraper(HTTPScraper, DatedScraper):
             else:
                 page.props.author = author.text
         except IndexError:
-            time_post = page.doc.cssselect("div.time_post")[0].text
+            try:
+                time_post = page.doc.cssselect("div.time_post")[0].text
+            except IndexError:
+                return
             if "bron" in time_post:
                 page.props.author = page.doc.cssselect("div.time_post")[0].text.split("bron:")[1]
             else:
                 page.props.author = "None"
-        
+        if hasattr(page.props,"author"):
+            if page.props.author:
+                page.props.author = page.props.author[:98]
         page.props.text = page.doc.cssselect("#art_box2")[0].text_content()
         yield page
-
 
 
 

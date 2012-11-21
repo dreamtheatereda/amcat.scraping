@@ -103,7 +103,11 @@ class DeKrantVanToenScraper(HTTPScraper):
             
             
             doc = self.open(PDF_URL.format(**url_dict)).read()
-            art.props.text = self.pdf_to_text(doc).decode('utf-8')
+            try:
+                art.props.text = self.pdf_to_text(doc).decode('utf-8')
+            except Exception as e:
+                print(e)
+                continue
             art.parent = ipage
             art.props.date = self.date
             art.coords = ""

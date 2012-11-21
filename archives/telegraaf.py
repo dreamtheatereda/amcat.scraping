@@ -29,19 +29,15 @@ from datetime import timedelta
 import re
 
 def makequery(date):
-    print(date)
     months_abbrev = [
         'jan','feb','mrt','apr',
         'mei','jun','jul','aug',
         'sep','okt','nov','dec'
         ]
-    query = "site:http://www.telegraaf.nl \"{:02d} {} {:04d}\"".format(
+    return "site:http://www.telegraaf.nl \"{:02d} {} {:04d}\"".format(
         date.day,
         months_abbrev[date.month],
         date.year)
-    print(query)
-    return query
-
 
 class WebTelegraafArchiveScraper(GoogleScraper):
     medium_name="telegraaf.nl"
@@ -56,7 +52,10 @@ class WebTelegraafArchiveScraper(GoogleScraper):
             self.date += timedelta(days=1)
 
     def _scrape_unit(self, page):
-        page.props.date = readDate(page.doc.cssselect("span.datum")[0].text_content())
+        try:
+            page.props.date = readDate(page.doc.cssselect("span.datum")[0].text_content())
+        except IndexError:
+            return #for the rare occasion of a plain empty page
         page.props.author = "Unknown"
         page.props.headline = page.doc.cssselect("#artikel h1")[0].text_content().strip()
         page.doc.cssselect("div.broodMediaBox")[0].drop_tree()

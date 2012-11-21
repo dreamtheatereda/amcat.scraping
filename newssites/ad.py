@@ -23,6 +23,8 @@ from amcat.scraping.document import Document, HTMLDocument, IndexDocument
 from lxml import etree
 from amcat.tools.toolkit import readDate
 from urlparse import urljoin
+from urllib2 import HTTPError
+
 
 INDEX_URL = "http://www.ad.nl/ad/nl/1401/archief/integration/nmc/frameset/archive/archiveDay.dhtml?archiveDay={y:04d}{m:02d}{d:02d}"
 REACT_URL = "http://www.ad.nl/ad/reaction/listContent.do?componentId={cid}&navigationItemId={nid}&language=nl&pageType=articleDetail&reactionLayout=small&page={page}"
@@ -53,13 +55,19 @@ class WebADScraper(HTTPScraper, DatedScraper):
             yield HTMLDocument(url=href, date=self.options['date'])
         
     def _scrape_unit(self, page): 
-        
-        page.prepare(self)
+        try:
+            page.prepare(self)
+        except HTTPError:
+            return
         page.doc = self.getdoc(page.props.url)
         for comment in self.get_comments(page):
             yield comment
-        
-        yield self.get_article(page)
+        try:
+            article = self.get_article(page)
+        except IndexError:
+            pass
+        else:
+            yield article
         
 
     def get_article(self, page):
@@ -67,7 +75,10 @@ class WebADScraper(HTTPScraper, DatedScraper):
             page.props.author = etree.tostring(page.doc.cssselect("span.author")[0]).split("<br>")[0].split(":")[1].strip()
         except IndexError:
             page.props.author = "onbekend"
-        page.props.headline = page.doc.cssselect("#articleDetailTitle")[0].text
+        try:
+            page.props.headline = page.doc.cssselect("#articleDetailTitle")[0].text
+        except IndexError:
+            return
         page.props.text = page.doc.cssselect("section#detail_content")[0].text_content() 
         page.props.date = readDate(etree.tostring(page.doc.cssselect("span.author")[0]).split("<br/>")[1])
         
@@ -96,7 +107,10 @@ class WebADScraper(HTTPScraper, DatedScraper):
         n_id = split[5]
         firstpage = REACT_URL.format(page=0,cid=c_id,nid=n_id)
         print(firstpage)
-        doc = self.getdoc(firstpage)
+        try:
+            doc = self.getdoc(firstpage)
+        except HTTPError:
+            return
         try:
             total = int(doc.cssselect("div.pagenav")[0].text.split(" van ")[1])
         except IndexError:
