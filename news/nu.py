@@ -78,6 +78,9 @@ class NuScraper(HTTPScraper, DatedScraper):
             page.prepare(self)
         except HTTPError:
             return
+        error = page.doc.cssselect(".errorview")
+        if error:
+            return
         date = readDate(page.doc.cssselect("div.dateplace-data")[0].text_content().split("\n")[1])
         if date.date() != self.options['date']: 
             # nu.nl search sometimes returns wrong results
