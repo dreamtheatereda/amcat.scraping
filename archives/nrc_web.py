@@ -39,6 +39,12 @@ class NRCWebArchiveScraper(WebNieuwsNRCScraper):
                 yield unit
             self.options['date'] += timedelta(days=1)
                   
+    def _scrape_unit(self,obj):
+        for unit in super(NRCWebArchiveScraper,self)._scrape_unit(obj):
+            if hasattr(unit.props,"text"):
+                if unit.props.text:
+                    yield unit
+
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli

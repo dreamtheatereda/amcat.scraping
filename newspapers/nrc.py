@@ -35,23 +35,12 @@ class NRCScraper(HTTPScraper, DBScraper):
 
     def _login(self, username, password):
 
-        note = """
+        page = self.getdoc(LOGIN_URL)
 
-     NOTE: There is something wrong with the nrc website,
-     the paper is accessible without logging in, 
-     trying to log in causes an endless wait.
-        
-     In case this no longer happens, uncomment the _login function in the scraper.
-
-"""
-        print(note)
-
-        #page = self.getdoc(LOGIN_URL)
-
-        #form = stoolkit.parse_form(page)
-        #form['username'] = username
-        #form['password'] = password
-        #self.opener.opener.open(LOGIN_URL, urlencode(form))
+        form = stoolkit.parse_form(page)
+        form['username'] = username
+        form['password'] = password
+        self.opener.opener.open(LOGIN_URL, urlencode(form))
 
     def _get_units(self):
         """

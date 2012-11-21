@@ -99,8 +99,6 @@ class FokForumScraper(HTTPScraper, DatedScraper):
                 if str(date.today()) in str(readDate(_date)):
                     yield self.get_article(page)
                     ipage.addchild(page)
-                else:
-                    print("topic discarded: not from today")
 
         yield ipage
 

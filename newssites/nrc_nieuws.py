@@ -23,7 +23,7 @@ from amcat.scraping.document import Document, HTMLDocument, IndexDocument
 
 
 from urlparse import urljoin
-
+from urllib2 import HTTPError
 
 INDEX_URL = "http://www.nrc.nl/nieuws/overzicht/{y:04d}/{m:02d}/{d:02d}/"
 COMMENTS_URL = "http://nrcnl.disqus.com/thread.js?slug={t}&p={p}"
@@ -62,7 +62,12 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
 
         
     def _scrape_unit(self, page): 
-        page.prepare(self)
+        try:
+            page.prepare(self)
+        except HTTPError as e:
+            print(e)
+            return
+            
         page.doc = self.getdoc(page.props.url)
         try:
             page.props.author = page.doc.cssselect("div.author a")[0].text_content()
