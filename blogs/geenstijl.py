@@ -38,20 +38,18 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
         if len(str(month)) == 1:
             month = '0'+str(month)
         year = self.options['date'].year
-        url = INDEX_URL.format(y=year,m=month)
-        yield IndexDocument(url=url,date=self.options['date'])
+        yield INDEX_URL.format(y=year,m=month)
+        
     
-    def _scrape_unit(self, ipage):
-        ipage.prepare(self)
-        ipage.doc = self.getdoc(ipage.props.url)
-        ipage.page = " "
-        units = ipage.doc.cssselect('div.content ul li')
+    def _scrape_unit(self, url):
+        doc = self.getdoc(url)
+        units = doc.cssselect('div.content ul li')
         correct_date = self.options['date'].strftime("%d-%m-%y").strip()
         for article_unit in units:
             try:
                 _date = article_unit.text.strip()
             except AttributeError:
-                break
+                continue
             if _date == correct_date:
                 
                 href = article_unit.cssselect("a")[0].get('href')
@@ -62,9 +60,6 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
                 for comment in self.get_comments(page):
                     yield comment
                 yield page
-                ipage.addchild(page)
-
-        yield ipage
         
 
     def get_article(self, page):

@@ -299,4 +299,8 @@ class PCMScraper(HTTPScraper, DBScraper):
                 log.warning("Skipping article (headline was None)")
                 continue
 
+            page.parent = ipage
+
             yield page.create_article()
+
+        yield ipage
