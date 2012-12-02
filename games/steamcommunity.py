@@ -67,36 +67,53 @@ class SteamScraper(HTTPScraper):
         pattern = re.compile("http://store.steampowered.com/app/(\d+)/")
         appids = set([])
         for page in range(totalpages):
-            url = APP_INDEX_URL.format(page+1)
-            print(url)
-            doc = self.getdoc(url)
+            try:
+                url = APP_INDEX_URL.format(page+1)
+                doc = self.getdoc(url)
+            except Exception as e:
+                print(e)
+                continue
             for app in doc.cssselect("#search_result_container a.search_result_row"):
-                match = pattern.match(app.get('href'))
+                try:
+                    href = app.get('href')
+                except Exception as e:
+                    print(e)
+                    continue
+                match = pattern.match(href)
                 if match:
-                    appid = match.group(1)
-                    
-                    app_url = CONTENT_INDEX_URL.format(appid)
-                    print(app_url)
-                    app_doc = self.getdoc(app_url)
+                    try:
+                        appid = match.group(1)
+                        app_url = CONTENT_INDEX_URL.format(appid)
+                        app_doc = self.getdoc(app_url)
+                    except Exception as e:
+                        print(e)
+                        continue
+
                     while app_doc is not None:
                         for div in app_doc.cssselect("div.apphub_Card"):
-                            commentcount = int(div.cssselect("div.apphub_CardCommentCount")[0].text)
+                            try:
+                                commentcount = int(div.cssselect("div.apphub_CardCommentCount")[0].text)
+                            except Exception as e:
+                                print(e)
+                                continue
+
                             if commentcount > 0:
                                 yield div
-                        form = toolkit.parse_form(app_doc)
-                        url = app_url
-                        for inp in form.items():
-                            url += "&{}={}".format(inp[0],inp[1])
-                        app_doc = self.getdoc(url,urlencode(form))
+                        try:
+                            form = toolkit.parse_form(app_doc)
+                            url = app_url
+                            for inp in form.items():
+                                url += "&{}={}".format(inp[0],inp[1])
+                            app_doc = self.getdoc(url,urlencode(form))
+                        except Exception as e:
+                            break
 
-                print("media: "+str(self.media))
-                print("news: "+str(self.news))
-                print("discussions: "+str(self.discussions))
+    
 
     def _scrape_unit(self, div): 
         
         url = div.get('onclick').split("(")[1].split("', '")[0].lstrip(" '")
-        print(url)
+
         doc = self.getdoc(url)
 
         if div.cssselect("div.discussion"):
@@ -115,14 +132,11 @@ class SteamScraper(HTTPScraper):
             for item in self.scrape_media(doc,_type):
                 yield item
         else:
-            
-            for item in self.scrape_media(doc, _type):
-                yield item
-
-
-
-            from lxml import etree;print(etree.tostring(div))
-            raise ValueError("wrong input")
+            try:
+                for item in self.scrape_media(doc, _type):
+                    yield item
+            except Exception as e:
+                print(e)
 
 
 
