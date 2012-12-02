@@ -74,16 +74,16 @@ class NuScraper(HTTPScraper, DatedScraper):
                                 
 
     def _scrape_unit(self, page):
-        try:
-            page.prepare(self)
-        except HTTPError:
-            return
+        page.prepare(self)
         error = page.doc.cssselect(".errorview")
         if error:
             return
-        date = readDate(page.doc.cssselect("div.dateplace-data")[0].text_content().split("\n")[1])
+        date_str = page.doc.cssselect("div.dateplace-data")[0].text_content()
+        if "\n" in date_str:
+            date = readDate(date_str.split("\n")[1])
+        else:
+            date = readDate(date_str)
         if date.date() != self.options['date']: 
-            # nu.nl search sometimes returns wrong results
             return
         page.props.author = page.doc.cssselect("#leadarticle span.smallprint")[0].text.split("Door:")[1].strip()
         page.props.headline = page.doc.cssselect("#leadarticle .header h1")[0].text
