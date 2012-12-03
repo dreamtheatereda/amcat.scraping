@@ -21,7 +21,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument, Document
+from amcat.scraping.document import HTMLDocument, Document
 from amcat.tools.toolkit import readDate
 
 

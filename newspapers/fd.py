@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.scraper import DBScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping.document import HTMLDocument
 
 
 from urllib import urlencode
@@ -84,19 +84,13 @@ class FDScraper(HTTPScraper, DBScraper):
         """gets articles from a page"""
 
         p_url = PAGE_URL.format(page_id=p['id'],y=self.options['date'].year,m=self.options['date'].month,d=self.options['date'].day)
-
-        ipage = IndexDocument(date=self.options['date'],url=p_url)
-        ipage.prepare(self)
-        ipage.bytes = ""
-        ipage.doc = self.getdoc(ipage.props.url)
-        ipage.props.category = p['category']
-        ipage.page = p['page']
-        for a in ipage.doc.cssselect("td.arthref2 a"):
+        doc = self.getdoc(p_url)
+        for a in doc.cssselect("td.arthref2 a"):
             
 
             art_id = a.get('href').split("('")[1].rstrip("');")
             art_url = ARTICLE_URL.format(art_id=art_id)
-            page = HTMLDocument(date = ipage.props.date,url=art_url)
+            page = HTMLDocument(date = self.options['date'],url=art_url)
             page.prepare(self)
             page.doc = self.getdoc(page.props.url)
             if "Er is geen tekst weergave beschikbaar" in page.doc.cssselect("table.body")[0].text_content():
@@ -104,9 +98,6 @@ class FDScraper(HTTPScraper, DBScraper):
 
             yield self.get_article(page)
                 
-            ipage.addchild(page)
-
-        yield ipage
 
     def get_article(self, page):
         try:

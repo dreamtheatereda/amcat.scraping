@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping.document import HTMLDocument
 
 from urlparse import urljoin
 
@@ -58,7 +58,7 @@ class RTLScraper(HTTPScraper, DatedScraper):
         for article_unit in units[1:6]: #home - opmerkelijk
             href = article_unit.cssselect('a')[0].get('href')
             url = urljoin(BASE_URL,href)
-            yield IndexDocument(url=url, date=self.options['date'])
+            yield url
 
 
 
@@ -66,43 +66,31 @@ class RTLScraper(HTTPScraper, DatedScraper):
 
 
         
-    def _scrape_unit(self, ipage): # 'ipage' means index_page
-        """gets articles from an index page"""
-        ipage.prepare(self)
-        ipage.bytes = "?" #whats this?
+    def _scrape_unit(self, url):
+        doc = self.getdoc(url)
 
-
-        ipage.doc = self.getdoc(ipage.props.url)
-        ipage.page = ""
-        ipage.props.category = ipage.doc.cssselect("div.category_lead_container h2")[0].text
         articlelinks = []
-        for a in ipage.doc.cssselect("div.category_lead_container h3 a"):
+        for a in doc.cssselect("div.category_lead_container h3 a"):
             articlelinks.append(a.get('href'))
-        for a in ipage.doc.cssselect("ul#archive_container_vandaag li a"):
+        for a in doc.cssselect("ul#archive_container_vandaag li a"):
             articlelinks.append(a.get('href'))
 
         for a in articlelinks:
             
             url = urljoin(BASE_URL,a)
-            page = HTMLDocument(date = ipage.props.date,url=url)
+            page = HTMLDocument(date = self.options['date'],url=url)
 
             #check for correct date
             match_1 = "/{y}/{m}_".format(y=self.options['date'].year,m=self.month)
             match_2 = "/{d}/".format(d=self.day)
             if ((match_1 in page.props.url) and (match_2 in page.props.url)):
 
-
-
                 page.prepare(self)
                 page.doc = self.getdoc(page.props.url)
-                page.coords=""
 
                 yield self.get_article(page)
-                ipage.addchild(page)
             
 
-
-        yield ipage
 
     def get_article(self, page):
         page.props.author = page.doc.cssselect("div.fullarticle_tagline")[0].text.split("|")[0]

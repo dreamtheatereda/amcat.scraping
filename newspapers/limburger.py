@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.scraper import DBScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping.document import HTMLDocument
 from amcat.scraping import toolkit as stoolkit
 import time
 from urllib import urlencode
@@ -68,38 +68,30 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         index = self.getdoc(index_url)
         
         for page in self._get_pages_links(index):
-            href = PAGE_URL.format(self.options['date'],pageurl = page['link'])
-            yield IndexDocument(url=href, date=self.options['date'],category = page['category'],page=page['pagenum'])
-
+            url = PAGE_URL.format(self.options['date'],pageurl = page['link'])
+            yield url
 
         
-    def _scrape_unit(self, ipage):
-        """gets articles from a page"""
-        ipage.prepare(self)
-        pageid = ipage.props.url.split("/")[-2]
-        ipage.bytes = ""
-        ipage.doc = self.getdoc(ipage.props.url)
-        ipage.props.category = "" #add ipage category if present
-        for article in ipage.doc.cssselect("body div.overlay"):
+    def _scrape_unit(self, url):
+        doc = self.getdoc(url)
+        pageid = url.split("/")[-2]
+        for article in doc.cssselect("body div.overlay"):
 
             text = article.text_content()
             onclick = text[text.find("onClick"):]
             article_id = onclick.split(",")[0].split("'")[1]
             url = ARTICLE_URL.format(self.options['date'],pageid = pageid,articleid = article_id)
             
-            page = HTMLDocument(date = ipage.props.date,url=url)
+            page = HTMLDocument(date = self.options['date'], url = url)
             page.prepare(self)
             page.doc = self.getdoc(page.props.url)
             yield self.get_article(page)
 
-            ipage.addchild(page)
-
-        yield ipage
 
     def get_article(self, page):
         try: #not always an author in text
             page.props.author = page.doc.cssselect("font.artauthor")[0].text.lstrip("dor")[0:98]
-        except IndexError: #cssselect index error
+        except IndexError:
             pass
         page.props.headline = page.doc.cssselect("font.artheader")[0].text
         page.props.text = page.doc.cssselect("font.artbody")[0].text_content()

@@ -21,7 +21,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 
 from amcat.scraping.scraper import HTTPScraper, DatedScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping.document import HTMLDocument
 import urllib2
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate

@@ -21,7 +21,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.scraper import DBScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping.document import HTMLDocument
 from urlparse import urljoin
 from datetime import date
 
@@ -40,32 +40,18 @@ class TeletekstScraper(HTTPScraper, DBScraper):
         for a in index_1.cssselect("p a"):
             href = a.get('href')
             url = urljoin(BASE_URL,href)
-            index.append(url)
-        for ind in index:
-            yield IndexDocument(url=ind,date=self.options['date'])        
-
-
-
+            yield url
         
-    def _scrape_unit(self, ipage):
-        """gets articles from an index page"""
-        ipage.prepare(self)
-        ipage.bytes = ""
-        ipage.doc = self.getdoc(ipage.props.url)
-        ipage.props.date = date.today()
-        ipage.page = ipage.props.url.split("_")[2]
-        ipage.doc.cssselect("p")[0].drop_tree()
-        for a in ipage.doc.cssselect("a"):
+    def _scrape_unit(self, url):
+        doc = self.getdoc(url)
+        for a in doc.cssselect("a"):
             href = a.get('href')
             url = urljoin(BASE_URL,href)
-            page = HTMLDocument(date = ipage.props.date,url=url)
+            page = HTMLDocument(date = date.today(), url = url)
             page.prepare(self)
             page.doc = self.getdoc(page.props.url)
             yield self.get_article(page)
 
-            ipage.addchild(page)
-
-        yield ipage
 
     def get_article(self, page):
         page.props.author = ""

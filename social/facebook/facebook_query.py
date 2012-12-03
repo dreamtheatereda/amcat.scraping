@@ -25,7 +25,7 @@ Objects can be people, pages, events, applications, groups, places.
 """
 
 
-from amcat.scraping.document import Document, HTMLDocument, IndexDocument
+from amcat.scraping.document import Document, HTMLDocument
 
 
 from urllib import urlencode

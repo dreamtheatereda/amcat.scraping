@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
-from amcat.scraping.document import IndexDocument, HTMLDocument, Document
+from amcat.scraping.document import HTMLDocument, Document
 
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate

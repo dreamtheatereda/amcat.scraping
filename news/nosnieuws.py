@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping.document import HTMLDocument
 
 from urlparse import urljoin
 
@@ -56,32 +56,25 @@ class NOSNieuwsScraper(HTTPScraper, DatedScraper):
                 add = "archief/datum/{year}-{month}-{day}".format(year=year,month=month,day=day)
                 url = urljoin(url,add)
                 category = cat.cssselect("a span")[0].text
-                yield IndexDocument(url=url,date = self.options['date'],category = category)
+                yield url
 
         
-    def _scrape_unit(self, ipage):
-        """gets articles from a page"""
-        ipage.prepare(self)
-        ipage.page = ""
-        ipage.doc = self.getdoc(ipage.props.url)
+    def _scrape_unit(self, url):
+        doc = self.getdoc(url)
         
-        for li in ipage.doc.cssselect("div#article ul.news-list li"):
+        for li in doc.cssselect("div#article ul.news-list li"):
             url = li.cssselect("a")[0].get('href')
             url = urljoin(INDEX_URL,url)
             page = HTMLDocument(date = self.options['date'],url=url)
             page.prepare(self)
             page.doc = self.getdoc(page.props.url)
-            page.coords = ""
 
-            try: #some pages are custom, with a different layout
+            try:
                 yield self.get_article(page) 
-                ipage.addchild(page)
-            except IndexError: #cssselect() will fail first, raising an index error
-                pass #these pages are often temporarily
+            except IndexError:
+                pass
 
             
-
-        yield ipage
 
     def get_article(self, page):
         page.props.headline = page.doc.cssselect("div#article h1")[0]

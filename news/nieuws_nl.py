@@ -40,7 +40,6 @@ class Nieuws_nlScraper(HTTPScraper, DatedScraper):
         index = self.getdoc(url)
         for unit in index.cssselect('div.submenu a'):
             href = unit.get('href')
-            print("\n"+href+"\n")
             for page in self.get_pages(self.getdoc(href)):
                 i = 0
                 for _article in page.cssselect("#mainlayout_rundown .mainlayout_datum"):

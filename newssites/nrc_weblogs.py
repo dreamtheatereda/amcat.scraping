@@ -19,7 +19,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.document import Document, HTMLDocument, IndexDocument
+from amcat.scraping.document import Document, HTMLDocument
 
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
@@ -52,18 +52,13 @@ class WeblogNRCScraper(HTTPScraper, DatedScraper):
                 self.open(link)
             except HTTPError: #not up to date
                 continue
-            yield IndexDocument(url=link, date=self.options['date'])
+            yield url
             
 
-    def _scrape_unit(self, ipage): 
+    def _scrape_unit(self, url):
+        doc = self.getdoc(url)
 
-        ipage.prepare(self)
-        ipage.bytes = ""
-        ipage.doc = self.getdoc(ipage.props.url)
-        ipage.page = ""
-        ipage.props.category = ipage.doc.cssselect("li.jebenthier a")[0].text
-
-        for dd in ipage.doc.cssselect("div.lijstje dd"):
+        for dd in doc.cssselect("div.lijstje dd"):
             _date = "-".join(dd.cssselect("a")[0].get('href').split("/")[4:7])
             date = readDate(_date)
             if date.date() < self.options['date']:
@@ -71,7 +66,7 @@ class WeblogNRCScraper(HTTPScraper, DatedScraper):
             elif date.date() == self.options['date']:
                 href = dd.cssselect("a")[0].get('href').lstrip("./")
                 url = urljoin("http://www.nrc.nl/",href)
-                page = HTMLDocument(date = ipage.props.date,url=url)
+                page = HTMLDocument(date = self.options['date'], url = url)
                 page.prepare(self)
                 page.doc = self.getdoc(page.props.url)
 
@@ -85,9 +80,7 @@ class WeblogNRCScraper(HTTPScraper, DatedScraper):
 
                 yield self.get_article(page)
 
-                ipage.addchild(page)
 
-        yield ipage
 
     def get_article(self, page):
         try:

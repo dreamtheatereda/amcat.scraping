@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.scraper import HTTPScraper, DBScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping.document import HTMLDocument
 from amcat.scraping import toolkit as stoolkit
 
 LOGIN_URL = "https://login.nrc.nl/login"
@@ -59,28 +59,20 @@ class NRCScraper(HTTPScraper, DBScraper):
         sections = self.getdoc(index).cssselect('#Sections a.thumbnail-link')
         for s in sections:
             url = urljoin(index, s.get('href'))
-            yield IndexDocument(url=url, date=date)
+            yield url
 
-    def _scrape_unit(self, ipage):
-        ipage.doc = self.getdoc(ipage.props.url)
-        ipage.page = int(ipage.props.url.split('_')[-1].split('/')[0])
-        imgurl = urljoin(ipage.props.url, 'page.jpg')
-        ipage.bytes = self.opener.opener.open(imgurl).read()
-
-        for a in ipage.doc.cssselect('#Articles a'):
-            page = HTMLDocument(date=ipage.props.date)
-            page.coords = stoolkit.parse_coords(ipage.doc.cssselect('div.%s' % a.get('class')))
-            page.props.url = urljoin(ipage.props.url, '%s_text.html' % a.get('class'))
+    def _scrape_unit(self, url):
+        doc = self.getdoc(url)
+        for a in doc.cssselect('#Articles a'):
+            page = HTMLDocument(date=self.options.get('date'))
+            page.coords = stoolkit.parse_coords(doc.cssselect('div.%s' % a.get('class')))
+            page.props.url = urljoin(url, '%s_text.html' % a.get('class'))
 
             page.prepare(self)
             yield self.get_article(page)
 
-            ipage.addchild(page)
-
-        yield ipage
 
     def get_article(self, page):
-        #page.prepare(self)
         page.props.text = page.doc.cssselect('.column-left')[0]
         page.props.headline = page.doc.cssselect('h2')[0].text
         intro = page.doc.cssselect('p.intro')

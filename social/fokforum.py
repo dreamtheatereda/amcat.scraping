@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping.document import HTMLDocument
 
 
 from datetime import date
@@ -56,33 +56,19 @@ class FokForumScraper(HTTPScraper, DatedScraper):
 
 
     def _get_units(self):
-        """get pages"""
 
         index = self.getdoc(INDEX_URL) 
 
 
         for forum,forum_id in CATEGORIES_TO_SCRAPE:
-            href = urljoin(INDEX_URL,"forum/{fid}".format(fid=forum_id))
-            yield IndexDocument(url=href, date=self.options['date'],category = forum)
-
-
-
-
-
+            url = urljoin(INDEX_URL,"forum/{fid}".format(fid=forum_id))
+            yield url
 
         
-    def _scrape_unit(self, ipage):
-        """gets articles from a page"""
-        ipage.prepare(self)
+    def _scrape_unit(self, url):
+        doc = self.getdoc(url)
 
-
-
-        ipage.bytes = ""
-
-
-        ipage.doc = self.getdoc(ipage.props.url)
-        ipage.page = ""
-        for tr in ipage.doc.cssselect("tbody#foruminsert2 tr"):
+        for tr in doc.cssselect("tbody#foruminsert2 tr"):
             _date = tr.cssselect("td.tLastreply a")[0].text
             if str(date.today()) not in str(readDate(_date)): 
                 pass
@@ -91,16 +77,14 @@ class FokForumScraper(HTTPScraper, DatedScraper):
                 href = tr.cssselect("td.tTitel a")[0].get('href')
                 url = urljoin(INDEX_URL,href)
             
-                page = HTMLDocument(date = ipage.props.date,url=url)
+                page = HTMLDocument(date = self.options.get('date'), url = url)
                 page.prepare(self)
             
                 page.doc = self.getdoc(page.props.url)
                 _date = page.doc.cssselect("span.post_time a")[0].text
                 if str(date.today()) in str(readDate(_date)):
                     yield self.get_article(page)
-                    ipage.addchild(page)
 
-        yield ipage
 
     def get_article(self, page):
         page.props.author = page.doc.cssselect("span.post_sub a.username")[0].text

@@ -19,7 +19,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.document import Document, HTMLDocument, IndexDocument
+from amcat.scraping.document import Document, HTMLDocument
 from amcat.scraping import toolkit
 
 from urllib import urlencode
@@ -77,18 +77,18 @@ class DVHNScraper(HTTPScraper, DBScraper):
 
 
         for page in pages:
-            href=PAGE_URL.format(p=page,**index_dict)
-            yield IndexDocument(url=href,date=self.options['date'],page=page)
+            url = PAGE_URL.format(p=page,**index_dict)
+            yield url
         
                 
 
 
         
-    def _scrape_unit(self, ipage): 
-        ipage.prepare(self)
+    def _scrape_unit(self, url):
+        doc = self.getdoc(url)
 
         articles = set([])
-        for table in ipage.doc.cssselect('table'):
+        for table in doc.cssselect('table'):
             if table.get('onclick'):
                 onclick = table.get('onclick')
                 start = onclick.find("(");end = onclick.find(")",start)
@@ -96,13 +96,11 @@ class DVHNScraper(HTTPScraper, DBScraper):
                 
                 href = "/".join(args[0].split("/")[4:])
                 url = urljoin("http://dvhn.x-cago.net",href)
-                articles.add(HTMLDocument(url=url[:-6]+"_text.html",parent=ipage))
+                articles.add(HTMLDocument(url=url[:-6]+"_text.html"))
 
         for article in articles:
             yield self.get_article(article)
 
-            ipage.addchild(article)
-            
 
     def get_article(self, page):
         page.prepare(self)

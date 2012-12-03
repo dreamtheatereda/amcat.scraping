@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.scraper import HTTPScraper, DBScraper
-from amcat.scraping.document import HTMLDocument, IndexDocument
+from amcat.scraping.document import HTMLDocument
 
 from amcat.scraping import toolkit
 from amcat.scraping.toolkit import parse_coord
@@ -64,31 +64,30 @@ class TelegraafScraper(HTTPScraper, DBScraper):
         doc = self.getdoc(index)
         for td in doc.cssselect('td.select_page option'):
             url = urljoin(index, td.get('value') + '/page.html')
-            page = int(td.get('value'))
-            yield IndexDocument(url=url, page=page, date=date)
+            yield url
 
-    def _scrape_unit(self, ipage):
-        ipage.prepare(self)
+    def _scrape_unit(self, url):
+        doc = self.getdoc(url)
         # Articles with an id higher than 100 are advertisements,
         # which can be filtered by excluding classnames lager than
         # 9 (articleXXX).
-        articles = ipage.doc.cssselect('#page div')
+        articles = doc.cssselect('#page div')
         articles = set(div.get('class') for div in articles
                             if len(div.get('class')) <= 9)
 
         for clsname in articles:
-            page = ipage.copy()
+            page = HTMLDocument()
 
             # Delete images
-            for img in page.doc.cssselect('#article img'):
+            for img in doc.cssselect('#article img'):
                 img.delete_tree()
 
             # Calculate coords
-            divs = ipage.doc.cssselect('div.%s' % clsname)
+            divs = doc.cssselect('div.%s' % clsname)
             page.coords = [parse_coord(crd.get('style')) for crd in divs]
 
-            page.props.url = urljoin(ipage.props.url,
-                    "article/%s.html" % clsname[7:])
+            page.props.url = urljoin(url,
+                                     "article/%s.html" % clsname[7:])
 
             #import pdb
             #pdb.set_trace()
@@ -103,13 +102,6 @@ class TelegraafScraper(HTTPScraper, DBScraper):
                 
                 yield page
 
-                ipage.addchild(page)
-
-
-        if len(ipage.children) > 0:
-            data = {'ipage':ipage,'initial article set':articles}
-            log.warning("did not yield ipage, for it has no children", extra = data)
-            yield ipage
 
 
 

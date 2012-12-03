@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.scraper import HTTPScraper,DatedScraper
-from amcat.scraping.document import Document, IndexDocument
+from amcat.scraping.document import Document
 
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
@@ -39,39 +39,27 @@ class ZorgScraper(HTTPScraper,DatedScraper):
         """get pages"""
         ipage = self.getdoc(INDEX_URL)
         for a in ipage.cssselect("ul#archive a"):
-            href = urljoin("http://minvws.thevalleyfacebookcampagnes.nl/",
+            url = urljoin("http://minvws.thevalleyfacebookcampagnes.nl/",
                           a.get('href'))
-            yield IndexDocument(url=href, date=self.options['date'])
+            yield url
 
         
-    def _scrape_unit(self, ipage): # 'ipage' means index page
-        """gets articles from a page"""
+    def _scrape_unit(self, url):
+        doc = self.getdoc(url)
 
-        ipage.prepare(self)
-        ipage.bytes = ""
-        ipage.doc = self.getdoc(ipage.props.url)
-        title = "".join([h1.text for h1 in ipage.doc.cssselect("#discussionHeader h1")])
-        ipage.page = title
-        ipage.props.category = title
-        for li in ipage.doc.cssselect("ul#posts li"):
+        for li in doc.cssselect("ul#posts li"):
             page = Document(date = ipage.props.date,url=ipage.props.url)
             page.prepare(self)
 
             for li2 in li.cssselect("ul li"):
-                page2 = Document(date=ipage.props.date,url=ipage.props.url)
+                page2 = Document(date = self.options['date'], url = url)
                 page2.prepare(self)
                 
-                yield self.getarticle(page2,li2,ipage,reply=page)
+                yield self.getarticle(page2, li2, reply=page)
 
-                ipage.addchild(page2)
+            yield self.getarticle(page,li)  
 
-            yield self.getarticle(page,li,ipage)  
-
-            ipage.addchild(page)
-
-        yield ipage
-
-    def getarticle(self,page,htmlelement,ipage,reply=False):
+    def getarticle(self, page, htmlelement, reply = False):
         page.props.author = htmlelement.cssselect(".user .details .name")[0]
         page.props.author_info = htmlelement.cssselect(".user .details span")[0].text_content()
         page.coords = ""

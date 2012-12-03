@@ -19,7 +19,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.document import Document, HTMLDocument, IndexDocument
+from amcat.scraping.document import Document, HTMLDocument
 
 try:
     from amcatscraping.google.search import GoogleSearch

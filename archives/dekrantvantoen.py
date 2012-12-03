@@ -19,7 +19,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.document import Document, IndexDocument
+from amcat.scraping.document import HTMLDocument
 
 
 from pdfminer.pdfinterp import PDFResourceManager, process_pdf 
@@ -38,6 +38,7 @@ from amcat.scraping.scraper import HTTPScraper,DatedScraper,ArchiveForm
 from datetime import timedelta
 
 class DeKrantVanToenScraper(HTTPScraper):
+    """to be subclassed by scrapers which provide a 'paper'"""
     options_form = ArchiveForm
     paper = ""
     medium_name = ""
@@ -58,11 +59,10 @@ class DeKrantVanToenScraper(HTTPScraper):
             url = INDEX_URL.format(**index_dict)
             stop=False
             while stop==False:
-                ipage = IndexDocument(url=url)
-                ipage.prepare(self)
-                yield ipage
+                doc = self.getdoc(url)
+                yield (url,doc)
                 try:
-                    href = ipage.doc.cssselect("#artVwIntro table")[1].cssselect("td")[1].cssselect("a")[0].get('href')
+                    href = doc.cssselect("#artVwIntro table")[1].cssselect("td")[1].cssselect("a")[0].get('href')
                 except IndexError:
                 
                     stop=True
@@ -77,22 +77,16 @@ class DeKrantVanToenScraper(HTTPScraper):
 
 
         
-    def _scrape_unit(self, ipage): 
-        try:
-            ipage.page = int(ipage.props.url.split("?id=")[1].split("-")[2])
-        except IndexError:
-            ipage.page = 1
+    def _scrape_unit(self, urldoc): 
+        (url, doc) = urldoc
         
-        ipage.props.date = self.date
         onclicks = set([])
-        [onclicks.add(td.get('onclick')) for td in ipage.doc.cssselect("div.pageview td")]
+        [onclicks.add(td.get('onclick')) for td in doc.cssselect("div.pageview td")]
         articles = [onclick.split("'")[1].split("-")[2] for onclick in onclicks]
 
-        
-
-
+    
         for article in articles:
-            art = Document()
+            art = HTMLDocument()
 
             url_dict = {
                 'y': self.date.year,
@@ -106,17 +100,9 @@ class DeKrantVanToenScraper(HTTPScraper):
             try:
                 art.props.text = self.pdf_to_text(doc).decode('utf-8')
             except Exception as e:
-                print(e)
                 continue
-            art.parent = ipage
             art.props.date = self.date
-            art.coords = ""
             yield art
-            ipage.addchild(art)
-
-
-        yield ipage
-
 
 
             
@@ -142,10 +128,6 @@ class DeKrantVanToenScraper(HTTPScraper):
 
 
 if __name__ == '__main__':
-    from amcat.scripts.tools import cli
-    from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.scraper")
-    amcatlogging.debug_module("amcat.scraping.document")
-    cli.run_cli(DeKrantVanToenScraper)
+    raise Exception("not to be directly used, subclass this.")
 
 
