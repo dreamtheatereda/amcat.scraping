@@ -25,7 +25,6 @@ from urllib import urlencode
 from urlparse import urljoin
 import json
 import math
-from lxml import etree
 import re
 from lxml.html.soupparser import fromstring
 from datetime import date
@@ -34,6 +33,7 @@ from amcat.tools.toolkit import readDate
 
 APP_INDEX_URL = "http://store.steampowered.com/search/results?sort_order=ASC&page={}&snr=1_7_7_230_7"
 CONTENT_INDEX_URL = "http://steamcommunity.com/app/{}/homecontent/?l=english"
+COMMENT_DATA_URL = "http://steamcommunity.com/comment/{type}/render/{id1}/{id2}/"
 PLAYERS = {}
 
 from amcat.scraping.scraper import HTTPScraper
@@ -48,13 +48,6 @@ class SteamScraper(HTTPScraper):
         
         self.open("http://steamcommunity.com")
         sesid = self.opener.cookiejar.cookiejar._cookies['steamcommunity.com']['/']['sessionid'].value
-
-        setpreference = {
-            'preference':'topicrepliesperpage',
-            'sessionid':sesid,
-            'value':60
-            }
-        self.open("http://steamcommunity.com/forum/0/0/setpreference",urlencode(setpreference))
 
     
     media = 0
@@ -140,44 +133,59 @@ class SteamScraper(HTTPScraper):
 
 
 
-    def scrape_1page_comments(self,parent):
-        for div in parent.doc.cssselect("div.commentthread_comment"):
-            comment = Document()
-            author_url = div.cssselect("a.commentthread_author_link")[0].get('href')
-            comment = self.get_author_props(comment,author_url)
-            comment.props.text = div.cssselect("div.commentthread_comment_text")[0].text
-            try:
-                comment.props.date = readDate(div.cssselect("span.commentthread_comment_timestamp")[0].text)
-            except ValueError:
-                comment.props.date = date.today()
-            comment.parent = parent
-            yield comment
+    def scrape_comments(self, parent):
+        doc = parent.doc
+        i = 0
+        while doc is not None:
+            for div in doc.cssselect("div.commentthread_comment"):
+                comment = Document()
+                author_url = div.cssselect("a.commentthread_author_link")[0].get('href')
+                comment = self.get_author_props(comment, author_url)
+                comment.props.text = div.cssselect("div.commentthread_comment_text")[0].text
+                try:
+                    comment.props.date = readDate(div.cssselect("span.commentthread_comment_timestamp")[0].text)
+                except ValueError:
+                    comment.props.date = date.today()
+                comment.parent = parent
+                yield comment
+
+            i += 1
+            
+            doc = self.getdoc_comments(parent.doc, i)
 
 
 
 
+    def getdoc_comments(self, parent, i):
+        data = parent.cssselect("div.commentthread_area")[0].get('id').split("_")
+        id1 = data[2]
+        id2 = data[3]
+        type = data[1]
+        url = COMMENT_DATA_URL.format(**locals())
+        post = {
+            'start' : i * 50 - 40,
+            'count' : 50,
+            'sessionid' : [r for r in parent.cssselect("input") if r.get('name') == "sessionid"][0].get('value')
+            }
+        print(url)
+        print(post)
+        json_doc = self.open(url, urlencode(post)).read()
+        
+        data = json.loads(json_doc)
+        try:
+            str_html = unicode(data['comments_html'])
+            str_html = str_html.encode('utf-8')
+            str_html = str_html.decode('string_escape')
+        except KeyError:
+            return None
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        doc = fromstring(str_html)
+        
+        if len(str_html) > 0:
+            return doc
+        else:
+            return None
+        
 
     def scrape_discussion(self,doc):
         self.discussions+=1
@@ -192,11 +200,7 @@ class SteamScraper(HTTPScraper):
         author_url = doc.cssselect("a.forum_op_author")[0].get('href')
         disc = self.get_author_props(disc,author_url)
 
-        print(disc.doc.cssselect("div.forum_paging_summary")[0].text_content())
-        
-
-            
-        for comment in self.scrape_1page_comments(disc):
+        for comment in self.scrape_comments(disc):
             yield comment
 
         yield disc
@@ -215,7 +219,7 @@ class SteamScraper(HTTPScraper):
         newsitem.props.text = newsitem.doc.cssselect("#news div.body")[0].text_content()
 
         if not newsitem.doc.cssselect("div.commentthread_paging")[0].get('style'):
-            for comment in self.scrape_1page_comments(newsitem):
+            for comment in self.scrape_comments(newsitem):
                 yield comment
 
         else:
@@ -251,7 +255,7 @@ class SteamScraper(HTTPScraper):
         if not scrn.doc.cssselect("div.commentthread_paging"):
             yield scrn;return
         if not scrn.doc.cssselect("div.commentthread_header div.commentthread_paging span")[1].text_content():
-            for comment in self.scrape_1page_comments(scrn):
+            for comment in self.scrape_comments(scrn):
                 yield comment
         else:
             raise NotImplementedError
@@ -265,43 +269,14 @@ class SteamScraper(HTTPScraper):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def get_author_props(self,document, author_url):
-        print("getting author meta")
         document.props.author = author_url
         if author_url not in PLAYERS.keys():
             meta = self.get_author_meta(author_url)
             document.props.author_meta = meta
             PLAYERS[author_url] = meta
         else:
-            print("already got author in list, total: {}".format(len(PLAYERS.keys())+1))
             document.props.author_meta = PLAYERS[author_url]
-        print("done")
         return document
 
 
