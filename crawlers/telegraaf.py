@@ -1,4 +1,4 @@
-from amcat.scraping.scraper import Crawler
+from amcat.scraping.crawler import Crawler
 from amcat.scraping.document import HTMLDocument,Document
 from amcat.tools.toolkit import readDate
 import re
@@ -62,6 +62,7 @@ class TelegraafCrawler(Crawler):
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
+    amcatlogging.debug_module("amcat.scraping.crawler")
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
     cli.run_cli(TelegraafCrawler)

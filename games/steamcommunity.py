@@ -31,8 +31,8 @@ from datetime import date
 from amcat.scraping import toolkit
 from amcat.tools.toolkit import readDate
 
-APP_INDEX_URL = "http://store.steampowered.com/search/results?sort_order=ASC&page={}&snr=1_7_7_230_7"
-CONTENT_INDEX_URL = "http://steamcommunity.com/app/{}/homecontent/?l=english"
+STORE_INDEX_URL = "http://store.steampowered.com/search/results?sort_order=ASC&page={}&snr=1_7_7_230_7"
+APP_INDEX_URL = "http://steamcommunity.com/app/{appid}"
 COMMENT_DATA_URL = "http://steamcommunity.com/comment/{type}/render/{id1}/{id2}/"
 PLAYERS = {}
 
@@ -45,91 +45,121 @@ class SteamScraper(HTTPScraper):
     
     def __init__(self, *args, **kwargs):
         super(SteamScraper, self).__init__(*args, **kwargs)
-        
+        print("http://steamcommunity.com")
         self.open("http://steamcommunity.com")
         sesid = self.opener.cookiejar.cookiejar._cookies['steamcommunity.com']['/']['sessionid'].value
 
-    
-    media = 0
-    news = 0
-    discussions = 0
-
     def _get_units(self):
-        app_index = self.getdoc(APP_INDEX_URL.format(1))
+        for appid, url in self.get_app_urls():
+            try:
+                print(url)
+                self.current_app = self.getdoc(url).cssselect("title")[0].text.split("::")[1].strip()
+                print(self.current_app)
+                discussions_url = url + "/discussions"
+                for unit in self.get_discussions(discussions_url):
+                    yield (unit, "discussion")
+                subsections = [2,3]
+                for s in subsections:
+                    try:
+                        for unit in self.get_media_units(appid, s):
+                            yield (unit, "media")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+
+    def get_app_urls(self):
+        print(STORE_INDEX_URL.format(1))
+        app_index = self.getdoc(STORE_INDEX_URL.format(1))
         totalpages = int(app_index.cssselect("div.search_pagination_right a")[-2].text)
         pattern = re.compile("http://store.steampowered.com/app/(\d+)/")
         appids = set([])
+
         for page in range(totalpages):
             try:
-                url = APP_INDEX_URL.format(page+1)
+                url = STORE_INDEX_URL.format(page+1)
+                print(url)
                 doc = self.getdoc(url)
             except Exception as e:
-                print(e)
                 continue
             for app in doc.cssselect("#search_result_container a.search_result_row"):
                 try:
                     href = app.get('href')
                 except Exception as e:
-                    print(e)
                     continue
-                match = pattern.match(href)
+                match = pattern.search(href)
                 if match:
                     try:
                         appid = match.group(1)
-                        app_url = CONTENT_INDEX_URL.format(appid)
-                        app_doc = self.getdoc(app_url)
-                    except Exception as e:
-                        print(e)
+                        yield (appid, APP_INDEX_URL.format(**locals()))
+
+                    except Exception:
                         continue
-
-                    while app_doc is not None:
-                        for div in app_doc.cssselect("div.apphub_Card"):
-                            try:
-                                commentcount = int(div.cssselect("div.apphub_CardCommentCount")[0].text)
-                            except Exception as e:
-                                print(e)
-                                continue
-
-                            if commentcount > 0:
-                                yield div
-                        try:
-                            form = toolkit.parse_form(app_doc)
-                            url = app_url
-                            for inp in form.items():
-                                url += "&{}={}".format(inp[0],inp[1])
-                            app_doc = self.getdoc(url,urlencode(form))
-                        except Exception as e:
-                            break
 
     
 
-    def _scrape_unit(self, div): 
-        
-        url = div.get('onclick').split("(")[1].split("', '")[0].lstrip(" '")
+    def get_media_units(self, appid, subsection):
+        media_url = "http://steamcommunity.com/app/{appid}/homecontent/?l=english&p={p}&itemspage={p}&itemsfilter=trend&screenshotspage={p}&screenshotsfilter=trend&videospage={p}&videosfilter=trend&artpage={p}&artfilter=trend&webguidepage={p}&webguidefilter=trend&discussionspage={p}&appHubSubSection={subsection}&browsefilter=toprated&searchText="
 
-        doc = self.getdoc(url)
+        p = 0
+        while doc is not None:
+            url = media_url.format(**locals())
+            print(url)
+            doc = self.getdoc(url)
+            for div in doc.cssselect("div.apphub_Card"):
+                yield div
 
-        if div.cssselect("div.discussion"):
-            for item in self.scrape_discussion(doc):
-                yield item
-            return
+            p += 1
 
-        elif "/news/" in div.get('onclick'):
-            for item in self.scrape_newsitem(doc):
-                yield item
-            return
 
-        _type = div.cssselect("div.apphub_CardContentType")[0].text.lower()
 
-        if "screenshot" in _type or "video" in _type:
-            for item in self.scrape_media(doc,_type):
-                yield item
-        else:
+    def get_discussions(self, url):
+        print(url)
+        forum_id = self.getdoc(url).cssselect("div.forum_area")[0].get('id').split("_")[2]
+        for topic in self.get_topics(forum_id):
+            yield topic
+            
+
+    def get_topics(self, forum_id):
+        url = "http://steamcommunity.com/forum/{}/General/render/0/?start={}&count=15"
+        print(url.format(forum_id,0))
+        initial_json = self.open(url.format(forum_id,0)).read()
+        initial_data = json.loads(initial_json)
+        total = initial_data['total_count']
+        html = fromstring(unicode(initial_data['topics_html']).encode('utf-8').decode('string_escape'))
+        print(html.cssselect("a")[0].get('href'))
+        yield self.getdoc(html.cssselect("a")[0].get('href'))
+
+        page = 1
+        while page * 15 < total:
+            print(url.format(forum_id, page * 15))
+            data = json.loads(self.open(url.format(forum_id, page * 15)).read())
             try:
-                for item in self.scrape_media(doc, _type):
-                    yield item
-            except Exception as e:
-                print(e)
+                html = fromstring(unicode(data['topics_html']).encode('utf-8').decode('string_escape'))
+
+            except ValueError:
+                pass
+            else:
+                print(html.cssselect("a")[0].get("href"))
+                yield self.getdoc(html.cssselect("a")[0].get('href'))
+            page += 1
+
+    def _scrape_unit(self, htmltype): 
+        (html,type) = htmltype
+        if type == "media":
+            url = html.get('onclick').split("(")[1].split("', '")[0].lstrip(" '")
+            print(url)
+            doc = self.getdoc(url)
+
+            for item in self.scrape_media(doc,_type):
+                item.game = self.current_app
+                yield item
+            
+        elif type == "discussion":
+            for item in self.scrape_discussion(html):
+                item.game = self.current_app
+                yield item
 
 
 
@@ -168,7 +198,6 @@ class SteamScraper(HTTPScraper):
             'sessionid' : [r for r in parent.cssselect("input") if r.get('name') == "sessionid"][0].get('value')
             }
         print(url)
-        print(post)
         json_doc = self.open(url, urlencode(post)).read()
         
         data = json.loads(json_doc)
@@ -188,7 +217,6 @@ class SteamScraper(HTTPScraper):
         
 
     def scrape_discussion(self,doc):
-        self.discussions+=1
         disc = HTMLDocument()
         disc.doc = doc
         disc.props.headline = doc.cssselect("div.forum_op div.topic")[0].text
@@ -205,27 +233,6 @@ class SteamScraper(HTTPScraper):
 
         yield disc
 
-
-    def scrape_newsitem(self,doc):
-        self.news +=1
-        newsitem = HTMLDocument()
-        newsitem.doc = doc
-        newsitem.props.headline = newsitem.doc.cssselect("#main_header h1")[0].text
-        newsitem.props.author = newsitem.doc.cssselect("div.headline div.feed")[0].text
-        try:
-            newsitem.props.date = readDate(newsitem.doc.cssselect("div.headline div.date")[0].text)
-        except ValueError:
-            newsitem.props.date = date.today()
-        newsitem.props.text = newsitem.doc.cssselect("#news div.body")[0].text_content()
-
-        if not newsitem.doc.cssselect("div.commentthread_paging")[0].get('style'):
-            for comment in self.scrape_comments(newsitem):
-                yield comment
-
-        else:
-            raise NotImplementedError
-
-        yield newsitem
 
     def scrape_media(self,doc,_type):
         self.media +=1
@@ -281,6 +288,7 @@ class SteamScraper(HTTPScraper):
 
 
     def get_author_meta(self, url):
+        print(url)
         profile = self.getdoc(url)
         author = {'name':'','location':'','id':url,'url':url,'aliases':[],'games':[],'groups':[]}
 
@@ -307,6 +315,7 @@ class SteamScraper(HTTPScraper):
 
 
         games_url = url+"/games?tab=all"
+        print(games_url)
         games_doc = self.getdoc(games_url)
         script = "\n".join([script.text_content() for script in games_doc.cssselect("script")])
         start = script.find("var rgGames")+14;end = script.find("\n",start)-2
