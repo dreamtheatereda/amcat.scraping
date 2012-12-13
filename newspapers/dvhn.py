@@ -72,10 +72,6 @@ class DVHNScraper(HTTPScraper, DBScraper):
                 pages.append(int(string[start:end]))
 
 
-
-
-
-
         for page in pages:
             url = PAGE_URL.format(p=page,**index_dict)
             yield url
@@ -110,7 +106,7 @@ class DVHNScraper(HTTPScraper, DBScraper):
             pass
         page.props.headline = page.doc.cssselect("td.artheader")[0].text
         page.props.text = page.doc.cssselect("table.body")[0].text_content()
-        page.props.date = page.parent.props.date
+        page.props.date = self.options['date']
         return page
     
 
