@@ -59,7 +59,6 @@ class WebFDScraper(HTTPScraper, DBScraper):
 
 
         url = SEARCH_URL.format(**index_dict)
-        print(url)
         result = self.open(url) 
         data = json.loads(result.read()[38:-1])
         for doc in data['response']['docs']:
