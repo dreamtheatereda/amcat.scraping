@@ -27,7 +27,7 @@ from datetime import date
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
 from amcat.models.article import Article
-from lxml import etree
+from lxml import html
 
 CATEGORIES_TO_SCRAPE = [
     #('self-determined forum name','forum id as on website'),
@@ -117,13 +117,35 @@ class FokForumScraper(HTTPScraper, DatedScraper):
                 post = Document()
                 post.props.date = date
                 post.props.author = div.cssselect("span.post_sub a.username")[0].text_content()
-                post.props.text = div.cssselect("div.postmain_right")[0].text_content().strip()
+                text = div.cssselect("div.postmain_right")[0]
+                post.props.text = self.replace_smileys(text).text_content().strip('" ')
                 post.props.section = self.current_section
                 yield post
             elif date.date() < self.options['date']:
                 break
-        
+                                  
 
+    def find_substr(self, start, end, text, include_arguments = True):
+        if include_arguments:
+            start = text.find(start); end = text.find(end, start) + len(end)
+        else:
+            start = text.find(start) + len(start); end = text.find(end, start)
+
+        if start != -1 and end != -1:
+            return text[start:end]
+        else:
+            return None
+
+    def replace_smileys(self, text):
+        text = html.tostring(text)
+        while text.find("<img ") != -1:
+            tag = self.find_substr("<img ", ">", text)
+            replace = self.find_substr('alt="', '"', tag, include_arguments = False)
+            text = text.replace(tag,replace,1)
+
+        text = text.replace("<blockquote>", "[QUOTE]").replace("</blockquote>", "[/QUOTE]\n\n")
+
+        return html.fromstring(text)
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
