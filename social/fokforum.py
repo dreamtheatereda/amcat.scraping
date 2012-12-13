@@ -31,7 +31,8 @@ from lxml import etree
 
 CATEGORIES_TO_SCRAPE = [
     #('forum name','forum id'),
-    ('nieuws & achtergronden',4)
+    ('nieuws & achtergronden',4),
+    ('Politiek',56)
     ]
 
 INDEX_URL = "http://forum.fok.nl"
@@ -46,12 +47,13 @@ class FokForumScraper(HTTPScraper, DatedScraper):
         cookie_string = page.info()["Set-Cookie"]
         token = cookie_string.split(";")[0]
         self.opener.opener.addheaders.append(("Cookie",token+"; allowallcookies=1"))
-        page = self.open(INDEX_URL)
+        self.open(INDEX_URL)
 
 
     def _get_units(self):
 
         for forum,forum_id in CATEGORIES_TO_SCRAPE:
+            self.current_section = forum
             sub_url = urljoin(INDEX_URL,"forum/{fid}".format(fid=forum_id))
             for topic_url in self.get_topics(sub_url):
                 yield topic_url
@@ -93,6 +95,7 @@ class FokForumScraper(HTTPScraper, DatedScraper):
             parent.props.date = topic_date
             parent.props.text = doc.cssselect("div.postmain_right")[0].text_content().strip()
             parent.props.author = doc.cssselect("span.post_sub a.username")[0].text_content().strip()
+            parent.props.section = self.current_section
         
         for post in self.get_posts(doc):
             post.parent = parent
@@ -109,6 +112,7 @@ class FokForumScraper(HTTPScraper, DatedScraper):
                 post.props.date = date
                 post.props.author = div.cssselect("span.post_sub a.username")[0].text_content()
                 post.props.text = div.cssselect("div.postmain_right")[0].text_content().strip()
+                post.props.section = self.current_section
                 yield post
             elif date.date() < self.options['date']:
                 break
