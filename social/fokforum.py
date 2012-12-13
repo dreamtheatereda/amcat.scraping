@@ -30,7 +30,7 @@ from amcat.models.article import Article
 from lxml import etree
 
 CATEGORIES_TO_SCRAPE = [
-    #('forum name','forum id'),
+    #('self-determined forum name','forum id as on website'),
     ('nieuws & achtergronden',4),
     ('Politiek',56)
     ]
@@ -51,12 +51,18 @@ class FokForumScraper(HTTPScraper, DatedScraper):
 
 
     def _get_units(self):
+        months_back = int((date.today() - self.options['date']).days / 30)
 
         for forum,forum_id in CATEGORIES_TO_SCRAPE:
             self.current_section = forum
-            sub_url = urljoin(INDEX_URL,"forum/{fid}".format(fid=forum_id))
-            for topic_url in self.get_topics(sub_url):
-                yield topic_url
+            section_url = urljoin(INDEX_URL,"forum/{fid}".format(fid=forum_id))
+            section_doc = self.getdoc(section_url)
+            options = section_doc.cssselect("div.pagesholder select.hopforum option")[1:int(months_back / 2.5) + 3]
+            for option in options:
+                subsection_url = section_url + "/" + option.get('value')
+
+                for topic_url in self.get_topics(subsection_url):
+                    yield topic_url
 
 
                 
@@ -85,7 +91,7 @@ class FokForumScraper(HTTPScraper, DatedScraper):
         topic_date = readDate(doc.cssselect("span#pt1")[0].text_content().strip())
         try:
             parent = Article.objects.get(headline = headline, date = topic_date)
-        except Article.MultipleObjectsReturned: #duplicate, because date is to the second
+        except Article.MultipleObjectsReturned: #duplicate in 99.99% of the cases
             parents = Article.objects.filter(headline = headline, date = topic_date)
             min_id = min([parent.id for parent in parents]) #deduplicate always keeps the lowest id
             parent = parents.get(pk = min_id)
