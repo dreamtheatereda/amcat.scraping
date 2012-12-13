@@ -64,6 +64,7 @@ class WebTelegraafScraper(HTTPScraper, DatedScraper):
                     elif date < self.options['date']:
                         break
 
+
                 nxt = ipage.cssselect("#main li.sn_navigation a")[0]
                 if "vorige" in nxt.text:
                     print("\nNo articles found for given date.\n")
