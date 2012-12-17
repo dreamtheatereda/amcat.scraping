@@ -34,12 +34,13 @@ class PownewsScraper(HTTPScraper, DatedScraper):
 
     def __init__(self, *args, **kwargs):
         super(PownewsScraper, self).__init__(*args, **kwargs)
-
+        self.open(BASE_URL)
+        self.open("http://cookies.publiekeomroep.nl/accept/")
 
     def _get_units(self):
 
         start = self.getdoc(START_URL) 
-        new_url = urljoin(BASE_URL,start.cssselect("#sidebar a.buttonarrow")[0].get('href'))
+        new_url = urljoin(BASE_URL, start.cssselect("a.buttonarrow")[0].get('href'))
         page = self.getdoc(new_url)
         year = " "+new_url.split("/")[4]
                 
