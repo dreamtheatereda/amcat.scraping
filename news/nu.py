@@ -52,7 +52,7 @@ class NuScraper(HTTPScraper, DatedScraper):
             'd' : self.options['date'].day,
             'm' : MONTHS[self.options['date'].month-1],
             'y' : self.options['date'].year,
-            'p' : 0
+            'p' : 1
             }
 
         doc = self.getdoc(INDEX_URL.format(**url_formats))
