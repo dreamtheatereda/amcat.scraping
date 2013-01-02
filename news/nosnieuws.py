@@ -30,15 +30,9 @@ URLS = ["http://www.nos.nl/nieuws/","http://www.nos.nl/sport/"]
 class NOSNieuwsScraper(HTTPScraper, DatedScraper):
     medium_name = "NOS nieuws"
 
-    def __init__(self, *args, **kwargs):
-        super(NOSNieuwsScraper, self).__init__(*args, **kwargs)
-        
-            
-        
-        
     def _get_units(self):
         """get pages"""
-        
+        cookie_url = "http://cookies.publiekeomroep.nl/accept/"
         year = str(self.options['date'].year)
         month = str(self.options['date'].month)
         day = str(self.options['date'].day)
@@ -47,7 +41,8 @@ class NOSNieuwsScraper(HTTPScraper, DatedScraper):
         if len(day) == 1:
             day = "0"+day
         for url in URLS:
-            href = url
+            self.open(url)
+            self.open(cookie_url)
             index_1 = self.getdoc(url)
             cats = index_1.cssselect("ul.sub li")
             for cat in cats:
