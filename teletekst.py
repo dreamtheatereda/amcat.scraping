@@ -20,7 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.scraper import DBScraper, HTTPScraper
+from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 from urlparse import urljoin
 from datetime import date
@@ -28,7 +28,7 @@ from datetime import date
 INDEX_URL = "http://teletekst.mobile.nob.nl/xda-teletekst/index.jsp?page=TTARTICLE_PAGE_{page}_{tab}.htm"
 BASE_URL = "http://teletekst.mobile.nob.nl/xda-teletekst/index.jsp"
 
-class TeletekstScraper(HTTPScraper, DBScraper):
+class TeletekstScraper(HTTPScraper, DatedScraper):
     medium_name = "Teletekst"
 
     def __init__(self, *args, **kwargs):
