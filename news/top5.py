@@ -25,89 +25,141 @@ from datetime import date
 from amcat.models.medium import get_or_create_medium
 
 from urlparse import urljoin
+from amcat.tools.toolkit import readDate
 
-class Top5Scraper(HTTPScraper):
-    #       base url                        path to top5 links
-    meta = [['http://www.nrc.nl/',          '.related dd a',                'NRC Handelsblad'],
-            ['http://www.volkskrant.nl/',   '#top5 a',                      'De Volkskrant'],
-            ['http://www.telegraaf.nl/',    '#rankingTelegraaf2338997 a',   'Telegraaf'],
-            ['http://www.trouw.nl/',        '#top5 a',                      'Trouw'],
-            ['http://www.nu.nl/',           '.top5 a',                      'Nu.nl']
-           ]
+class NRC(HTTPScraper):
+    index_url = "http://www.nrc.nl"
+    source = 'nrc'
 
+    def __init__(self, *args, **kwargs):
+        super(NRC, self).__init__(*args, **kwargs)
+        self.index_url = urljoin(self.index_url, self.getdoc(self.index_url).cssselect("div.watskeburt a")[0].get('href'))
+        
     def _get_units(self):
-        nrc_index = self.getdoc(self.meta[0][0])
-        nrc_page = nrc_index.cssselect('.eerste a')[1].get('href')
-        self.meta[0][0] = urljoin(self.meta[0][0], nrc_page)
-        for index_url, path, medium in self.meta:
-            if 'volkskrant.nl' in index_url:
-                index_url = urljoin(index_url, 'vk/nl/2/Home/homepage/right.dhtml')
-            elif 'trouw.nl' in index_url:
-                index_url = urljoin(index_url, '/tr/nl/4492/Nederland/articleDetail/right.dhtml')
-            index = self.getdoc(index_url)
-            units = index.cssselect(path)[:5]
-            rank = 0
-            for article_unit in units:
-                article_url = urljoin(index_url, article_unit.get('href'))
-                if 'nrc.nl' in index_url or 'nu.nl' in index_url:
-                    headline = article_unit.get('title')
-                else:
-                    headline = article_unit.text
-                rank += 1
-                site_medium = get_or_create_medium(medium)
-                yield HTMLDocument(url=article_url, pagenr=rank, headline=headline, 
-                        date=date.today(), medium=site_medium)
+        doc = self.getdoc(self.index_url)
+        div = doc.cssselect("div.related")[0]
+        if div.cssselect("div.retentie"):
+            div.cssselect("div.retentie")[0].drop_tree()
+        for dl in div.cssselect("dl"):
+            article = HTMLDocument()
+            article.props.url = urljoin(self.index_url, dl.cssselect("a")[0].get('href'))
+            article.props.headline = dl.cssselect("span.title-words")[0].text_content().strip()
+            article.props.date = readDate(dl.cssselect("dt.tijd time")[0].get('datetime'))
+            yield article
 
     def _scrape_unit(self, article):
         article.prepare(self)
-        article.doc = self.getdoc(article.props.url)
-        doc = article.doc
-        url = article.props.url
-        text = ''
-        if   'nrc.nl' in url:
-            if not article.doc.cssselect(".livebar"):
-                article.props.author = doc.cssselect('.author a')[0].text.strip()
-            else:
-                article.props.author = ", ".join(list(set([a.get('data-author') for a in article.doc.cssselect(".bericht")]))) 
-                #above line makes a list of distinct authors seperated by commas
-            text = doc.cssselect('.article #broodtekst')[0]
-        elif 'volkskrant.nl' in url or 'trouw.nl' in url:
-            try:
-                article.props.author = doc.cssselect('.author')[0].text.strip()
-            except:
-                article.props.author = 'ANP'
-            
-            art = doc.cssselect('#art_box2')[0]
-            if "live_art" in art[0].get('class'):
-                #find url to the content, because in a live article the content is not loaded on first request but by JS
-                script_crap = [" ".join(crap.text) for crap in doc.cssselect("script")]
-                start = script_crap.find("function loadAllHighlights()")
-                end = script_crap.find(";",start)
-                jsfunction = script_crap[start:end]
-                start2 = jsfunction.find("url")+8
-                end2 = jsfunction.find(";")-2
-                href = urljoin(url,jsfunction[start2:end2])
-                article.props.text = "\n".join([(li.text_content()) for li in self.getdoc(href).cssselect("ul li")])
-            else:
-                article.props.text = "\n".join([(p.text_content()) for p in art.cssselect("p")])
-        elif 'telegraaf.nl' in url:
-            try:
-                article.props.author = doc.cssselect('.auteur')[0].text.strip()
-            except:
-                article.props.author = ''
-            text = doc.cssselect('#artikelKolom')[0]
-        elif 'nu.nl' in url:
-            article.props.author = doc.cssselect('.smallprint')[0].text.strip()
-            text = doc.cssselect('.content')[0]
-        if not ('volkskrant.nl' in url or 'trouw.nl' in url):
-            suikerhuis = text.cssselect('.kolomRelated') # gerelateerde linkjes
-            suikerhuis.extend(text.cssselect('.broodtxt')) # reclame
-            suikerhuis.extend(text.cssselect('script'))
-            for snoeptrap in suikerhuis:
-                snoeptrap.drop_tree()
-            article.props.text = text.text_content().strip()
-            print(article.props.pagenr)
+        if article.doc.cssselect("div.author"):
+            article.props.author = article.doc.cssselect("div.author")[0].text_content().lstrip("dor")
+        article.props.text = article.doc.cssselect("#broodtekst")[0].text_content().strip()
         yield article
+
+
+class Volkskrant(HTTPScraper):
+    index_url = "http://www.volkskrant.nl"
+    cookie_url = "http://www.volkskrant.nl/?utm_source=scherm1&utm_medium=button&utm_campaign=Cookiecheck"
+    source = 'De Volkskrant'
+
+    def _get_units(self):
+        self.open(self.index_url)
+        self.open(self.cookie_url)
+        doc = self.getdoc(self.index_url)
+        for a in doc.cssselect("#top5 li a"):
+            url = urljoin(self.cookie_url, a.get('href'))
+            yield url
+
+    def _scrape_unit(self, url):
+        article = HTMLDocument(url = url)
+        article.prepare(self)
+        article.props.headline = article.doc.cssselect("#articleDetailTitle")[0].text_content()
+        time_post = article.doc.cssselect("div.time_post")[0]
+        article.props.author = time_post.cssselect("span.author")[0].text_content().lstrip("Dor:")
+        time_post.cssselect("span.author")[0].drop_tree()
+        article.props.date = readDate(time_post.text_content())
+        article.props.text = article.doc.cssselect("#art_box2")[0].text_content()
+        yield article
+
+
+class Telegraaf(HTTPScraper):
+    index_url = "http://www.telegraaf.nl/"
+    source = 'De Telegraaf'
+    def _get_units(self):
+        doc = self.getdoc(self.index_url)
+        for a in doc.cssselect("div.meestgelezenwidget div.pad5")[0].cssselect("div.item a"):
+            yield a.get('href')
+
+    def _scrape_unit(self, url):
+        article = HTMLDocument(url = url)
+        article.prepare(self)
+        article.props.date = readDate(article.doc.cssselect("#artikel span.datum")[0].text_content())
+        article.props.headline = article.doc.cssselect("#artikel h1")[0].text_content()
+        author = article.doc.cssselect("#artikel span.auteur")
+        if author:
+            article.props.author = author[0].text_content()
+        [s.drop_tree() for s in article.doc.cssselect("#artikelKolom script")]
+        article.props.text = article.doc.cssselect("#artikelKolom")[0].text_content()
+        yield article
+    
+class Trouw(Volkskrant):
+    source = 'Trouw'
+    index_url = 'http://www.trouw.nl'
+    cookie_url = 'http://www.trouw.nl/?utm_source=scherm1&utm_medium=button&utm_campaign=Cookiecheck'
+
+class Nu(HTTPScraper):
+    source = 'Nu.nl'
+    index_url = 'http://www.nu.nl'
+    
+    def _get_units(self):
+        for a in self.getdoc(self.index_url).cssselect(".top5 a")[:5]:
+            yield urljoin(self.index_url, a.get('href'))
+
+    def _scrape_unit(self, url):
+        article = HTMLDocument(url = url)
+        article.prepare(self)
+        article.props.date = readDate(article.doc.cssselect("div.dateplace-data")[0].text)
+        article.props.headline = article.doc.cssselect("h1")[0].text_content().strip()
+        [s.drop_tree() for s in article.doc.cssselect("script")]
+        article.props.text = article.doc.cssselect("#leadarticle div.content")[0].text_content()
+        author = article.doc.cssselect("#leadarticle span.smallprint")
+        if author:
+            article.props.author = author[0].text.strip("| ")
+        yield article
+
+
+
+class Top5Scraper(HTTPScraper):
+    
+
+    def _get_units(self):
+        self.open("http://www.volkskrant.nl")
+        self.scrapers = [
+            Telegraaf,
+            Volkskrant,
+            Nu,
+            Trouw,
+            NRC
+            ]
+
+        for scraper in self.scrapers:
+            scraper = scraper(
+                project = self.options['project'].id,
+                articleset = self.options['articleset'].id
+                )
+            rank = 0
+            for unit in scraper._get_units():
+                rank += 1
+                yield (scraper, unit, rank)
+
+    def _scrape_unit(self, unit):
+        (scraper, unit, rank) = unit
+        for article in scraper._scrape_unit(unit):
+            article.props.medium = get_or_create_medium(scraper.source)
+            article.props.rank = rank
+            for attr in ['headline', 'text', 'author']:
+                if hasattr(article.props, attr):
+                    strip = getattr(article.props, attr).strip()
+                    setattr(article.props, attr, strip)
+            yield article
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
@@ -115,3 +167,5 @@ if __name__ == '__main__':
     amcatlogging.debug_module("amcat.scraping.scraper")
     amcatlogging.debug_module("amcat.scraping.document")
     cli.run_cli(Top5Scraper)
+
+
