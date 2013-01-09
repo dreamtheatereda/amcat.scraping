@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, print_function, absolute_import
+from __future__ import unicode_literals, print_function
 ###########################################################################
 #          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
 #                                                                         #
@@ -26,6 +26,25 @@ from amcat.models.medium import get_or_create_medium
 
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
+
+import cookielib
+import copy
+
+COOKIE_ARGS = {
+    "value" : None, "version" : 0, "port" : None, "port_specified" : False,
+    "domain_specified" : True, "domain_initial_dot" : True, "path_specified" : True,
+    "path" : '/', "secure" : False, "expires" : None, "discard" : True,
+    "comment" : None, "comment_url" : None, "rest" : dict(HttpOnly=None),
+    "rfc2109" : False
+}
+
+def create_cookie(name, domain, **kwargs):
+    """Create cookie object with sane defaults"""
+    kws = copy.copy(COOKIE_ARGS)
+    kws.update(**kwargs)
+
+    return cookielib.Cookie(name=name, domain=domain, **kws)
+
 
 class NRC(HTTPScraper):
     index_url = "http://www.nrc.nl"
@@ -56,13 +75,23 @@ class NRC(HTTPScraper):
 
 
 class Volkskrant(HTTPScraper):
-    index_url = "http://www.volkskrant.nl"
+    index_url = "http://www.volkskrant.nl/vk/nl/2/Home/homepage/right.dhtml"
     cookie_url = "http://www.volkskrant.nl/?utm_source=scherm1&utm_medium=button&utm_campaign=Cookiecheck"
     source = 'De Volkskrant'
+    domain = '.volkskrant.nl'
+
+    def _get_cookies(self):
+        for name in ["cc_advertising", "cc_analytics", "cc_social"]:
+            yield create_cookie(name, domain=self.domain, value="always")
+        yield create_cookie("cae_browser", domain=self.domain, value="desktop")
+
+    def _set_cookies(self):
+        for cookie in self._get_cookies():
+            self.opener.cookiejar.set_cookie(cookie)
 
     def _get_units(self):
-        self.open(self.index_url)
-        self.open(self.cookie_url)
+        self._set_cookies()
+
         doc = self.getdoc(self.index_url)
         for a in doc.cssselect("#top5 li a"):
             url = urljoin(self.cookie_url, a.get('href'))
@@ -78,6 +107,12 @@ class Volkskrant(HTTPScraper):
         article.props.date = readDate(time_post.text_content())
         article.props.text = article.doc.cssselect("#art_box2")[0].text_content()
         yield article
+
+class Trouw(Volkskrant):
+    source = 'Trouw'
+    cookie_url = 'http://www.trouw.nl/?utm_source=scherm1&utm_medium=button&utm_campaign=Cookiecheck'
+    index_url = "http://www.trouw.nl/tr/nl/15/Home/homepage/right.dhtml"
+    domain = '.trouw.nl'
 
 
 class Telegraaf(HTTPScraper):
@@ -100,10 +135,6 @@ class Telegraaf(HTTPScraper):
         article.props.text = article.doc.cssselect("#artikelKolom")[0].text_content()
         yield article
     
-class Trouw(Volkskrant):
-    source = 'Trouw'
-    index_url = 'http://www.trouw.nl'
-    cookie_url = 'http://www.trouw.nl/?utm_source=scherm1&utm_medium=button&utm_campaign=Cookiecheck'
 
 class Nu(HTTPScraper):
     source = 'Nu.nl'
@@ -133,11 +164,11 @@ class Top5Scraper(HTTPScraper):
     def _get_units(self):
         self.open("http://www.volkskrant.nl")
         self.scrapers = [
-            Telegraaf,
-            Volkskrant,
-            Nu,
-            Trouw,
-            NRC
+                #Telegraaf,
+                #Volkskrant,
+                #Nu,
+                #Trouw,
+            #NRC
             ]
 
         for scraper in self.scrapers:
