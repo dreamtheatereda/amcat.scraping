@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, print_function, absolute_import
+from __future__ import unicode_literals, print_function
 ###########################################################################
 #          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
 #                                                                         #
@@ -21,6 +21,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from amcat.scraping.scraper import HTTPScraper, DatedScraper
 from amcat.scraping.document import HTMLDocument
+from amcat.scraping.htmltools import create_cc_cookies
 
 from amcat.tools import toolkit
 
@@ -31,11 +32,15 @@ from amcat.tools.toolkit import readDate
 INDEX_URL = "http://www.parool.nl"
 CONTENT_URL = "http://www.parool.nl/parool/article/pagedListContent.do?language=nl&navigationItemId={nid}&navigation={n}&page={p}"
 
-
-
 class ParoolScraper(HTTPScraper, DatedScraper):
     medium_name = "Parool website"
+    def _set_cookies(self):
+        for cookie in create_cc_cookies(".parool.nl"):
+            self.opener.cookiejar.set_cookie(cookie)
+
     def _get_units(self):
+        self._set_cookies()
+
         homepage = self.getdoc(INDEX_URL)
         for index in homepage.cssselect("div.art_box8_list h3 a"):
             i_url = urljoin(INDEX_URL,index.get('href'))
@@ -62,10 +67,8 @@ class ParoolScraper(HTTPScraper, DatedScraper):
                     break
                 else:
                     href = doc.cssselect("div.gen_box3 a")[-1].get('href')
-                    print(urljoin(INDEX_URL,href))
                     doc = self.getdoc(urljoin(INDEX_URL,href))
             
-
 
     def _scrape_unit(self,page):
         page.prepare(self)

@@ -21,15 +21,12 @@ from __future__ import unicode_literals, print_function
 
 from amcat.scraping.scraper import HTTPScraper
 from amcat.scraping.document import HTMLDocument 
-from amcat.scraping.htmltools import create_cookie
+from amcat.scraping.htmltools import create_cc_cookies
 from datetime import date
 from amcat.models.medium import get_or_create_medium
 
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
-
-import cookielib
-import copy
 
 
 class NRC(HTTPScraper):
@@ -66,13 +63,8 @@ class Volkskrant(HTTPScraper):
     source = 'De Volkskrant'
     domain = '.volkskrant.nl'
 
-    def _get_cookies(self):
-        for name in ["cc_advertising", "cc_analytics", "cc_social"]:
-            yield create_cookie(name, domain=self.domain, value="always")
-        yield create_cookie("cae_browser", domain=self.domain, value="desktop")
-
     def _set_cookies(self):
-        for cookie in self._get_cookies():
+        for cookie in create_cc_cookies(self.domain):
             self.opener.cookiejar.set_cookie(cookie)
 
     def _get_units(self):
