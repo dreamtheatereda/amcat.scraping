@@ -20,6 +20,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.document import Document, HTMLDocument
+from amcat.scraping.htmltools import create_cc_cookies
 from lxml import etree
 from amcat.tools.toolkit import readDate
 from urlparse import urljoin
@@ -38,9 +39,12 @@ class WebADScraper(HTTPScraper, DatedScraper):
     def __init__(self, *args, **kwargs):
         super(WebADScraper, self).__init__(*args, **kwargs)
 
+    def _set_cookies(self):
+        for cookie in create_cc_cookies(".ad.nl"):
+            self.opener.cookiejar.set_cookie(cookie)
 
     def _get_units(self):
-        
+        self.set_cookies()        
 
         y = self.options['date'].year
         m = self.options['date'].month
