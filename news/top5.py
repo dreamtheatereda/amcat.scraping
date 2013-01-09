@@ -21,6 +21,7 @@ from __future__ import unicode_literals, print_function
 
 from amcat.scraping.scraper import HTTPScraper
 from amcat.scraping.document import HTMLDocument 
+from amcat.scraping.htmltools import create_cookie
 from datetime import date
 from amcat.models.medium import get_or_create_medium
 
@@ -29,21 +30,6 @@ from amcat.tools.toolkit import readDate
 
 import cookielib
 import copy
-
-COOKIE_ARGS = {
-    "value" : None, "version" : 0, "port" : None, "port_specified" : False,
-    "domain_specified" : True, "domain_initial_dot" : True, "path_specified" : True,
-    "path" : '/', "secure" : False, "expires" : None, "discard" : True,
-    "comment" : None, "comment_url" : None, "rest" : dict(HttpOnly=None),
-    "rfc2109" : False
-}
-
-def create_cookie(name, domain, **kwargs):
-    """Create cookie object with sane defaults"""
-    kws = copy.copy(COOKIE_ARGS)
-    kws.update(**kwargs)
-
-    return cookielib.Cookie(name=name, domain=domain, **kws)
 
 
 class NRC(HTTPScraper):
@@ -167,8 +153,8 @@ class Top5Scraper(HTTPScraper):
                 #Telegraaf,
                 #Volkskrant,
                 #Nu,
-                #Trouw,
-            #NRC
+                Trouw,
+                #NRC
             ]
 
         for scraper in self.scrapers:
