@@ -35,7 +35,7 @@ class NRC(HTTPScraper):
 
     def __init__(self, *args, **kwargs):
         super(NRC, self).__init__(*args, **kwargs)
-        self.index_url = urljoin(self.index_url, self.getdoc(self.index_url).cssselect("div.watskeburt a")[0].get('href'))
+        self.index_url = urljoin(self.index_url, self.getdoc(self.index_url).cssselect("div.watskeburt h2 a")[0].get('href'))
         
     def _get_units(self):
         doc = self.getdoc(self.index_url)
@@ -80,8 +80,9 @@ class Volkskrant(HTTPScraper):
         article.prepare(self)
         article.props.headline = article.doc.cssselect("#articleDetailTitle")[0].text_content()
         time_post = article.doc.cssselect("div.time_post")[0]
-        article.props.author = time_post.cssselect("span.author")[0].text_content().lstrip("Dor:")
-        time_post.cssselect("span.author")[0].drop_tree()
+        if time_post.cssselect("span.author"):
+            article.props.author = time_post.cssselect("span.author")[0].text_content().lstrip("Dor:")
+            time_post.cssselect("span.author")[0].drop_tree()
         article.props.date = readDate(time_post.text_content())
         article.props.text = article.doc.cssselect("#art_box2")[0].text_content()
         yield article
@@ -142,11 +143,11 @@ class Top5Scraper(HTTPScraper):
     def _get_units(self):
         self.open("http://www.volkskrant.nl")
         self.scrapers = [
-                #Telegraaf,
-                #Volkskrant,
-                #Nu,
+                Telegraaf,
+                Volkskrant,
+                Nu,
                 Trouw,
-                #NRC
+                NRC
             ]
 
         for scraper in self.scrapers:

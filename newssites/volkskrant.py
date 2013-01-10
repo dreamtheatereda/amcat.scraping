@@ -25,6 +25,7 @@ from urlparse import urljoin
 from urllib2 import HTTPError
 from amcat.tools.toolkit import readDate
 from datetime import datetime
+from amcat.scraping.htmltools import create_cc_cookies
 
 INDEX_URL = "http://www.volkskrant.nl/vk/nl/2/archief/integration/nmc/frameset/archive/archiveDay.dhtml?archiveDay={y:04d}{m:02d}{d:02d}"
 
@@ -33,10 +34,12 @@ from amcat.scraping.scraper import HTTPScraper,DatedScraper
 class WebVolkskrantScraper(HTTPScraper, DatedScraper):
     medium_name = "Volkskrant website"
 
-    def __init__(self, *args, **kwargs):
-        super(WebVolkskrantScraper, self).__init__(*args, **kwargs)
+    def set_cookies(self):
+        for cookie in create_cc_cookies(".volkskrant.nl"):
+            self.opener.cookiejar.set_cookie(cookie)
 
     def _get_units(self):
+        self.set_cookies()
         index_dict = {
             'y':self.options['date'].year,
             'm':self.options['date'].month,

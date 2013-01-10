@@ -44,7 +44,7 @@ class WebADScraper(HTTPScraper, DatedScraper):
             self.opener.cookiejar.set_cookie(cookie)
 
     def _get_units(self):
-        self.set_cookies()        
+        self._set_cookies()        
 
         y = self.options['date'].year
         m = self.options['date'].month
