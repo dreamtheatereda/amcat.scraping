@@ -31,39 +31,17 @@ INDEX_URL = "http://www.rtl.nl/actueel/rtlnieuws/"
 class RTLScraper(HTTPScraper, DatedScraper):
     medium_name = "RTL Nieuws"
 
-    def __init__(self, *args, **kwargs):
-        
-        super(RTLScraper, self).__init__(*args, **kwargs)
-        self.month = str(self.options['date'].month)
-        self.day = str(self.options['date'].day)
-        if len(self.month)==1:
-            self.month = "0"+self.month
-        if len(self.day)==1:
-            self.day = "0"+self.day
-
-
-
     def _get_units(self):
-
-        index_dict = {
-            'year' : self.options['date'].year,
-            'month' : self.options['date'].month,
-            'day' : self.options['date'].day
-        }
-
-
+        self.open(INDEX_URL)
+        self.opener.opener.addheaders.append(('Cookie','rtlcookieconsent=yes'))
         index = self.getdoc(INDEX_URL) 
-
+        
         units = index.cssselect('div#main_navigation div.nav_item')
         for article_unit in units[1:6]: #home - opmerkelijk
+
             href = article_unit.cssselect('a')[0].get('href')
             url = urljoin(BASE_URL,href)
             yield url
-
-
-
-
-
 
         
     def _scrape_unit(self, url):
@@ -81,8 +59,8 @@ class RTLScraper(HTTPScraper, DatedScraper):
             page = HTMLDocument(date = self.options['date'],url=url)
 
             #check for correct date
-            match_1 = "/{y}/{m}_".format(y=self.options['date'].year,m=self.month)
-            match_2 = "/{d}/".format(d=self.day)
+            match_1 = "/{y:04d}/{m:02d}_".format(y=self.options['date'].year,m=self.options['date'].month)
+            match_2 = "/{d:02d}/".format(d=self.options['date'].day)
             if ((match_1 in page.props.url) and (match_2 in page.props.url)):
 
                 page.prepare(self)
