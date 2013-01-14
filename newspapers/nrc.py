@@ -73,8 +73,16 @@ class NRCScraper(HTTPScraper, DBScraper):
 
 
     def get_article(self, page):
+        by = page.doc.cssselect("#MainContent p.by")[0]
+        if by.cssselect("span.person"):
+            page.props.author = by.cssselect("span.person")[0].text_content().strip()
+        page.props.pagenr = by.text_content().split("|")[1].lstrip("pagin ")
+        if "-" in page.props.pagenr:
+            page.props.pagenr = int(page.props.pagenr.split("-")[0].strip())
+        
         page.props.text = page.doc.cssselect('.column-left')[0]
         page.props.headline = page.doc.cssselect('h2')[0].text
+        
         intro = page.doc.cssselect('p.intro')
         if intro:
             page.props.text.insert(0, intro[0])

@@ -74,13 +74,14 @@ class DVHNScraper(HTTPScraper, DBScraper):
 
         for page in pages:
             url = PAGE_URL.format(p=page,**index_dict)
-            yield url
+            yield (page,url)
         
                 
 
 
         
-    def _scrape_unit(self, url):
+    def _scrape_unit(self, p_u):
+        (pagenr, url) = p_u
         doc = self.getdoc(url)
 
         articles = set([])
@@ -92,7 +93,7 @@ class DVHNScraper(HTTPScraper, DBScraper):
                 
                 href = "/".join(args[0].split("/")[4:])
                 url = urljoin("http://dvhn.x-cago.net",href)
-                articles.add(HTMLDocument(url=url[:-6]+"_text.html"))
+                articles.add(HTMLDocument(url=url[:-6]+"_text.html", pagenr = pagenr))
 
         for article in articles:
             yield self.get_article(article)

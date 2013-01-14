@@ -116,7 +116,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
             ipage.doc = self.open(page['url'])
         except BadStatusLine:
             return
-        ipage.page = page['pagenum']
+        ipage.pagenr = page['pagenum']
         ipage.props.category = page['section']
         
         text = wegenertools.clean(ipage.doc.read())
@@ -146,10 +146,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
                     artpage.props.text = literal_eval(p.sub("",repr(body)))
                 
                     artpage.props.byline = byline
-                    
-                    
-                    
-                    
+                    artpage.props.pagenr = page['pagenum']
                     yield artpage
 
 

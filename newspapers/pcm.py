@@ -244,7 +244,6 @@ class PCMScraper(HTTPScraper, DBScraper):
         for spread in resp.body.body['spreads']:
             for page in [spread.get(p) for p in ('leftPage', 'rightPage')]:
                 if page is None: continue
-
                 index = Document()
                 index.props.date = date
                 index.props.section = page.get('section')
@@ -289,6 +288,7 @@ class PCMScraper(HTTPScraper, DBScraper):
         return self._get_paper(pid)
 
     def _scrape_unit(self, ipage): # ipage --> index_page
+        print("\n"+str(ipage.props.pagenr)+"\n")
         for art in ipage.doc['articles']:
             page = ipage.copy()
             page.props.author = art['author'][:100] if art['author'] else '' 

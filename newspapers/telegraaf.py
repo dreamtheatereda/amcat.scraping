@@ -38,6 +38,7 @@ CREDENTIALS_ERR = "Login page returned code %s. Wrong credentials?"
 
 class TelegraafScraper(HTTPScraper, DBScraper):
     medium_name = "Telegraaf"
+    pagenr = 0
 
     def _login(self, username, password):
         l_url = LOGIN_URL.format(
@@ -67,6 +68,7 @@ class TelegraafScraper(HTTPScraper, DBScraper):
             yield url
 
     def _scrape_unit(self, url):
+        self.pagenr += 1
         doc = self.getdoc(url)
         # Articles with an id higher than 100 are advertisements,
         # which can be filtered by excluding classnames lager than
@@ -88,7 +90,7 @@ class TelegraafScraper(HTTPScraper, DBScraper):
 
             page.props.url = urljoin(url,
                                      "article/%s.html" % clsname[7:])
-
+            page.props.pagenr = self.pagenr
             #import pdb
             #pdb.set_trace()
             page.doc = self.getdoc(page.props.url)
@@ -96,10 +98,8 @@ class TelegraafScraper(HTTPScraper, DBScraper):
             if page.doc.cssselect('#article h1'):
                 page.props.headline = page.doc.cssselect('#article h1')[0].text_content()
             #else implement images
-
-                if len(page.props.text.split("\n")) < 6:
+                if len(page.props.text < 300):
                     break
-                
                 yield page
 
 
