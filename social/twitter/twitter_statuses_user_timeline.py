@@ -51,8 +51,6 @@ class TwitterStatusesUserTimelineScraper(HTTPScraper,DBScraper):
         the consumer key/secret and acces token key/secret 
         are scraped from dev.twitter.com and put to use."""
 
-        print("logging in...")
-
         login_url = "https://dev.twitter.com/user/login"
         doc = self.getdoc(login_url)
         form = parse_form(doc)
@@ -60,9 +58,7 @@ class TwitterStatusesUserTimelineScraper(HTTPScraper,DBScraper):
         form['pass'] = password
         self.open(login_url,urlencode(form))
 
-        print("...done")
-        
-        print("getting tokens and keys for auth...")
+
         appsurl = "https://dev.twitter.com/apps"
         appsdoc = self.getdoc(appsurl)
 
@@ -84,7 +80,6 @@ class TwitterStatusesUserTimelineScraper(HTTPScraper,DBScraper):
                 break
         if not c_k:
             raise Exception("consumer key at {} not found".format(appsurl))
-        print("...done")
 
         auth = tweepy.OAuthHandler(c_k, c_s)
         auth.set_access_token(a_t, a_t_s)
@@ -99,13 +94,9 @@ class TwitterStatusesUserTimelineScraper(HTTPScraper,DBScraper):
             raise IOError("supply either a screen name, a url or a user id")
 
         elif (not self.options['user_id']):
-            print("getting user id...")
             if not self.options['url']:
                 self.options['url'] = "https://twitter.com/{}".format(self.options['screen_name'])
             self.options['user_id'] = self.get_user_id(self.options['url'])
-            print("...done")
-
-
 
 
 

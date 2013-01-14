@@ -62,12 +62,8 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
 
         
     def _scrape_unit(self, page): 
-        try:
-            page.prepare(self)
-        except HTTPError as e:
-            print(e)
-            return
-            
+        page.prepare(self)
+                    
         page.doc = self.getdoc(page.props.url)
         try:
             page.props.author = page.doc.cssselect("div.author a")[0].text_content()

@@ -147,7 +147,7 @@ class Vagz_nlScraper(HTTPScraper, DatedScraper):
                     try:
                         text = doc.cssselect(medium[1])[0].text_content()
                     except IndexError as e:
-                        print(e)
+                        pass
         if not text == "none":
             return text
         else:
@@ -164,7 +164,6 @@ class Vagz_nlScraper(HTTPScraper, DatedScraper):
             if not text == "none":
                 return text
             else:
-                print("\nno text found for url: {}\n".format(link))
                 return None
                     
                   

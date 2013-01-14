@@ -288,7 +288,6 @@ class PCMScraper(HTTPScraper, DBScraper):
         return self._get_paper(pid)
 
     def _scrape_unit(self, ipage): # ipage --> index_page
-        print("\n"+str(ipage.props.pagenr)+"\n")
         for art in ipage.doc['articles']:
             page = ipage.copy()
             page.props.author = art['author'][:100] if art['author'] else '' 

@@ -110,17 +110,11 @@ class WebADScraper(HTTPScraper, DatedScraper):
         c_id = split[9]
         n_id = split[5]
         firstpage = REACT_URL.format(page=0,cid=c_id,nid=n_id)
-        print(firstpage)
-        try:
-            doc = self.getdoc(firstpage)
-        except HTTPError:
-            return
+        doc = self.getdoc(firstpage)
         try:
             total = int(doc.cssselect("div.pagenav")[0].text.split(" van ")[1])
         except IndexError:
             yield doc;return
-        except AttributeError: #no comments, page is nonetype
-            return
         for x in range(total-1):
             for a in doc.cssselect("div.pagenav a"):
                 if "volgende" in a.text:
@@ -129,7 +123,6 @@ class WebADScraper(HTTPScraper, DatedScraper):
             args = [arg.strip("\"';() ") for arg in onclick[start:end].split(",")]
             href = args[0]
             url = urljoin("http://www.ad.nl/",href)
-            print(url)
             yield self.getdoc(url)
 
 
