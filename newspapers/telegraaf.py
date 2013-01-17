@@ -98,7 +98,7 @@ class TelegraafScraper(HTTPScraper, DBScraper):
             if page.doc.cssselect('#article h1'):
                 page.props.headline = page.doc.cssselect('#article h1')[0].text_content()
             #else implement images
-                if len(page.props.text < 300):
+                if len(page.props.text) < 300:
                     break
                 yield page
 
