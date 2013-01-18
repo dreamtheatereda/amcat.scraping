@@ -65,7 +65,6 @@ class TwitterFilterScript(Script):
             if not l.startswith("#"):
                 [words.append(w.strip()) for w in l.strip("\n").split(",") if len(w.strip())>1]
 
-        print(words)
         s = self.stream()
         s.retry_time = (60*10)
         s.filter(None,words)
@@ -90,7 +89,6 @@ class Listener(StreamListener):
 
 
     def on_data(self,data):
-        print("tweet found")
         data = json.loads(data)
         if 'limit' in data.keys():
             sleep(10)

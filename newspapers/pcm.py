@@ -244,7 +244,6 @@ class PCMScraper(HTTPScraper, DBScraper):
         for spread in resp.body.body['spreads']:
             for page in [spread.get(p) for p in ('leftPage', 'rightPage')]:
                 if page is None: continue
-
                 index = Document()
                 index.props.date = date
                 index.props.section = page.get('section')

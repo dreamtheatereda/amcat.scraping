@@ -84,7 +84,6 @@ class FacebookQueryScraper(HTTPScraper, DBScraper):
     def _get_units(self):
         for _type in TYPES:
             next_url = START_URL.format(q=self.options['query'],t=_type)
-            print(next_url)
             while True:
                 _json = self.open(next_url).read()
                 if not _json:
@@ -138,8 +137,6 @@ class FacebookQueryScraper(HTTPScraper, DBScraper):
                 obj.props.source = obj.doc['link']
         elif obj.doc['type'] != "status":
             
-            print(obj.doc['type'])
-            print(obj.doc)
             raise NotImplementedError
             
         yield obj

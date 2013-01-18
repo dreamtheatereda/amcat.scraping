@@ -50,15 +50,12 @@ class Zorgportaal_nlNieuwsScraper(HTTPScraper):
         while True:
             results = gs.get_results()
             total += len(results)
-            print(total)
             if not results:
                 break
             else:
                 for res in results:
-                    print(res.url)
                     if re.match(pattern,res.url) or re.match(otherpattern,res.url):
                         yield HTMLDocument(url=res.url)
-        print(total)   
                     
     def _scrape_unit(self, page): 
 

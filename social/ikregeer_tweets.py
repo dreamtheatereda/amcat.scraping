@@ -65,7 +65,6 @@ class IkRegeerTwitterScraper(HTTPScraper, CommentScraper):
             for page in count(1):
                 docurl = url+"?view=tweets&page=%d" % (page)
                 doc = self.getdoc(docurl)
-                pprint(docurl)
                 yield HTMLDocument(url=docurl)
                 if not doc.cssselect("a#pg-next"): 
                     # If page has no "next page" button.

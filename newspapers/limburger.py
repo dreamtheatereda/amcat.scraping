@@ -62,7 +62,6 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         for line in index.readlines():
             if "pageTable.add" in line:
                 start = line.find("new Array");end = line.find(");", start)
-                print(line[start:end])
                 pagelink = line[start:end].split(",")[2].strip("\" ")
                 yield self.page_url.format(**locals())
                 
@@ -83,7 +82,8 @@ class LimburgerScraper(HTTPScraper, DBScraper):
 
     def get_article(self, url):
         url = "{}_body.html".format(url[:-5])
-        article = HTMLDocument(url = url)
+        pagenum = url.split("/")[7][0:5]
+        article = HTMLDocument(url = url, pagenr = int(pagenum))
         article.doc = self.getdoc(url)
         article.props.headline = article.doc.cssselect("td.artheader")[0].text_content().strip()
         article.props.text = article.doc.cssselect("table.body")[0].text_content().strip()
