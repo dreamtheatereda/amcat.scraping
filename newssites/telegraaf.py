@@ -65,7 +65,10 @@ class WebTelegraafScraper(HTTPScraper, DatedScraper):
                         break
 
 
-                nxt = ipage.cssselect("#main li.sn_navigation a")[0]
+                try:
+                    nxt = ipage.cssselect("#main li.sn_navigation a")[0]
+                except IndexError:
+                    break
                 if "vorige" in nxt.text:
                     print("\nNo articles found for given date.\n")
                 elif "games" in href:
