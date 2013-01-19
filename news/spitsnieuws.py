@@ -21,9 +21,6 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 INDEX_URL = "http://www.spitsnieuws.nl/archives/%(year)s%(month)02d/"
 
-import logging
-log = logging.getLogger(__name__)
-
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 from amcat.tools import toolkit
@@ -37,7 +34,7 @@ class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
         date = self.options['date']
         url = INDEX_URL % dict(year=date.year, month=date.month)
 
-        for li in self.getdoc(url).cssselect('.ltMainContainer ul li.views-row'):
+        for li in self.getdoc(url).cssselect('div.item-list-archive ul li.views-row'):
             docdate = toolkit.readDate(li.text.strip('\n\r \u2022:')).date()
             if docdate == todate(date):
                 href = li.cssselect('a')[0].get('href')
@@ -46,29 +43,31 @@ class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
 
     def _scrape_unit(self, doc):
         doc.doc = self.getdoc(doc.props.url)
-        doc.props.headline = doc.doc.cssselect('h1.title')[0].text_content()
-        doc.props.text = doc.doc.cssselect('#article')[0].text_content()
+        doc.props.headline = doc.doc.cssselect('#node h1')[0].text_content()
+        doc.props.text = doc.doc.cssselect('div.article')[0].text_content()
 
-        footer = doc.doc.cssselect('.article-options > div')[0].text_content().split('|')
+        footer = doc.doc.cssselect('div.article-options')[0].text_content().split('|')
         doc.props.author = footer[0].strip()
         doc.props.date = toolkit.readDate(" ".join(footer[1:3]))
+        for c in self.comments(doc):
+            c.parent = doc
+            yield c
+
 
         yield doc
 
     def comments(self, doc):
-        log.info(doc.parent)
 
-        divs = doc.doc.cssselect('#comments .reactiesList')
+        divs = doc.doc.cssselect('.comment')
 
         for div in divs:
             comm = doc.copy()
-
+            comm.props.headline = "re: {}".format(doc.props.headline)
             comm.props.text = div.cssselect('p')[0]
             comm.props.author = div.cssselect('strong')[0].text
 
-            dt = [t.strip() for t in div.itertext() if t.strip()][-3]
-            comm.props.date = toolkit.toDate(dt)
-
+            dt = " ".join(div.cssselect("ul")[0].text_content().split("|")[1:-1])
+            comm.props.date = toolkit.readDate(dt)
             yield comm
 
 if __name__ == '__main__':
