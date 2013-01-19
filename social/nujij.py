@@ -27,6 +27,7 @@ from amcat.tools.toolkit import readDate
 from datetime import date
 import re
 from lxml import etree
+
 INDEX_URL = "http://www.nujij.nl/"
 
 
@@ -44,15 +45,15 @@ class NuJijScraper(HTTPScraper, DatedScraper):
         for category in index.cssselect("dl.topmenu dd a")[1:]:
             url = category.get('href').replace(" ","%20")
 
-            for doc in self.get_articles(self.getdoc(url)):
-                yield doc
+            for href in self.get_articles(self.getdoc(url)):
+                yield href
             nxt = self.getdoc(url)        
             while len(nxt.cssselect("div.pages a.next"))==1:
                 nxt_url = urljoin(url,nxt.cssselect("div.pages a.next")[0].get('href'))
-
+                
                 nxt = self.getdoc(nxt_url)
-                for doc in self.get_articles(nxt):
-                    yield doc
+                for url in self.get_articles(nxt):
+                    yield url
 
 
             
@@ -62,13 +63,14 @@ class NuJijScraper(HTTPScraper, DatedScraper):
             datum = readDate(_datum)
             if self.options['date'] == datum.date():
                 href = article.cssselect("h3.title a")[0].get('href')+"?pageStart=1"
-                yield HTMLDocument(url=href)
+                yield href.encode('utf-8')
             if self.options['date'] > datum.date():
                 break
             
 
-    def _scrape_unit(self, page):
-        page.doc = self.getdoc(page.props.url)
+    def _scrape_unit(self, url):
+        page = HTMLDocument(url = url)
+        page.prepare(self)
         page.props.section = page.doc.cssselect("div.article-header div.tabbar h2.title")[0].text
         page.props.author = page.doc.cssselect("div.bericht-details")[0].text_content().split("door")[1].strip()
         page.props.headline = page.doc.cssselect("div.articleheader h1.title")[0].text_content().strip()
