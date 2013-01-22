@@ -66,7 +66,7 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
         page.props.author = page.doc.cssselect("article footer")[0].text_content().split("|")[0].strip()
         page.props.headline = page.doc.cssselect("article h1")[0].text
         page.doc.cssselect("footer")[0].drop_tree()
-        page.props.text = page.doc.cssselect("article")[0].text_content()
+        page.props.text = page.doc.cssselect("article")[0]
         page.coords = ""
         return page
 
