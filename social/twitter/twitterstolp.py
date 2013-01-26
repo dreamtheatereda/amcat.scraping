@@ -29,7 +29,7 @@ from urllib import urlencode
 from urllib2 import HTTPError
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
-from datetime import date
+from datetime import datetime
 
 import json
 
@@ -122,7 +122,8 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
             for div in doc.cssselect("div.tweet"):
                 tweet = Document()
                 tweet.props.author = div.cssselect("strong.fullname")[0].text_content()
-                tweet.props.date = readDate(div.cssselect('a.tweet-timestamp')[0].get('title'))
+                print(html.tostring(div.cssselect("a.tweet-timestamp")[0]))
+                tweet.props.date = datetime.fromtimestamp(float(div.cssselect("a.tweet-timestamp ._timestamp")[0].get('data-time')))
                 tweet.props.text = div.cssselect("p.js-tweet-text")[0].text_content()
                 maxid = div.get('data-tweet-id')
                 if tweet.props.date.date() < self.options['date']:
