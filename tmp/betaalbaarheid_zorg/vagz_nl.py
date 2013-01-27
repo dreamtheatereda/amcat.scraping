@@ -63,114 +63,13 @@ class Vagz_nlScraper(HTTPScraper, DatedScraper):
         
     def _scrape_unit(self, page):
         page.prepare(self)
-        page.doc = self.noscript(self.getdoc(page.props.url))
+        page.props.headline = page.doc.cssselect("h2.contentheading")[0].text_content().strip()
+        page.props.text = self.noscript(page.doc.cssselect("div.article-content")[0]).text_content()
+        for a in page.doc.cssselect("div.article-content a"):
+            if a.text.strip(" .").lower() == "lees verder":
+                page.props.source = a.text
 
-        forwards = page.doc.cssselect("div.article-content a")
-        link = "nope"
-        for f in forwards:
-            if "Lees verder..." in f.text:
-                link = f.get('href')
-
-        if len(link)>=5:
-            if not "Bron: ministerie" in page.doc.cssselect("div.article-content p")[-1].text:
-                page.props.text = self.get_text(link)
-            else: #VWS uses pdfs in all publications...
-                page.props.text = page.doc.cssselect("div.article-content")[0].text_content()
-        else: #pdf format
-            page.props.text = page.doc.cssselect("div.article-content")[0].text_content()
-           
-        
-        if page.props.text == None:
-            page.props.text = page.doc.cssselect("div.article-content")[0].text_content()
-            
         yield page
-
-
-    def get_text(self, link):
-        doc = self.getdoc(link)
-        doc = self.noscript(doc)
-
-        text = "none"
-        MEDIA = [('igz.nl','div#content'),   # based on last 100 articles, obviously not everything
-                 ('onvz.nl','div.article'),  # is added but most of it is.
-                 ('zorggeenmarkt.nl','div#content'),
-                 ('nos.nl','div#article-content'),
-                 ('zn.nl','div#newsText'),
-                 ('skipr.nl','div#article'),
-                 ('zonmw.nl','div.puu-section'),
-                 ('zorgbelang-brabant.nl','div#inhoud'),
-                 ('rijksoverheid.nl','div#content-column'),
-                 ('nza.nl','div#comp_content'),
-                 ('medischcontact.artsennet.nl','div.box-content'),
-                 ('dbconderhoud.nl','div.article-content'),
-                 ('booz.com','div#columns-1-4'),
-                 ('achmeazorg.nl','td.CenteralBarContentContainer'),
-                 ('rivm.nl','div#inhoudkolom'),
-                 ('nivel.nl','div.panel-pane'),
-                 ('volkskrant.nl','div#art_box2'),
-                 ('heelkunde.nl','div.divContent'),
-                 ('bmc.nl','div.node-content'),
-                 ('kce.fgov.be','div.page_body'),
-                 ('zorgstandaarden.nl','div#content'),
-                 ('dutchhospitaldata.nl','div.tekst'),
-                 ('orthopeden.org','div.column'),
-                 ('rechtspraak.nl','nieuwsbericht'),
-                 ('cbs.nl','div#blokken'),
-                 ('nma.nl','div.GCCenter'),
-                 ('nvu.nl','div#dnn_ContentPane'),
-                 ('bdo.nl','div.article-content'),
-                 ('trimbos.nl','div.newsdetail'),
-                 ('knmg.artsennet.nl','div.box-content'),
-                 ('clinicalaudit.nl','div#content'),
-                 ('maastrichtuniversity.nl','div#maincontent'),
-                 ('pvda.nl','div.post-content'),
-                 ('nvag.nl','hoofd-discussie-container'),
-                 ('vkbanen.nl','div.str_col3')
-                 ]
-        
-        paths = [medium[1] for medium in MEDIA]
-        
-
-        #special cases
-        if 'ncpf.nl' in link:
-            text = doc.cssselect("table.contentpaneopen_news")[1].text_content()
-
-        elif 'akd.nl' in link:
-            text = doc.cssselect("div#purple-box div.text")[0].text_content() 
-            text += doc.cssselect("div.left-column")[0].text_content()
-            
-
-
-        else:
-            for medium in MEDIA:
-                if medium[0] in link:
-                    try:
-                        text = doc.cssselect(medium[1])[0].text_content()
-                    except IndexError as e:
-                        pass
-        if not text == "none":
-            return text
-        else:
-            for path in paths:
-                try:
-                    text = doc.cssselect(path)[0]
-                except IndexError:
-                    pass
-                else:
-                    if len(text)>200:
-                        break
-                    else:
-                        text = "none"
-            if not text == "none":
-                return text
-            else:
-                return None
-                    
-                  
-                  
-        
-
-
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
