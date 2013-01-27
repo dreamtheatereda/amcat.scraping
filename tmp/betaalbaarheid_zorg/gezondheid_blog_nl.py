@@ -20,51 +20,83 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument
+from amcat.scraping.document import HTMLDocument, Document
 from amcat.tools.toolkit import readDate
 
 import re
 
-INDEX_URL = "http://www.gezondheid.blog.nl"
 
 class Gezondheid_blog_nlScraper(HTTPScraper, DatedScraper):
     medium_name = "gezondheid.blog.nl"
+    archive_url = "http://gezondheid.blog.nl/{self.y:04d}/{self.m:02d}"
+    page_url = archive_url + "/page/{pagenum}"
 
     def __init__(self, *args, **kwargs):
         super(Gezondheid_blog_nlScraper, self).__init__(*args, **kwargs)
+        self.y = self.options['date'].year
+        self.m = self.options['date'].month
+
 
     def _get_units(self):
-        """get pages"""
-
-
-
-        index = self.getdoc(INDEX_URL) 
-        articles = index.cssselect('div.post')
-        for article in articles:
-            footer = article.cssselect("div.postInfo")[0].text.split("\t")[1]
-            p = re.compile(r'^Door ([\D]+) op ([a-z0-9\s]+) om')
-            _re = p.search(footer)
-            author = _re.group(1)
-            date = readDate(_re.group(2))
-            headline = article.cssselect("h1")[0].text_content()
-            if str(self.options['date']) not in str(date):
-                continue
-            link = article.cssselect("h1 a")[0].get('href')
-            yield HTMLDocument(url=link,headline=headline,author=author)
+        archive_url = self.archive_url.format(**locals())
+        for page_url in self.get_pages(archive_url):
+            for div in self.getdoc(page_url).cssselect("div.post"):
+                article_url = div.cssselect("h1 a")[0].get('href')
+                article = HTMLDocument(url = article_url)
+                article.props.headline = div.cssselect("h1 a")[0].text_content().strip()
+                footer = div.cssselect("div.postInfo")[0].text_content().strip()
+                
+                pattern = re.compile("Door ([ \w]+) op ([0-9a-z :]+),( in de categorie ([\w ]+))?")
+                results = pattern.search(footer)
+                                
+                article.props.date = readDate(results.group(2))
+                if article.props.date.date() < self.options['date']:
+                    break
+                elif article.props.date.date() > self.options['date']:
+                    continue
+                article.props.author = results.group(1)
+                article.props.section = results.group(4)
+                yield article
+                
+                                                
+    def get_pages(self, url):
+        pagenav = self.getdoc(url).cssselect("div.page_navi")[0]
+        num = pagenav.cssselect("a.last")[0].get('href').split("/")[-1]
+        for pagenum in range(1,int(num)):
+            yield self.page_url.format(**locals())
         
+    def _scrape_unit(self, article):
+        article.prepare(self)
+        postentry = self.clean_html(article.doc.cssselect("div.postEntry")[0])
+        article.props.text = postentry.text_content()
+
+        for comment in self.get_comments(article):
+            yield comment
+        yield article
+
+
+    def get_comments(self, article):
+        for li in article.doc.cssselect("li.comment"):
+            comment = Document()
+            comment.props.text = li.cssselect("div.comment-text")[0].text_content()
+            
+            pattern = re.compile("Geplaatst door ([\w ]+) op ([\w :]+)")
+            result = pattern.search(
+                li.cssselect("div.commentsbox span")[0].text_content()
+                )
+            comment.props.author = result.group(1)
+            comment.props.date = readDate(result.group(2))
+            comment.parent = article
+            yield comment
+
+
         
-    def _scrape_unit(self, doc):
-        doc.prepare(self)
-        doc.doc = self.getdoc(doc.props.url)
-        doc.props.text = doc.doc.cssselect("div.post div.postEntry")[0].text_content()
-        try:
-            doc.props.source = doc.doc.cssselect("div.post div.postEntry p em a")[0].get('href')
-        except IndexError:
-            pass
-        yield doc
-
-
-
+    def clean_html(self, html):
+        html.cssselect("p.similarposts")[0].drop_tree()
+        [s.drop_tree() for s in html.cssselect("script")]
+        html.cssselect("div.clearfix")[0].drop_tree()
+        html.cssselect("p.reader")[0].drop_tree()
+        return html
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
