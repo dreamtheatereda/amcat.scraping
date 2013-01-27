@@ -52,43 +52,44 @@ class WeblogNRCScraper(HTTPScraper, DatedScraper):
                 self.open(link)
             except HTTPError: #not up to date
                 continue
-            yield url
+            yield link
             
 
     def _scrape_unit(self, url):
         doc = self.getdoc(url)
-
-        for dd in doc.cssselect("div.lijstje dd"):
-            _date = "-".join(dd.cssselect("a")[0].get('href').split("/")[4:7])
-            date = readDate(_date)
-            if date.date() < self.options['date']:
-                break
-            elif date.date() == self.options['date']:
-                href = dd.cssselect("a")[0].get('href').lstrip("./")
-                url = urljoin("http://www.nrc.nl/",href)
-                page = HTMLDocument(date = self.options['date'], url = url)
-                page.prepare(self)
-                page.doc = self.getdoc(page.props.url)
-
-
-                try:
-                    page.props.text = page.doc.cssselect("#broodtekst")[0].text_content()
-                except IndexError: #next checkt
-                    page.props.text = "\n\n".join([p.text_content() for p in page.doc.cssselect("div.article p")])
-                    for comment in self.get_comments(page):
+        tag = "dt"
+        for d_ in doc.cssselect("div.lijstje dt,dd"):
+            if tag == "dt":
+                time = readDate(d_.cssselect("time")[0].get('datetime'))
+                if time.date() < self.options['date']:
+                    break
+                elif time.date() == self.options['date']:
+                    get = True
+                elif time.date() > self.options['date']:
+                    get = False
+                tag = "dd"
+            elif tag == "dd":
+                if get == True:
+                    article_url = urljoin(url, d_.cssselect("a")[0].get('href'))
+                    article = self.get_article(article_url, time)
+                    for comment in self.get_comments(article):
                         yield comment
+                    yield article
+                tag = "dt"
+                    
 
-                yield self.get_article(page)
 
 
-
-    def get_article(self, page):
-        try:
-            page.props.author = page.doc.cssselect("div.author a")[0].text
-        except IndexError:
-            page.props.author = "unknown"
+    def get_article(self, url, datetime):
+        page = HTMLDocument(url = url)
+        page.prepare(self)
         page.props.headline = page.doc.cssselect("div.article h1")[0]
-        page.coords = ""
+        page.props.text = page.doc.cssselect("#broodtekst")[0]
+        page.props.date = datetime
+        if page.doc.cssselect("div.auteursinfo"):
+            page.props.author = page.doc.cssselect("div.auteursinfo h2")[0].text_content()
+        page.props.section = url.split("/")[3]
+            
         return page
 
     def get_comments(self,page):
