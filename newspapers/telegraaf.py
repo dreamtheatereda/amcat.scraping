@@ -63,12 +63,33 @@ class TelegraafScraper(HTTPScraper, DBScraper):
         date = self.options['date']
         index = INDEX_URL % dict(year=date.year, month=date.month, day=date.day)
         doc = self.getdoc(index)
+        self.categories = self.get_categories(doc)
         for td in doc.cssselect('td.select_page option'):
             url = urljoin(index, td.get('value') + '/page.html')
             yield url
 
+    def get_categories(self, doc):
+        borders = {}
+        from lxml import html
+        for a in doc.cssselect("td.nav tr")[1].cssselect("a"):
+            pagenr = int(a.get('href').split("/")[-1])
+            cat = a.text_content()
+            borders[pagenr] = cat
+
+        categories = {}
+        cat = borders[1]
+        for td in doc.cssselect('td.select_page option'):
+            pagenr = int(td.get('value'))
+            if pagenr in borders.keys():
+                cat = borders[pagenr]
+                
+            categories[pagenr] = cat
+
+        return categories
+            
+        
+
     def _scrape_unit(self, url):
-        self.pagenr += 1
         doc = self.getdoc(url)
         # Articles with an id higher than 100 are advertisements,
         # which can be filtered by excluding classnames lager than
@@ -86,14 +107,11 @@ class TelegraafScraper(HTTPScraper, DBScraper):
 
             # Calculate coords
             divs = doc.cssselect('div.%s' % clsname)
-            page.coords = [parse_coord(crd.get('style')) for crd in divs]
-
             page.props.url = urljoin(url,
                                      "article/%s.html" % clsname[7:])
-            page.props.pagenr = self.pagenr
-            #import pdb
-            #pdb.set_trace()
-            page.doc = self.getdoc(page.props.url)
+            page.prepare(self)
+            page.props.pagenr = int(url.split("/")[-2])
+            page.props.section = self.categories[page.props.pagenr]
             page.props.text = page.doc.cssselect('#article')[0].text_content()
             if page.doc.cssselect('#article h1'):
                 page.props.headline = page.doc.cssselect('#article h1')[0].text_content()

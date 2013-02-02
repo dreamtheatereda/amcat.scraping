@@ -87,6 +87,7 @@ class NRCScraper(HTTPScraper, DBScraper):
         if intro:
             page.props.text.insert(0, intro[0])
 
+        page.props.section = page.doc.cssselect("div.more-articles h4")[0].text
         return page
 
 
