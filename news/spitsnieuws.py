@@ -44,7 +44,7 @@ class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
     def _scrape_unit(self, doc):
         doc.doc = self.getdoc(doc.props.url)
         doc.props.headline = doc.doc.cssselect('#node h1')[0].text_content()
-        doc.props.text = doc.doc.cssselect('div.article')[0].text_content()
+        doc.props.text = doc.doc.cssselect('div.article')[0]
 
         footer = doc.doc.cssselect('div.article-options')[0].text_content().split('|')
         doc.props.author = footer[0].strip()

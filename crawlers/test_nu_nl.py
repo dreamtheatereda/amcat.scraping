@@ -34,7 +34,7 @@ class TestScraper(Crawler):
         art.props.headline = doc.cssselect("div.header h1")[0].text_content()
         if doc.cssselect("div.content center"):
             doc.cssselect("div.content center")[0].drop_tree()
-        art.props.text = doc.cssselect("div.content")[0].text_content()
+        art.props.text = doc.cssselect("div.content")[0]
         try:
             art.props.author = doc.cssselect("span.smallprint")[0].text_content().strip()
         except IndexError as e:

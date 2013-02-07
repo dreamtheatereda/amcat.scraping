@@ -72,7 +72,7 @@ class Zorgportaal_nlNieuwsScraper(HTTPScraper):
             page.props.author="author protected"
         
         page.props.headline = page.doc.cssselect("#container_content div.content h2")[0].text
-        page.props.text = page.doc.cssselect("div.nieuws_tekst")[0].text_content()
+        page.props.text = page.doc.cssselect("div.nieuws_tekst")[0]
         info = page.doc.cssselect("div.nieuws_box p")
         for p in info:
             if "Plaatsingsdatum" in p.cssselect("b")[0].text:

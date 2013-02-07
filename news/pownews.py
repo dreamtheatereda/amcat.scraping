@@ -73,13 +73,13 @@ class PownewsScraper(HTTPScraper, DatedScraper):
     def get_article(self, page):
         page.props.author = page.doc.cssselect("#artikel-footer .author-date")[0].text.split("|")[0].strip()
         page.props.headline = page.doc.cssselect("div.acarhead h1")[0].text
-        page.props.text = page.doc.cssselect("div.artikel-intro")[0].text_content() + page.doc.cssselect("div.artikel-main")[0].text_content()
+        page.props.text = [page.doc.cssselect("div.artikel-intro")[0], page.doc.cssselect("div.artikel-main")[0]]
         return page
 
     def get_comments(self,page):
         for div in page.doc.cssselect("#comments div.comment"):
             comment = Document(parent=page)
-            comment.props.text = div.cssselect("p")[0].text_content()
+            comment.props.text = div.cssselect("p")[0]
             footer = div.cssselect("p.footer")[0].text_content().split(" | ")
             comment.props.author = footer[0].strip()
             comment.props.date = readDate(footer[1].strip())

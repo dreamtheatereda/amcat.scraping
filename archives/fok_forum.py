@@ -107,7 +107,7 @@ class FokForumScraper(HTTPScraper):
         page.props.author = page.doc.cssselect("span.post_sub a.username")[0].text
         page.props.headline = page.doc.cssselect("div.fieldholder h1")[0].text_content()
         
-        page.props.text = page.doc.cssselect("div.postmain_right")[0].text_content()
+        page.props.text = page.doc.cssselect("div.postmain_right")[0]
         page.coords=''
         return page
 
@@ -124,7 +124,7 @@ class FokForumScraper(HTTPScraper):
                 comment.parent = topic
                 comment.props.author = div.cssselect("div.postholder_top a.username")[0]
                 comment.props.date = readDate(div.cssselect("div.postholder_top span.post_time")[0].text_content())
-                comment.props.text = div.cssselect("div.postholder_bot div.contents")[0].text_content()
+                comment.props.text = div.cssselect("div.postholder_bot div.contents")[0]
                 yield comment
                 
 

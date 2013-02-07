@@ -78,7 +78,7 @@ class ParoolScraper(HTTPScraper, DatedScraper):
             script.drop_tree()
         for h1 in page.doc.cssselect("h1"):
             h1.drop_tree()
-        page.props.text = page.doc.cssselect("#art_box2")[0].text_content()
+        page.props.text = page.doc.cssselect("#art_box2")[0]
         page.props.date = readDate(page.doc.cssselect("div.time_post")[0].text.split("Bron:")[0])
         yield page
 

@@ -90,7 +90,7 @@ class TrouwWebScraper(HTTPScraper, DatedScraper):
             if page.props.author:
                 page.props.author = page.props.author[:98]
 
-        page.props.text = "\n\n".join([p.text_content() for p in page.doc.cssselect("#art_box2 p")])
+        page.props.text = page.doc.cssselect("#art_box2 p")
         try:
             page.props.section = page.doc.cssselect("#subnav_nieuws li span.nieuws")[0].text_content()
         except IndexError:

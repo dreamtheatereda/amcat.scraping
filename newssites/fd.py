@@ -126,7 +126,7 @@ class WebFDScraper(HTTPScraper, DBScraper):
     def get_comments(self, doc):
         for div in doc.cssselect("#commentsList div.topDivider"):
             comment = Document()
-            comment.props.text = div.cssselect("div.wordBreak")[0].text_content()
+            comment.props.text = div.cssselect("div.wordBreak")[0]
             spans = div.cssselect("div.fBold span")
             try:
                 comment.props.date = readDate(spans[1].text_content().split(" ")[1])

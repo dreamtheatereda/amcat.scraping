@@ -99,7 +99,7 @@ class FokForumScraper(HTTPScraper, DatedScraper):
             parent = HTMLDocument(url = topic_url)
             parent.props.headline = headline
             parent.props.date = topic_date
-            parent.props.text = doc.cssselect("div.postmain_right")[0].text_content().strip()
+            parent.props.text = doc.cssselect("div.postmain_right")[0]
             parent.props.author = doc.cssselect("span.post_sub a.username")[0].text_content().strip()
             parent.props.section = self.current_section
         
@@ -118,7 +118,7 @@ class FokForumScraper(HTTPScraper, DatedScraper):
                 post.props.date = date
                 post.props.author = div.cssselect("span.post_sub a.username")[0].text_content()
                 text = div.cssselect("div.postmain_right")[0]
-                post.props.text = self.replace_smileys(text).text_content().strip('" ')
+                post.props.text = self.replace_smileys(text)
                 post.props.section = self.current_section
                 yield post
             elif date.date() < self.options['date']:
@@ -143,7 +143,7 @@ class FokForumScraper(HTTPScraper, DatedScraper):
             replace = self.find_substr('alt="', '"', tag, include_arguments = False)
             text = text.replace(tag,replace,1)
 
-        text = text.replace("<blockquote>", "[QUOTE]").replace("</blockquote>", "[/QUOTE]\n\n")
+        text = text.replace("<blockquote>", "[QUOTE]").replace("</blockquote>", "[/QUOTE]\n\n").strip('" ')
 
         return html.fromstring(text)
 

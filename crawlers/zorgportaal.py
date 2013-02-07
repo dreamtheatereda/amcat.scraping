@@ -63,7 +63,7 @@ class ZorgportaalCrawler(Crawler):
                 page.props.source = content
 
         page.props.headline = page.doc.cssselect("div.content h2")[0].text
-        page.props.text = page.doc.cssselect("div.nieuws_tekst")[0].text_content()
+        page.props.text = page.doc.cssselect("div.nieuws_tekst")[0]
 
         if len(page.props.author)>50:
             page.props.author = "javascript protected"

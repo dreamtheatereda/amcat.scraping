@@ -77,7 +77,7 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
             comment.props.date = readDate(footer[1])
             comment.props.author = footer[0]
             try:
-                comment.props.text = article.cssselect("p")[0].text_content()
+                comment.props.text = article.cssselect("p")[0]
             except IndexError: #empty comment
                 continue
             yield comment

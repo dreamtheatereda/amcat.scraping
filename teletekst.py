@@ -58,7 +58,7 @@ class TeletekstScraper(HTTPScraper, DatedScraper):
         for table in page.doc.cssselect("table"):
             table.drop_tree()
         page.props.headline = page.doc.cssselect("title")[0].text.partition(":")[2]
-        page.props.text = page.doc.cssselect("body")[0].text_content().strip("\t\n")
+        page.props.text = page.doc.cssselect("body")[0]
         page.coords = ""
         
         return page

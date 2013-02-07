@@ -75,7 +75,7 @@ class NOSNieuwsScraper(HTTPScraper, DatedScraper):
         page.props.headline = page.doc.cssselect("div#article h1")[0]
         content = page.doc.cssselect("div#article-content")[0]
         content.cssselect("a#btn-share")[0].drop_tree()
-        page.props.text = content.text_content()
+        page.props.text = content
         return page
 
 

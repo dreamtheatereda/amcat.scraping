@@ -53,7 +53,7 @@ class NRC(HTTPScraper):
         article.prepare(self)
         if article.doc.cssselect("div.author"):
             article.props.author = article.doc.cssselect("div.author")[0].text_content().lstrip("dor")
-        article.props.text = article.doc.cssselect("#broodtekst")[0].text_content().strip()
+        article.props.text = article.doc.cssselect("#broodtekst")[0]
         yield article
 
 
@@ -84,7 +84,7 @@ class Volkskrant(HTTPScraper):
             article.props.author = time_post.cssselect("span.author")[0].text_content().lstrip("Dor:")
             time_post.cssselect("span.author")[0].drop_tree()
         article.props.date = readDate(time_post.text_content())
-        article.props.text = article.doc.cssselect("#art_box2")[0].text_content()
+        article.props.text = article.doc.cssselect("#art_box2")[0]
         yield article
 
 class Trouw(Volkskrant):
@@ -111,7 +111,7 @@ class Telegraaf(HTTPScraper):
         if author:
             article.props.author = author[0].text_content()
         [s.drop_tree() for s in article.doc.cssselect("#artikelKolom script")]
-        article.props.text = article.doc.cssselect("#artikelKolom")[0].text_content()
+        article.props.text = article.doc.cssselect("#artikelKolom")[0]
         yield article
     
 
@@ -129,7 +129,7 @@ class Nu(HTTPScraper):
         article.props.date = readDate(article.doc.cssselect("div.dateplace-data")[0].text)
         article.props.headline = article.doc.cssselect("h1")[0].text_content().strip()
         [s.drop_tree() for s in article.doc.cssselect("script")]
-        article.props.text = article.doc.cssselect("#leadarticle div.content")[0].text_content()
+        article.props.text = article.doc.cssselect("#leadarticle div.content")[0]
         author = article.doc.cssselect("#leadarticle span.smallprint")
         if author:
             article.props.author = author[0].text.strip("| ")

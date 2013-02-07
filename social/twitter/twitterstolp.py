@@ -26,7 +26,7 @@ from amcat.scraping.document import Document, HTMLDocument
 
 
 from urllib import urlencode
-from urllib2 import HTTPError
+from urllib2 import HTTPError, URLError
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
 from datetime import datetime
@@ -89,6 +89,8 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
         """get pages"""
         i = 0
         for row in CSV_FILE:
+            for index, cell in enumerate(row):
+                row[index] = cell.decode('utf-8')
             i = i + 1
             if i == 1:
                 continue
@@ -97,7 +99,7 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
                 if len(url)<5:
                     continue
                 page = self.open(url)
-            except HTTPError:
+            except (HTTPError,URLError):
                 msg = "{} twitter addres ({}) not found\n".format(row[0],row[7])
                 print(msg)
                 self.notfound.write(msg)
@@ -122,9 +124,8 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
             for div in doc.cssselect("div.tweet"):
                 tweet = Document()
                 tweet.props.author = div.cssselect("strong.fullname")[0].text_content()
-                print(html.tostring(div.cssselect("a.tweet-timestamp")[0]))
                 tweet.props.date = datetime.fromtimestamp(float(div.cssselect("a.tweet-timestamp ._timestamp")[0].get('data-time')))
-                tweet.props.text = div.cssselect("p.js-tweet-text")[0].text_content()
+                tweet.props.text = div.cssselect("p.js-tweet-text")[0]
                 maxid = div.get('data-tweet-id')
                 if tweet.props.date.date() < self.options['date']:
                     done=True;break

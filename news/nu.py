@@ -91,7 +91,7 @@ class NuScraper(HTTPScraper, DatedScraper):
         if ads:
             for i in range(len(ads)):
                 ads[i].drop_tree() 
-        page.props.text = page.doc.cssselect("#leadarticle .content")[0].text_content()
+        page.props.text = page.doc.cssselect("#leadarticle .content")[0]
         yield page
 
 if __name__ == '__main__':

@@ -53,7 +53,7 @@ class GezondheidblogCrawler(Crawler):
         postinfo = page.doc.cssselect("div.postInfo")[0].text
         page.props.date = readDate(postinfo.split(" op ")[1].split(",")[0])
         page.props.headline = page.doc.cssselect("div.postInner h1")[0].text_content()
-        page.props.text = page.doc.cssselect("div.postEntry")[0].text_content()
+        page.props.text = page.doc.cssselect("div.postEntry")[0]
         page.props.author = postinfo.split(" op ")[0].split("Door")[1]
         return page
 
@@ -68,7 +68,7 @@ class GezondheidblogCrawler(Crawler):
 
                 comment.props.date = readDate(":".join(li.text_content().split(":")[1:2]))
                 try:
-                    comment.props.text = li.cssselect("div.comment-text-reply")[0].text_content().strip()
+                    comment.props.text = li.cssselect("div.comment-text-reply")[0]
                 except UnicodeDecodeError:
                     continue
             else:
@@ -79,7 +79,7 @@ class GezondheidblogCrawler(Crawler):
                     pass
                 comment.props.date = readDate(dateauthor.split(" op ")[1])
                 try:
-                    comment.props.text = li.cssselect("div.comment-text")[0].text_content().strip()
+                    comment.props.text = li.cssselect("div.comment-text")[0]
                 except UnicodeDecodeError:
                     continue
             yield comment

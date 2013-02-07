@@ -55,7 +55,7 @@ class ZorgportaalForumCrawler(Crawler):
 
     def get_article(self, page):
         page.props.title = page.doc.cssselect("div.kmsg-header h2")[0].text_content()
-        page.props.text = page.doc.cssselect("table.kmsg")[0].cssselect("div.kmsgtext")[0].text_content()
+        page.props.text = page.doc.cssselect("table.kmsg")[0].cssselect("div.kmsgtext")[0]
         page.props.date = readDate(page.doc.cssselect("div.kmsg-header")[0].cssselect("span.kmsgdate")[0].get('title'))
         page.props.author = page.doc.cssselect("table.kmsg")[0].cssselect("li.kpost-username")[0].text_content()
 
@@ -79,7 +79,7 @@ class ZorgportaalForumCrawler(Crawler):
         comment.props.date = readDate(header.cssselect("span.kmsgdate")[0].get('title'))
         comment.props.headline = header.cssselect("h2 span")[0].text_content()
         comment.props.author = table.cssselect("li.kpost-username")[0].text_content()
-        comment.props.text = table.cssselect("div.kmsgtext")[0].text_content()
+        comment.props.text = table.cssselect("div.kmsgtext")[0]
         return comment
 
 

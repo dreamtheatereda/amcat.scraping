@@ -106,7 +106,7 @@ class FDScraper(HTTPScraper, DBScraper):
             page.props.author = ""
         
         page.props.headline = page.doc.cssselect("td.artheader")[0].text_content()
-        page.props.text = page.doc.cssselect("table.body")[0].text_content()
+        page.props.text = page.doc.cssselect("table.body")[0]
         page.coords = ""
         return page
 

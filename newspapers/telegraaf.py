@@ -105,17 +105,15 @@ class TelegraafScraper(HTTPScraper, DBScraper):
             for img in doc.cssselect('#article img'):
                 img.delete_tree()
 
-            # Calculate coords
             divs = doc.cssselect('div.%s' % clsname)
             page.props.url = urljoin(url,
                                      "article/%s.html" % clsname[7:])
             page.prepare(self)
             page.props.pagenr = int(url.split("/")[-2])
             page.props.section = self.categories[page.props.pagenr]
-            page.props.text = page.doc.cssselect('#article')[0].text_content()
+            page.props.text = page.doc.cssselect('#article')[0]
             if page.doc.cssselect('#article h1'):
                 page.props.headline = page.doc.cssselect('#article h1')[0].text_content()
-            #else implement images
                 if len(page.props.text) < 300:
                     break
                 yield page

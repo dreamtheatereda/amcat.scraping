@@ -83,7 +83,7 @@ class WebADScraper(HTTPScraper, DatedScraper):
             page.props.headline = page.doc.cssselect("#articleDetailTitle")[0].text
         except IndexError:
             return
-        page.props.text = page.doc.cssselect("section#detail_content")[0].text_content() 
+        page.props.text = page.doc.cssselect("section#detail_content")[0]
         page.props.date = readDate(etree.tostring(page.doc.cssselect("span.author")[0]).split("<br/>")[1])
         
         
@@ -96,7 +96,7 @@ class WebADScraper(HTTPScraper, DatedScraper):
             for li in doc.cssselect("ul li"):
                 comment = Document()
                 comment.props.author = li.cssselect("cite")[0].text.strip()
-                comment.props.text = li.cssselect("blockquote")[0].text_content().strip()
+                comment.props.text = li.cssselect("blockquote")[0]
                 comment.props.date = readDate(li.cssselect("span.time")[0].text)
                 comment.parent = page
                 yield comment

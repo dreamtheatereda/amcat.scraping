@@ -71,9 +71,9 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
             page.props.author = "onbekend"
         page.props.headline = page.doc.cssselect("div.article h1")[0].text_content()
         try:
-            page.props.text = page.doc.cssselect("#broodtekst")[0].text_content()
+            page.props.text = page.doc.cssselect("#broodtekst")[0]
         except IndexError: #next checkt
-            page.props.text = "\n\n".join([p.text_content() for p in page.doc.cssselect("div.article p")])
+            page.props.text = page.doc.cssselect("div.article p")
             for comment in self.get_comments(page):
                 yield comment
         else:

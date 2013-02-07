@@ -106,7 +106,7 @@ class DVHNScraper(HTTPScraper, DBScraper):
         except IndexError:
             pass
         page.props.headline = page.doc.cssselect("td.artheader")[0].text
-        page.props.text = page.doc.cssselect("table.body")[0].text_content()
+        page.props.text = page.doc.cssselect("table.body")[0]
         page.props.date = self.options['date']
         return page
     

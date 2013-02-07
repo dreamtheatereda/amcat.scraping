@@ -55,7 +55,7 @@ class Zorgportaal_nlBlogScraper(HTTPScraper):
         page.prepare(self)
         page.doc = self.getdoc(page.props.url)
         page.props.author = page.doc.cssselect("div.blog-meta span.blog-author a")[0].text
-        page.props.text = page.doc.cssselect("#ezblog-body div.blog-text")[0].text_content()
+        page.props.text = page.doc.cssselect("#ezblog-body div.blog-text")[0]
         page.props.headline = page.doc.cssselect("h1.blog-title")[0].text
         yield page
 

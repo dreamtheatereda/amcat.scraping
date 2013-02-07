@@ -66,7 +66,7 @@ class WikiNewsScraper(HTTPScraper):
     def _scrape_unit(self, doc):
         doc.doc = self.getdoc(doc.props.url)
         doc.props.headline = doc.doc.cssselect('h1.firstHeading')[0].text_content()
-        doc.props.text = doc.doc.cssselect('#mw-content-text')[0].text_content()
+        doc.props.text = doc.doc.cssselect('#mw-content-text')[0]
         doc.props.date = toolkit.readDate(self.date_of_unit(doc.doc)).date()
         yield doc
 

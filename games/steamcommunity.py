@@ -171,7 +171,7 @@ class SteamScraper(HTTPScraper):
                 comment = Document()
                 author_url = div.cssselect("a.commentthread_author_link")[0].get('href')
                 comment = self.get_author_props(comment, author_url)
-                comment.props.text = div.cssselect("div.commentthread_comment_text")[0].text
+                comment.props.text = div.cssselect("div.commentthread_comment_text")[0]
                 try:
                     comment.props.date = readDate(div.cssselect("span.commentthread_comment_timestamp")[0].text)
                 except ValueError:
@@ -220,7 +220,7 @@ class SteamScraper(HTTPScraper):
         disc = HTMLDocument()
         disc.doc = doc
         disc.props.headline = doc.cssselect("div.forum_op div.topic")[0].text
-        disc.props.text = doc.cssselect("div.forum_op div.content")[0].text
+        disc.props.text = doc.cssselect("div.forum_op div.content")[0]
         try:
             disc.props.date = readDate(doc.cssselect("span.date")[0].text)
         except ValueError:
@@ -239,7 +239,7 @@ class SteamScraper(HTTPScraper):
         scrn = HTMLDocument()
         scrn.doc = doc
         try:
-            scrn.props.text = scrn.doc.cssselect("div.mediaDescription")[0].text
+            scrn.props.text = scrn.doc.cssselect("div.mediaDescription")[0]
         except IndexError:
             scrn.props.text = "none"
 

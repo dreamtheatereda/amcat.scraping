@@ -59,7 +59,7 @@ class WebTelegraafArchiveScraper(GoogleScraper):
         page.props.author = "Unknown"
         page.props.headline = page.doc.cssselect("#artikel h1")[0].text_content().strip()
         page.doc.cssselect("div.broodMediaBox")[0].drop_tree()
-        page.props.text = page.doc.cssselect("#artikelKolom")[0].text_content()
+        page.props.text = page.doc.cssselect("#artikelKolom")[0]
         page.props.section = page.doc.cssselect("#breadcrumbs a")[-1].text
         for comment in self.scrape_comments(page):
             yield comment
@@ -77,7 +77,7 @@ class WebTelegraafArchiveScraper(GoogleScraper):
         for doc in docs:
             for div in doc.cssselect("#comments div.comment"):
                 comment = Document()
-                comment.props.text = div.cssselect("div.content")[0].text_content()
+                comment.props.text = div.cssselect("div.content")[0]
                 comment.props.author = div.cssselect("span.submitted-username")[0].text_content()
                 comment.props.date = readDate(div.cssselect("div.submitted div.floatr")[0].text_content())
                 comment.parent = page

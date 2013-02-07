@@ -65,16 +65,16 @@ class ForumFokCrawler(Crawler):
             pass
         page.props.headline = page.doc.cssselect("h1")[0].text
         try:
-            page.props.text = page.doc.cssselect("#detail_content p.intro")[0].text + page.doc.cssselect("section.clear")[0].text_content()
+            page.props.text = [page.doc.cssselect("#detail_content p.intro")[0], page.doc.cssselect("section.clear")[0]]
         except IndexError:
-            page.props.text = page.doc.cssselect("#detail_content")[0].text_content()
+            page.props.text = page.doc.cssselect("#detail_content")[0]
         return page
 
     def get_comments(self, page):
         for li in page.doc.cssselect("#detail_reactions #reaction ul.clear li"):
             comment = Document()
             comment.props.author = li.cssselect("cite")[0].text.strip()
-            comment.props.text = li.cssselect("blockquote")[0].text.strip()
+            comment.props.text = li.cssselect("blockquote")[0]
             comment.props.date = readDate(li.cssselect("span.time")[0].text)
             comment.parent = page
             yield comment

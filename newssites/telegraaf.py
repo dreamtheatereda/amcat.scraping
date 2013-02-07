@@ -89,7 +89,7 @@ class WebTelegraafScraper(HTTPScraper, DatedScraper):
         page.props.author = "Unknown"
         page.props.headline = page.doc.cssselect("#artikel h1")[0].text_content().strip()
         page.doc.cssselect("div.broodMediaBox")[0].drop_tree()
-        page.props.text = page.doc.cssselect("#artikelKolom")[0].text_content()
+        page.props.text = page.doc.cssselect("#artikelKolom")[0]
         page.props.section = page.doc.cssselect("#breadcrumbs a")[-1].text
 
         for comment in self.scrape_comments(page):

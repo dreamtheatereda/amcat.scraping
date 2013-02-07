@@ -75,7 +75,7 @@ class WebVolkskrantScraper(HTTPScraper, DatedScraper):
         if hasattr(page.props,"author"):
             if page.props.author:
                 page.props.author = page.props.author[:98]
-        page.props.text = page.doc.cssselect("#art_box2")[0].text_content()
+        page.props.text = page.doc.cssselect("#art_box2")[0]
         yield page
 
 

@@ -88,7 +88,7 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         article = HTMLDocument(url = url, pagenr = int(pagenum))
         article.doc = self.getdoc(url)
         article.props.headline = article.doc.cssselect("td.artheader")[0].text_content().strip()
-        article.props.text = article.doc.cssselect("table.body")[0].text_content().strip()
+        article.props.text = article.doc.cssselect("table.body")[0]
         if article.doc.cssselect("td.artauthor"):
             article.props.author = article.doc.cssselect("td.artauthor")[0].text_content().lstrip("dor")
         else:

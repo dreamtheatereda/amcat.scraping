@@ -65,7 +65,7 @@ class Nieuws_nlScraper(HTTPScraper, DatedScraper):
         article.doc = self.getdoc(article.props.url)
         article.props.section = article.doc.cssselect("div.page_title h1")[0].text
         article.props.date = self.options['date']
-        article.props.text = "\n".join([p.text_content() for p in article.doc.cssselect("p")])
+        article.props.text = article.doc.cssselect("p")
         yield article
         
 

@@ -63,13 +63,7 @@ class FokScraper(HTTPScraper, DatedScraper):
     def _scrape_unit(self, page):
         page.prepare(self)
         page.doc = self.getdoc(page.props.url)
-        txt = ""
-        for paragraph in page.doc.cssselect("div.itemBody p"):
-            try:
-                txt += (paragraph.text+"\n")
-            except TypeError: #empty paragraph
-                pass
-        page.props.text = txt
+        page.props.text = page.doc.cssselect("div.itemBody p"):
         byline = page.doc.cssselect("span.postedbyline")[0].text_content()
         page.props.author = byline[byline.find("Geschreven door")+16:byline.find(" op ")]
         page.props.headline = page.doc.cssselect("h1.title")[0].text.strip("\n")
@@ -85,7 +79,7 @@ class FokScraper(HTTPScraper, DatedScraper):
             comment = Document()
             comment.props.author = div.cssselect("span.left a")[0].text
             comment.props.date = readDate(div.cssselect("a.timelink")[0].text)
-            comment.props.text = div.cssselect("div.reactieBody")[0].text_content()
+            comment.props.text = div.cssselect("div.reactieBody")[0]
             comment.parent = page
             yield comment
 

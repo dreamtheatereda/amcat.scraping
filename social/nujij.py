@@ -74,7 +74,7 @@ class NuJijScraper(HTTPScraper, DatedScraper):
         page.props.section = page.doc.cssselect("div.article-header div.tabbar h2.title")[0].text
         page.props.author = page.doc.cssselect("div.bericht-details")[0].text_content().split("door")[1].strip()
         page.props.headline = page.doc.cssselect("div.articleheader h1.title")[0].text_content().strip()
-        page.props.text = page.doc.cssselect("div.articlecontent div.articlebody")[0].text.strip()
+        page.props.text = page.doc.cssselect("div.articlecontent div.articlebody")[0]
         page.props.link = page.doc.cssselect("div.bericht-link")[0].get('href')
         try:
             page.props.tags = page.doc.cssselect("span.bericht-tags-links")[0].text_content().rstrip(".")
@@ -98,7 +98,7 @@ class NuJijScraper(HTTPScraper, DatedScraper):
                     comment = Document(parent=page)
                     if not("<b>Reageer als eerste op dit bericht</b>" in etree.tostring(li) or "gebruiker verwijderd" in etree.tostring(li)):
                         try:
-                            comment.props.text = li.cssselect("div.reactie-body")[0].text.strip()
+                            comment.props.text = li.cssselect("div.reactie-body")[0]
                             comment.props.author = li.cssselect("strong")[0].text
                             comment.props.date = readDate(li.cssselect("span.tijdsverschil")[0].get('publicationdate'))
                         except IndexError:
@@ -111,7 +111,7 @@ class NuJijScraper(HTTPScraper, DatedScraper):
                 comment = Document(parent=page)
                 if not "<b>Reageer als eerste op dit bericht</b>" in etree.tostring(li):
                     try:
-                        comment.props.text = li.cssselect("div.reactie-body")[0].text.strip()
+                        comment.props.text = li.cssselect("div.reactie-body")[0]
                         comment.props.author = li.cssselect("strong")[0].text
                         comment.props.date = readDate(li.cssselect("span.tijdsverschil")[0].get('publicationdate'))
                         if comment.props.date.date() == self.options['date']:

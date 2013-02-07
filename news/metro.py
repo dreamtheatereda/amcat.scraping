@@ -35,7 +35,6 @@ from pprint import pprint
 from lxml import etree
 
 class MetroScraper(DatedScraper, HTTPScraper):
-    """ Scrape the tweets from ikregeer.nl."""
     medium_name = "Metro - website"
     
     def get_categories(self):
@@ -65,8 +64,7 @@ class MetroScraper(DatedScraper, HTTPScraper):
             doc.props.headline = doc.doc.xpath("/html/head/title")[0].text
         else:
             doc.props.headline = doc.doc.cssselect("h1.title")[0].text
-        doc.props.text = "".join([
-            d.text_content() for d in doc.doc.cssselect("div.article-body")])
+        doc.props.text = doc.doc.cssselect("div.article-body")
         yield doc
 
 if __name__ == '__main__':

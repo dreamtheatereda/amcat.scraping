@@ -73,7 +73,7 @@ class RTLScraper(HTTPScraper, DatedScraper):
     def get_article(self, page):
         page.props.author = page.doc.cssselect("div.fullarticle_tagline")[0].text.split("|")[0]
         page.props.headline = page.doc.cssselect("h1.title")[0].text
-        page.props.text = page.doc.cssselect("article")[0].text_content()
+        page.props.text = page.doc.cssselect("article")[0]
         return page
 
 
