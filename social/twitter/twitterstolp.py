@@ -100,7 +100,7 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
                     continue
                 page = self.open(url)
             except (HTTPError,URLError):
-                msg = "{} twitter addres ({}) not found\n".format(row[0],row[7])
+                msg = "{} twitter addres ({}) not found\n".format(row[0],row[7]).encode('utf-8')
                 print(msg)
                 self.notfound.write(msg)
                 continue
