@@ -97,7 +97,7 @@ class TelegraafScraper(HTTPScraper, DBScraper):
         articles = doc.cssselect('#page div')
         articles = set(div.get('class') for div in articles
                             if len(div.get('class')) <= 9)
-
+        
         for clsname in articles:
             page = HTMLDocument()
 
@@ -114,7 +114,9 @@ class TelegraafScraper(HTTPScraper, DBScraper):
             page.props.text = page.doc.cssselect('#article')[0]
             if page.doc.cssselect('#article h1'):
                 page.props.headline = page.doc.cssselect('#article h1')[0].text_content()
-                if len(page.props.text) < 300:
+                all_text = "".join([p.text_content() for p in page.props.text])
+                if len(all_text) < 300:
+
                     break
                 yield page
 
