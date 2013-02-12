@@ -23,6 +23,7 @@ from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 
 from urlparse import urljoin
+from lxml import html
 
 BASE_URL = "http://www.rtl.nl/"
 INDEX_URL = "http://www.rtl.nl/actueel/rtlnieuws/"
@@ -50,8 +51,15 @@ class RTLScraper(HTTPScraper, DatedScraper):
         articlelinks = []
         for a in doc.cssselect("div.category_lead_container h3 a"):
             articlelinks.append(a.get('href'))
-        for a in doc.cssselect("ul#archive_container_vandaag li a"):
-            articlelinks.append(a.get('href'))
+
+        script = "\n".join([s.text_content() for s in doc.cssselect("script")])
+        bits = script.split("var html='")[1:]
+        html_bits = [bit.split("'")[0] for bit in bits]
+        for html_bit in html_bits:
+            href = html.fromstring(html_bit).cssselect("a")[0].get('href')
+            articlelinks.append(href)
+            
+
 
         for a in articlelinks:
             
