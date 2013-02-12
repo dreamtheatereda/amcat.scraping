@@ -165,7 +165,7 @@ class Top5Scraper(HTTPScraper):
         for article in scraper._scrape_unit(unit):
             article.props.medium = get_or_create_medium(scraper.source)
             article.props.rank = rank
-            for attr in ['headline', 'text', 'author']:
+            for attr in ['headline', 'author']:
                 if hasattr(article.props, attr):
                     strip = getattr(article.props, attr).strip()
                     setattr(article.props, attr, strip)
