@@ -59,7 +59,7 @@ class GezondheidblogCrawler(Crawler):
 
     def get_comments(self, page):
         for li in page.doc.cssselect("ul.commentlist li.comment"):
-            comment = Document()
+            comment = HTMLDocument()
             comment.parent = page
             try:
                 dateauthor = li.cssselect("div.commentsbox")[0].text_content()

@@ -48,11 +48,11 @@ class ZorgScraper(HTTPScraper,DatedScraper):
         doc = self.getdoc(url)
 
         for li in doc.cssselect("ul#posts li"):
-            page = Document(date = ipage.props.date,url=ipage.props.url)
+            page = HTMLDocument(date = ipage.props.date,url=ipage.props.url)
             page.prepare(self)
 
             for li2 in li.cssselect("ul li"):
-                page2 = Document(date = self.options['date'], url = url)
+                page2 = HTMLDocument(date = self.options['date'], url = url)
                 page2.prepare(self)
                 
                 yield self.getarticle(page2, li2, reply=page)
@@ -63,7 +63,7 @@ class ZorgScraper(HTTPScraper,DatedScraper):
         page.props.author = htmlelement.cssselect(".user .details .name")[0]
         page.props.author_info = htmlelement.cssselect(".user .details span")[0].text_content()
         page.coords = ""
-        page.props.text = htmlelement.cssselect(".post")[0].text_content()
+        page.props.text = htmlelement.cssselect(".post")[0]
         page.props.date = readDate(htmlelement.cssselect(".date")[0].text.split("om")[0]+str(self.options['date'].year))
         if reply:
             page.parent = reply

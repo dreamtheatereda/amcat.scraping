@@ -94,7 +94,7 @@ class WeblogNRCScraper(HTTPScraper, DatedScraper):
 
     def get_comments(self,page):
         for div in page.doc.cssselect("div.comment"):
-            comment = Document()
+            comment = HTMLDocument()
             comment.props.text = div.cssselect("div.reactie")[0]
             comment.props.author = div.cssselect("li.naam")[0].text_content()
             comment.props.date = readDate(div.cssselect("li.date")[0].text_content())

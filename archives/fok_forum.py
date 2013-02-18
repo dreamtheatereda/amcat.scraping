@@ -120,7 +120,7 @@ class FokForumScraper(HTTPScraper):
             else:
                 comments = page.cssselect("div.post")
             for div in comments:
-                comment = Document()
+                comment = HTMLDocument()
                 comment.parent = topic
                 comment.props.author = div.cssselect("div.postholder_top a.username")[0]
                 comment.props.date = readDate(div.cssselect("div.postholder_top span.post_time")[0].text_content())

@@ -114,11 +114,10 @@ class FokForumScraper(HTTPScraper, DatedScraper):
         for div in reversed(doc.cssselect("div.post")[1:]):
             date = readDate(div.cssselect("span.post_time")[0].text_content())
             if date.date() == self.options['date']:
-                post = Document()
+                post = HTMLDocument()
                 post.props.date = date
                 post.props.author = div.cssselect("span.post_sub a.username")[0].text_content()
-                text = div.cssselect("div.postmain_right")[0]
-                post.props.text = self.replace_smileys(text)
+                post.props.text = div.cssselect("div.postmain_right")[0]
                 post.props.section = self.current_section
                 yield post
             elif date.date() < self.options['date']:
@@ -136,16 +135,6 @@ class FokForumScraper(HTTPScraper, DatedScraper):
         else:
             return None
 
-    def replace_smileys(self, text):
-        text = html.tostring(text)
-        while text.find("<img ") != -1:
-            tag = self.find_substr("<img ", ">", text)
-            replace = self.find_substr('alt="', '"', tag, include_arguments = False)
-            text = text.replace(tag,replace,1)
-
-        text = text.replace("<blockquote>", "[QUOTE]").replace("</blockquote>", "[/QUOTE]\n\n").strip('" ')
-
-        return html.fromstring(text)
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli

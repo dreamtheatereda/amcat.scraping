@@ -87,7 +87,7 @@ class Zorgportaal_nlNieuwsScraper(HTTPScraper):
 
     def scrape_comments(self,page):
         for li in page.doc.cssselect("ul.uiList li.fbFeedbackPost"):
-            comment = Document(parent=page,url=page.url)
+            comment = HTMLDocument(parent=page,url=page.url)
             comment.props.text = li.cssselect("div.postText")[0].text
             comment.props.author = li.cssselect("a.profileName")[0].text
             comment.props.date = readDate(li.cssselect("abbr.timestamp")[0].get('title'))

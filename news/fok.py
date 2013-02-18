@@ -76,7 +76,7 @@ class FokScraper(HTTPScraper, DatedScraper):
     def get_comments(self,page):
         
         for div in page.doc.cssselect("div.reactieHolder"):
-            comment = Document()
+            comment = HTMLDocument()
             comment.props.author = div.cssselect("span.left a")[0].text
             comment.props.date = readDate(div.cssselect("a.timelink")[0].text)
             comment.props.text = div.cssselect("div.reactieBody")[0]

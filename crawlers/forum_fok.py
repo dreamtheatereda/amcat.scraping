@@ -19,7 +19,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.document import Document, HTMLDocument
+from amcat.scraping.document import HTMLDocument
 from amcat.scraping.scraper import Crawler
 import re
 from amcat.tools.toolkit import readDate
@@ -72,7 +72,7 @@ class ForumFokCrawler(Crawler):
 
     def get_comments(self, page):
         for li in page.doc.cssselect("#detail_reactions #reaction ul.clear li"):
-            comment = Document()
+            comment = HTMLDocument()
             comment.props.author = li.cssselect("cite")[0].text.strip()
             comment.props.text = li.cssselect("blockquote")[0]
             comment.props.date = readDate(li.cssselect("span.time")[0].text)

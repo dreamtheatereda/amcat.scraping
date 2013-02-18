@@ -94,7 +94,7 @@ class WebADScraper(HTTPScraper, DatedScraper):
     def get_comments(self,page):
         for doc in self.get_reactions_pages(page):
             for li in doc.cssselect("ul li"):
-                comment = Document()
+                comment = HTMLDocument()
                 comment.props.author = li.cssselect("cite")[0].text.strip()
                 comment.props.text = li.cssselect("blockquote")[0]
                 comment.props.date = readDate(li.cssselect("span.time")[0].text)

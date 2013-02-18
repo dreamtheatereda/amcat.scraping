@@ -80,7 +80,7 @@ class ADCrawler(Crawler):
 
     def get_comments(self, page):
         for li in page.doc.cssselect("#detail_reactions #reaction ul.clear li"):
-            comment = Document()
+            comment = HTMLDocument()
             comment.props.author = li.cssselect("cite")[0].text.strip()
             comment.props.text = li.cssselect("blockquote")[0]
             comment.props.date = readDate(li.cssselect("span.time")[0].text)

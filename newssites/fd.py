@@ -125,7 +125,7 @@ class WebFDScraper(HTTPScraper, DBScraper):
 
     def get_comments(self, doc):
         for div in doc.cssselect("#commentsList div.topDivider"):
-            comment = Document()
+            comment = HTMLDocument()
             comment.props.text = div.cssselect("div.wordBreak")[0]
             spans = div.cssselect("div.fBold span")
             try:

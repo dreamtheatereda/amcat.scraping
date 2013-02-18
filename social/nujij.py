@@ -95,7 +95,7 @@ class NuJijScraper(HTTPScraper, DatedScraper):
                 except ValueError:
                     nxt = self.getdoc(urljoin(INDEX_URL,nxt.cssselect("div.pages a.next")[0].get('href')))
                 for li in nxt.cssselect("ol.reacties li.hidenum"):
-                    comment = Document(parent=page)
+                    comment = HTMLDocument(parent=page)
                     if not("<b>Reageer als eerste op dit bericht</b>" in etree.tostring(li) or "gebruiker verwijderd" in etree.tostring(li)):
                         try:
                             comment.props.text = li.cssselect("div.reactie-body")[0]
@@ -108,7 +108,7 @@ class NuJijScraper(HTTPScraper, DatedScraper):
                                 yield comment
         else:
             for li in nxt.cssselect("ol.reacties li.hidenum"):
-                comment = Document(parent=page)
+                comment = HTMLDocument(parent=page)
                 if not "<b>Reageer als eerste op dit bericht</b>" in etree.tostring(li):
                     try:
                         comment.props.text = li.cssselect("div.reactie-body")[0]

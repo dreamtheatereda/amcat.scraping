@@ -72,7 +72,7 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
 
     def get_comments(self,page):
         for article in page.doc.cssselect("#comments article"):
-            comment = Document(parent=page)
+            comment = HTMLDocument(parent=page)
             footer = article.cssselect("footer")[0].text_content().split(" | ")
             comment.props.date = readDate(footer[1])
             comment.props.author = footer[0]

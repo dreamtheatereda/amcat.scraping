@@ -74,7 +74,7 @@ class ZorgportaalForumCrawler(Crawler):
                 yield self.getdoc(url)
 
     def get_comment(self, page, header,table):
-        comment = Document()
+        comment = HTMLDocument()
         comment.parent = page
         comment.props.date = readDate(header.cssselect("span.kmsgdate")[0].get('title'))
         comment.props.headline = header.cssselect("h2 span")[0].text_content()

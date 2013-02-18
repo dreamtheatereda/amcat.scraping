@@ -77,8 +77,8 @@ class Gezondheid_blog_nlScraper(HTTPScraper, DatedScraper):
 
     def get_comments(self, article):
         for li in article.doc.cssselect("li.comment"):
-            comment = Document()
-            comment.props.text = li.cssselect("div.comment-text")[0].text_content()
+            comment = HTMLDocument()
+            comment.props.text = li.cssselect("div.comment-text")[0]
             
             pattern = re.compile("Geplaatst door ([\w ]+) op ([\w :]+)")
             result = pattern.search(

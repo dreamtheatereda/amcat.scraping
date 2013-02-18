@@ -122,7 +122,7 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
         while data['has_more_items'] and done==False:
             doc = html.fromstring(data['items_html'])
             for div in doc.cssselect("div.tweet"):
-                tweet = Document()
+                tweet = HTMLDocument()
                 tweet.props.author = div.cssselect("strong.fullname")[0].text_content()
                 tweet.props.date = datetime.fromtimestamp(float(div.cssselect("a.tweet-timestamp ._timestamp")[0].get('data-time')))
                 tweet.props.text = div.cssselect("p.js-tweet-text")[0]

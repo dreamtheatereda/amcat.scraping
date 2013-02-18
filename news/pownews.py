@@ -78,7 +78,7 @@ class PownewsScraper(HTTPScraper, DatedScraper):
 
     def get_comments(self,page):
         for div in page.doc.cssselect("#comments div.comment"):
-            comment = Document(parent=page)
+            comment = HTMLDocument(parent=page)
             comment.props.text = div.cssselect("p")[0]
             footer = div.cssselect("p.footer")[0].text_content().split(" | ")
             comment.props.author = footer[0].strip()

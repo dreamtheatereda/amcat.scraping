@@ -168,7 +168,7 @@ class SteamScraper(HTTPScraper):
         i = 0
         while doc is not None:
             for div in doc.cssselect("div.commentthread_comment"):
-                comment = Document()
+                comment = HTMLDocument()
                 author_url = div.cssselect("a.commentthread_author_link")[0].get('href')
                 comment = self.get_author_props(comment, author_url)
                 comment.props.text = div.cssselect("div.commentthread_comment_text")[0]
