@@ -40,8 +40,11 @@ INDEX_URL = "http://forum.fok.nl"
 class FokForumScraper(HTTPScraper, DatedScraper):
     medium_name = "Fok Forum"
 
-    def __init__(self, *args, **kwargs):
-        super(FokForumScraper, self).__init__(*args, **kwargs) 
+
+    def start(self, *args, **kwargs):
+        """opens some urls to make sure all the right headers are in place, 
+        don't do this at __init__ for errors may then crash the whole daily scraping process"""
+
         page = self.open(INDEX_URL)
 
         cookie_string = page.info()["Set-Cookie"]
@@ -50,7 +53,9 @@ class FokForumScraper(HTTPScraper, DatedScraper):
         self.open(INDEX_URL)
 
 
+
     def _get_units(self):
+        self.start()
         months_back = int((date.today() - self.options['date']).days / 30)
 
         for forum,forum_id in CATEGORIES_TO_SCRAPE:
