@@ -28,6 +28,7 @@ INDEX_URL = "http://digitaleeditie.nrc.nl/digitaleeditie/%(version)s/%(year)d/%(
 
 from urlparse import urljoin
 from urllib import urlencode
+import re
 
 class NRCScraper(HTTPScraper, DBScraper):
     medium_name = "NRC Handelsblad"
@@ -87,7 +88,16 @@ class NRCScraper(HTTPScraper, DBScraper):
         if intro:
             page.props.text.insert(0, intro[0])
 
+        
         page.props.section = page.doc.cssselect("div.more-articles h4")[0].text
+        
+        p = re.compile("^[A-Z][a-z]+( [A-Z][a-z]+)?\.$")
+        strong = page.doc.cssselect("p.intro strong")
+        if strong:
+            if p.match(strong[0].text):
+                page.props.dateline = strong[0].text
+                print("\n\n{}\n\n".format(page.props.dateline))
+        
         return page
 
 

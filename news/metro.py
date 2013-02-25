@@ -19,20 +19,18 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-INDEX_URL = "http://www.metronieuws.nl/"
+INDEX_URL = "http://www.metronieuws.nl/rss/"
 
 from django import forms
-from amcat.scraping.scraper import DatedScraper, HTTPScraper #CommentScraper
+from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 
 from amcat.tools import toolkit
 from amcat.models.medium import Medium
 
+from lxml import html
 from urlparse import urljoin
 import datetime
-
-from pprint import pprint
-from lxml import etree
 
 class MetroScraper(DatedScraper, HTTPScraper):
     medium_name = "Metro - website"
@@ -41,36 +39,46 @@ class MetroScraper(DatedScraper, HTTPScraper):
         """ Yields the urls to all the pages contianing the categories.
         """
         doc = self.getdoc(INDEX_URL)
-        for link in doc.cssselect("ul.primary-nav.drop li a")[1:]:
-            yield urljoin(INDEX_URL, link.get("href"))
+        items = doc.cssselect("ul.list > li, ul.list > ul")
+        for i,item in enumerate(items):
+            if item.tag == 'li':
+                if i == len(items) - 1:
+                    href =  item.cssselect("a.rss")[0].get('href')
+                    yield urljoin(INDEX_URL, href)
+                    continue
+                if items[i + 1].tag == 'ul':
+                    for li in items[i + 1].cssselect("li"):
+                        href = li.cssselect("a.rss")[0].get('href')
+                        yield urljoin(INDEX_URL, href)
+                else:
+                    href = item.cssselect("a.rss")[0].get('href')
+                    yield urljoin(INDEX_URL, href)
+
 
     def _get_units(self):
         for url in self.get_categories():
             doc = self.getdoc(url)
-            for article in doc.cssselect("h4.title a"):
-                # date only visible in unit
-                doc = HTMLDocument(url=urljoin(INDEX_URL, article.get("href")))
-                doc.doc = self.getdoc(doc.props.url)
-                doc.props.date = datetime.datetime.strptime(
-                    doc.doc.xpath("/html/head/meta[@name='date']")[0].get("content"),
-                    "%Y-%m-%d")
-                if doc.props.date.date() != self.options['date']:
+            for item in doc.cssselect("item"):
+                date = toolkit.readDate(item.cssselect("pubdate")[0].text)
+                if date.date() != self.options['date']:
                     continue
+                link = item.cssselect("link")[0]
+                doc = HTMLDocument(
+                    url=urljoin(INDEX_URL, html.tostring(link).lstrip("<link>")),
+                    date = date,
+                    headline = item.cssselect("title")[0].text
+                    )
                 yield doc
 
     def _scrape_unit(self, doc):
-
-        if not doc.doc.cssselect("h1.title"):
-            doc.props.headline = doc.doc.xpath("/html/head/title")[0].text
-        else:
-            doc.props.headline = doc.doc.cssselect("h1.title")[0].text
+        doc.prepare(self)
         doc.props.text = doc.doc.cssselect("div.article-body")
+        print(doc.props.text)
         yield doc
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.scraper")
-    amcatlogging.debug_module("amcat.scraping.document")
+    amcatlogging.debug_module("amcat.scraping")
     cli.run_cli(MetroScraper)
 

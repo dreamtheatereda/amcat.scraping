@@ -24,8 +24,7 @@ from amcat.scraping.document import HTMLDocument
 
 
 from urllib import urlencode
-#from urlparse import urljoin
-#from amcat.tools.toolkit import readDate
+import re
 
 INDEX_URL = "http://digikrant-archief.fd.nl/vw/page.do?id=FD-01-001-{y:04d}{m:02d}{d:02d}&pagedisplay=true&ed=00&date={y:04d}{m:02d}{d:02d}"
 
@@ -66,8 +65,8 @@ class FDScraper(HTTPScraper, DBScraper):
             
 
     def _get_units(self):
-        """get pages"""
-            
+        
+
         y = self.options['date'].year
         m = self.options['date'].month
         d = self.options['date'].day
@@ -90,25 +89,31 @@ class FDScraper(HTTPScraper, DBScraper):
 
             art_id = a.get('href').split("('")[1].rstrip("');")
             art_url = ARTICLE_URL.format(art_id=art_id)
-            page = HTMLDocument(date = self.options['date'],url=art_url)
-            page.prepare(self)
-            page.doc = self.getdoc(page.props.url)
-            if "Er is geen tekst weergave beschikbaar" in page.doc.cssselect("table.body")[0].text_content():
+            article = HTMLDocument(date = self.options['date'],url=art_url)
+            article.prepare(self)
+            if "Er is geen tekst weergave beschikbaar" in article.doc.cssselect("table.body")[0].text_content():
                 continue
 
-            yield self.get_article(page)
+            article.props.section = p['category']
+            yield self.get_article(article)
                 
 
-    def get_article(self, page):
-        try:
-            page.props.author = page.doc.cssselect("td.artauthor")[0].text_content().split(":")[1].strip()
-        except IndexError:
-            page.props.author = ""
-        
-        page.props.headline = page.doc.cssselect("td.artheader")[0].text_content()
-        page.props.text = page.doc.cssselect("table.body")[0]
-        page.coords = ""
-        return page
+    def get_article(self, article):
+        if article.doc.cssselect("td.artauthor"):
+            article.props.author = article.doc.cssselect("td.artauthor")[0].text_content().split(":")[1].strip()
+
+        article.props.headline = article.doc.cssselect("td.artheader")[0].text_content()
+        article.props.text = article.doc.cssselect("font.artbody")
+
+
+        p = re.compile("^[A-Z][a-z]+( [A-Z][a-z]+)?$")
+        for block in article.props.text:
+            if not block.cssselect("font.artsubheader"):
+                if p.match(block.text):
+                    article.props.dateline = block.text
+
+
+        return article
 
 
 
