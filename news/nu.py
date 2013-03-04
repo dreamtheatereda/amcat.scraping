@@ -78,7 +78,10 @@ class NuScraper(HTTPScraper, DatedScraper):
         error = page.doc.cssselect(".errorview")
         if error:
             return
-        date_str = page.doc.cssselect("div.dateplace-data")[0].text_content()
+        try:
+            date_str = page.doc.cssselect("div.dateplace-data")[0].text_content()
+        except IndexError:
+            date_str = page.doc.cssselect("div.dateplace")[0].text_content()
         if "\n" in date_str:
             date = readDate(date_str.split("\n")[1])
         else:
