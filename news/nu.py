@@ -81,14 +81,17 @@ class NuScraper(HTTPScraper, DatedScraper):
         try:
             date_str = page.doc.cssselect("div.dateplace-data")[0].text_content()
         except IndexError:
-            date_str = page.doc.cssselect("div.dateplace")[0].text_content()
+            date_str = page.doc.cssselect("div.dateplace")[0].text_content().split(":")[1]
         if "\n" in date_str:
             date = readDate(date_str.split("\n")[1])
         else:
             date = readDate(date_str)
         if date.date() != self.options['date']: 
             return
-        page.props.author = page.doc.cssselect("#leadarticle span.smallprint")[0].text.split("Door:")[1].strip()
+        try:
+            page.props.author = page.doc.cssselect("#leadarticle span.smallprint")[0].text.split("Door:")[1].strip()
+        except IndexError:
+            pass
         page.props.headline = page.doc.cssselect("#leadarticle .header h1")[0].text
         ads = page.doc.cssselect("center.articlebodyad")
         if ads:

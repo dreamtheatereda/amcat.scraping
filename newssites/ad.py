@@ -59,19 +59,12 @@ class WebADScraper(HTTPScraper, DatedScraper):
             yield HTMLDocument(url=href, date=self.options['date'])
         
     def _scrape_unit(self, page): 
-        try:
-            page.prepare(self)
-        except HTTPError:
-            return
+        page.prepare(self)
         page.doc = self.getdoc(page.props.url)
         for comment in self.get_comments(page):
             yield comment
-        try:
-            article = self.get_article(page)
-        except IndexError:
-            pass
-        else:
-            yield article
+        article = self.get_article(page)
+        yield article
         
 
     def get_article(self, page):
@@ -82,13 +75,10 @@ class WebADScraper(HTTPScraper, DatedScraper):
         try:
             page.props.headline = page.doc.cssselect("#articleDetailTitle")[0].text
         except IndexError:
-            return
+            page.props.headline = page.doc.cssselect("h1")[0].text
         page.props.text = page.doc.cssselect("section#detail_content")[0]
         page.props.date = readDate(etree.tostring(page.doc.cssselect("span.author")[0]).split("<br/>")[1])
         
-        
-
-
         return page
 
     def get_comments(self,page):
@@ -115,6 +105,8 @@ class WebADScraper(HTTPScraper, DatedScraper):
             total = int(doc.cssselect("div.pagenav")[0].text.split(" van ")[1])
         except IndexError:
             yield doc;return
+        except AttributeError:
+            return
         for x in range(total-1):
             for a in doc.cssselect("div.pagenav a"):
                 if "volgende" in a.text:

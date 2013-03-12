@@ -55,19 +55,17 @@ class TwitterFilterScript(Script):
 
     def run(self, _input):
         if not self.options['query_file']:
-            if path.exists(environ.get('PYTHONPATH')+"scraping"):
-                self.options['query_file']='{}scraping/social/twitter/filter_query.txt'.format(environ.get('PYTHONPATH'))
-            else:
-                self.options['query_file']='{}amcatscraping/social/twitter/filter_query.txt'.format(environ.get('PYTHONPATH'))
+            self.options['query_file']= 'filter_query.txt'
+            bla = """'{}amcat/scraping/social/twitter/filter_query.txt'.format(environ.get('PYTHONPATH'))"""
         words = []
         word_file = open(self.options['query_file'])
         for l in word_file.readlines():
             if not l.startswith("#"):
                 [words.append(w.strip()) for w in l.strip("\n").split(",") if len(w.strip())>1]
-
+        print(words)
         s = self.stream()
-        s.retry_time = (60*10)
-        s.filter(None,words)
+        s.retry_time = 5
+        s.filter(track = words)
         
 
     def stream(self):
@@ -81,17 +79,18 @@ class TwitterFilterScript(Script):
 
 
 class Listener(StreamListener):
-
-    def __init__(self,date):
-        f = "{}tweets/{}".format(environ.get('PYTHONPATH'),date.strftime("filter_%Y-%m-%d.csv"))
+    n = 0
+    def __init__(self,date, *args, **kwargs):
+        super(StreamListener, self).__init__(*args, **kwargs)
+        f = "/home/amcat/tweets/{}".format(date.strftime("filter_%Y-%m-%d.csv"))
         outputfile = open(f,'a+')
         self.writer = csv.DictWriter(outputfile,fieldnames=fields)
 
 
     def on_data(self,data):
+        self.n+=1
+        print(data)
         data = json.loads(data)
-        if 'limit' in data.keys():
-            sleep(10)
         _data = self.dict_unicode_to_str(data)
         for k,v in _data.items():
             if k=='disconnect':
@@ -116,7 +115,7 @@ class Listener(StreamListener):
            
         return data
 
-    def on_error(status):
+    def on_error(self, status):
         print(status)
 
     
