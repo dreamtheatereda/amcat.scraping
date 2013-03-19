@@ -22,12 +22,16 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.document import Document, HTMLDocument
 from amcat.scraping.scraper import HTTPScraper, DBScraper
 from amcat.tools.toolkit import readDate
+from amcat.models.medium import Medium
 
 #from urllib import urlencode
 #from urlparse import urljoin
 #from amcat.scraping.tools import toolkit
 
 from urllib import quote_plus
+
+
+COMMENT_MEDIUM = Medium.objects.get(pk=2)
 
 class HaaretzScraper(HTTPScraper, DBScraper):
     medium_name = "Haaretz"
@@ -62,35 +66,38 @@ class HaaretzScraper(HTTPScraper, DBScraper):
         
     def _scrape_unit(self, article):
         article.prepare(self)
-        article.props.byline = article.doc.cssselect("div.main-news h2")[0]
+        try:
+            article.props.byline = article.doc.cssselect("div.main-news h2")[0]
+        except IndexError:
+            pass
         article.props.text = article.doc.cssselect("#articleContentAndWidgetsContainer p")
         if article.doc.cssselect("div.writer"):
             article.props.author = article.doc.cssselect("div.writer")[0].text_content()
         if article.doc.cssselect("ul.breadcrumbs"):
-            article.props.section = " > ".join([li.text_content() for li in article.doc.cssselect("ul.breadcrumbs")])
-
+            article.props.section = " > ".join([li.text_content() for li in article.doc.cssselect("ul.breadcrumbs")])            
+        yield article
         for comment in self.scrape_comments(article):
             yield comment
 
-        yield article
-
     def scrape_comments(self, article):
         for item in article.doc.cssselect("#commentsTab li.mainComment"):
-            mcomment = self.scrape_comment(item, article)            
+            mcomment = self.scrape_comment(item, article)        
+            yield mcomment
             for li in item.cssselect("ul.answers li.commentItem"):
                 yield self.scrape_comment(li, mcomment)                    
-            yield mcomment
 
     def scrape_comment(self, html, parent):
-        return HTMLDocument(
-            parent = parent,
+        c = HTMLDocument(
             text = html.cssselect("div.text-holder"),
-            headline = html.cssselect("a.commentTitle"),
+            headline = html.cssselect("a.commentTitle")[0].text_content().strip(),
             section = parent.props.section,
             date = readDate(" ".join([t.text for t in html.cssselect("ul.meta li.createdate, li.createtime")])),
             author = html.cssselect("ul.meta li.by")[0].text.strip().lstrip("By").strip(),
             url = parent.props.url)
-
+        c.props.parent = parent
+        c.props._parent = "{p.props.headline}, {p.props.date}".format(p = parent)
+        c.props.medium = COMMENT_MEDIUM
+        return c
 
 
 if __name__ == '__main__':
