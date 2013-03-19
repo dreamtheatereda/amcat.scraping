@@ -31,7 +31,7 @@ from amcat.models.medium import Medium
 from urllib import quote_plus
 
 
-COMMENT_MEDIUM = Medium.objects.get(pk=2)
+COMMENT_MEDIUM = Medium.objects.get(pk=989899478)
 
 class HaaretzScraper(HTTPScraper, DBScraper):
     medium_name = "Haaretz"
