@@ -56,11 +56,16 @@ class HaaretzScraper(HTTPScraper, DBScraper):
         date = self.options['date']
         pagenr = 0
         index = self.getdoc(self.search_url.format(**locals()))
-        yield index
-
         paging = index.cssselect("div.paging li")
-        max_page = int(paging[-2].text_content())
-
+        if paging:
+            max_page = int(paging[-2].text_content())
+        elif "Your search did not match any articles." in index.cssselect("div.search_results")[0].text_content():
+            print("\n\"Your search did not match any articles.\"\n")
+            return
+        else:
+            yield index
+            return
+        yield index
         for pagenr in range(1, max_page+1):
             yield self.getdoc(self.search_url.format(**locals()))
         
