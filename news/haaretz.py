@@ -98,7 +98,7 @@ class HaaretzScraper(HTTPScraper, DBScraper):
             section = parent.props.section,
             date = readDate(" ".join([t.text for t in html.cssselect("ul.meta li.createdate, li.createtime")])),
             author = html.cssselect("ul.meta li.by")[0].text.strip().lstrip("By").strip(),
-            url = parent.props.url)
+            url = parent.props.url + "#{}".format(html.cssselect("a.commentTitle")[0].get('id')))
         c.props.parent = parent
         c.props._parent = "{p.props.headline}, {p.props.date}".format(p = parent)
         c.props.medium = COMMENT_MEDIUM
