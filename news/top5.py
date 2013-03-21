@@ -27,6 +27,7 @@ from amcat.models.medium import get_or_create_medium
 
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
+import re
 
 
 class NRC(HTTPScraper):
@@ -135,7 +136,36 @@ class Nu(HTTPScraper):
             article.props.author = author[0].text.strip("| ")
         yield article
 
+class AD(HTTPScraper):
+    source = 'Algemeen Dagblad'
+    index_url = 'http://www.ad.nl'
 
+    def _get_units(self):
+        doc = self.getdoc(self.index_url)
+        for a in doc.cssselect('#hdr_hvdn_top_list a'):
+            href = a.get('href')
+            yield urljoin(self.index_url, href)
+
+    def _scrape_unit(self, url):
+        article = HTMLDocument(url=url)
+        article.prepare(self)
+        authordate = article.doc.cssselect('span.author')[0].text_content()
+        
+        p = "^(Door:? ([a-zA-Z0-9 ]+))?(\n\n([0-9]+\-[0-9]+\-[0-9]+))?"
+        pattern = re.compile(p)
+        match = pattern.match(authordate.strip())
+        article.props.author = match.group(2)
+        article.props.date = readDate(match.group(4))
+        try:
+            article.props.source = authordate.split("bron:")[1].strip()
+        except IndexError:
+            pass
+
+        article.props.text = article.doc.cssselect("section#detail_content p.intro,section.clear")
+        article.props.headline = article.doc.cssselect("h1")[0].text
+
+        yield article
+            
 
 class Top5Scraper(HTTPScraper):
     
@@ -147,7 +177,8 @@ class Top5Scraper(HTTPScraper):
                 Volkskrant,
                 Nu,
                 Trouw,
-                NRC
+                NRC,
+                AD
             ]
 
         for scraper in self.scrapers:
@@ -165,10 +196,13 @@ class Top5Scraper(HTTPScraper):
         for article in scraper._scrape_unit(unit):
             article.props.medium = get_or_create_medium(scraper.source)
             article.props.rank = rank
-            for attr in ['headline', 'author']:
+            for attr in ['headline', 'author', 'text']:
                 if hasattr(article.props, attr):
-                    strip = getattr(article.props, attr).strip()
-                    setattr(article.props, attr, strip)
+
+                    value = getattr(article.props, attr)
+                    if isinstance(value, str) or isinstance(value, unicode):
+                        value = value.strip()
+                    setattr(article.props, attr, value)
             yield article
 
 if __name__ == '__main__':

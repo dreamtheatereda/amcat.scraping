@@ -19,6 +19,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
+import re
 from amcat.scraping.document import Document, HTMLDocument
 from amcat.scraping.htmltools import create_cc_cookies
 from lxml import etree
@@ -60,26 +61,31 @@ class WebADScraper(HTTPScraper, DatedScraper):
         
     def _scrape_unit(self, page): 
         page.prepare(self)
-        page.doc = self.getdoc(page.props.url)
         for comment in self.get_comments(page):
             yield comment
         article = self.get_article(page)
         yield article
         
 
-    def get_article(self, page):
-        try:
-            page.props.author = etree.tostring(page.doc.cssselect("span.author")[0]).split("<br>")[0].split(":")[1].strip()
-        except IndexError:
-            page.props.author = "onbekend"
-        try:
-            page.props.headline = page.doc.cssselect("#articleDetailTitle")[0].text
-        except IndexError:
-            page.props.headline = page.doc.cssselect("h1")[0].text
-        page.props.text = page.doc.cssselect("section#detail_content")[0]
-        page.props.date = readDate(etree.tostring(page.doc.cssselect("span.author")[0]).split("<br/>")[1])
+    def get_article(self, article):
+        article.prepare(self)
+        authordate = article.doc.cssselect('span.author')[0].text_content()
         
-        return page
+        p = "^(Door: ([a-zA-Z0-9 ]+))?(\n\n([0-9]+\-[0-9]+\-[0-9]+))?"
+        pattern = re.compile(p)
+        match = pattern.match(authordate.strip())
+        article.props.author = match.group(2)
+        article.props.date = readDate(match.group(4))
+        try:
+            article.props.source = authordate.split("bron:")[1].strip()
+        except IndexError:
+            pass
+
+        article.props.text = article.doc.cssselect("section#detail_content p.intro,section.clear")
+        article.props.headline = article.doc.cssselect("h1")[0].text
+
+
+        return article
 
     def get_comments(self,page):
         for doc in self.get_reactions_pages(page):
