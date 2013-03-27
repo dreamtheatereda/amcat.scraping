@@ -112,10 +112,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
     def _scrape_unit(self, ipage):
         page = ipage
         ipage = HTMLDocument(ipage)
-        try:
-            ipage.doc = self.open(page['url'])
-        except BadStatusLine:
-            return
+        ipage.doc = self.open(page['url'])
         
         text = wegenertools.clean(ipage.doc.read())
 

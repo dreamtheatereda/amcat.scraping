@@ -37,7 +37,7 @@ from urlparse import urljoin
 CREDENTIALS_ERR = "Login page returned code %s. Wrong credentials?"
 
 class TelegraafScraper(HTTPScraper, DBScraper):
-    medium_name = "Telegraaf"
+    medium_name = "De Telegraaf"
     pagenr = 0
 
     def _login(self, username, password):
