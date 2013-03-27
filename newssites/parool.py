@@ -81,7 +81,7 @@ class ParoolScraper(HTTPScraper, DatedScraper):
             h1.drop_tree()
         page.props.text = page.doc.cssselect("#art_box2")[0]
         page.props.date = readDate(page.doc.cssselect("div.time_post")[0].text.split("Bron:")[0])
-        page.props.section = re.search("parool/nl/[0-9]+/([A-Z\-]+)/article", page.props.url).group(1)
+        page.props.section = re.search("parool/nl/[0-9]+/([A-Z\-]+)/article", page.props.url).group(1).capitalize()
         yield page
 
 

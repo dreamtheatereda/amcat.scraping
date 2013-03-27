@@ -71,7 +71,7 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
         except IndexError:
             page.props.author = "onbekend"
         page.props.headline = page.doc.cssselect("div.article h1")[0].text_content()
-        page.props.section = re.search("nrc.nl/(a-z]+)/", page.props.url).group(1)
+        page.props.section = re.search("nrc.nl/([a-z]+)/", page.props.url).group(1).capitalize()
 
         try:
             page.props.text = page.doc.cssselect("#broodtekst")[0]
