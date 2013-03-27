@@ -26,6 +26,7 @@ from urlparse import urljoin
 import json
 import math
 import re
+import logging;log = logging.getLogger(__name__)
 from lxml.html.soupparser import fromstring
 from datetime import date
 from amcat.scraping import toolkit
@@ -45,16 +46,12 @@ class SteamScraper(HTTPScraper):
     
     def __init__(self, *args, **kwargs):
         super(SteamScraper, self).__init__(*args, **kwargs)
-        print("http://steamcommunity.com")
         self.open("http://steamcommunity.com")
-        sesid = self.opener.cookiejar.cookiejar._cookies['steamcommunity.com']['/']['sessionid'].value
 
     def _get_units(self):
         for appid, url in self.get_app_urls():
             try:
-                print(url)
                 self.current_app = self.getdoc(url).cssselect("title")[0].text.split("::")[1].strip()
-                print(self.current_app)
                 discussions_url = url + "/discussions"
                 for unit in self.get_discussions(discussions_url):
                     yield (unit, "discussion")
@@ -64,9 +61,10 @@ class SteamScraper(HTTPScraper):
                         for unit in self.get_media_units(appid, s):
                             yield (unit, "media")
                     except Exception:
-                        pass
-            except Exception:
-                pass
+                        log.exception("subsection failed")
+            except Exception: #no exceptions approach, this scraper runs for a long time
+                log.exception("app failed")
+                
 
 
     def get_app_urls(self):
@@ -79,7 +77,6 @@ class SteamScraper(HTTPScraper):
         for page in range(totalpages):
             try:
                 url = STORE_INDEX_URL.format(page+1)
-                print(url)
                 doc = self.getdoc(url)
             except Exception as e:
                 continue
@@ -101,11 +98,11 @@ class SteamScraper(HTTPScraper):
 
     def get_media_units(self, appid, subsection):
         media_url = "http://steamcommunity.com/app/{appid}/homecontent/?l=english&p={p}&itemspage={p}&itemsfilter=trend&screenshotspage={p}&screenshotsfilter=trend&videospage={p}&videosfilter=trend&artpage={p}&artfilter=trend&webguidepage={p}&webguidefilter=trend&discussionspage={p}&appHubSubSection={subsection}&browsefilter=toprated&searchText="
-
+        
         p = 0
+        doc = self.getdoc(media_url.format(**locals()))
         while doc is not None:
             url = media_url.format(**locals())
-            print(url)
             doc = self.getdoc(url)
             for div in doc.cssselect("div.apphub_Card"):
                 yield div
@@ -115,25 +112,20 @@ class SteamScraper(HTTPScraper):
 
 
     def get_discussions(self, url):
-        print(url)
         forum_id = self.getdoc(url).cssselect("div.forum_area")[0].get('id').split("_")[2]
         for topic in self.get_topics(forum_id):
             yield topic
             
-
     def get_topics(self, forum_id):
         url = "http://steamcommunity.com/forum/{}/General/render/0/?start={}&count=15"
-        print(url.format(forum_id,0))
         initial_json = self.open(url.format(forum_id,0)).read()
         initial_data = json.loads(initial_json)
         total = initial_data['total_count']
         html = fromstring(unicode(initial_data['topics_html']).encode('utf-8').decode('string_escape'))
-        print(html.cssselect("a")[0].get('href'))
         yield self.getdoc(html.cssselect("a")[0].get('href'))
 
         page = 1
         while page * 15 < total:
-            print(url.format(forum_id, page * 15))
             data = json.loads(self.open(url.format(forum_id, page * 15)).read())
             try:
                 html = fromstring(unicode(data['topics_html']).encode('utf-8').decode('string_escape'))
@@ -141,27 +133,23 @@ class SteamScraper(HTTPScraper):
             except ValueError:
                 pass
             else:
-                print(html.cssselect("a")[0].get("href"))
                 yield self.getdoc(html.cssselect("a")[0].get('href'))
             page += 1
 
     def _scrape_unit(self, htmltype): 
-        (html,type) = htmltype
-        if type == "media":
+        (html,_type) = htmltype
+        if _type == "media":
             url = html.get('onclick').split("(")[1].split("', '")[0].lstrip(" '")
-            print(url)
             doc = self.getdoc(url)
 
             for item in self.scrape_media(doc,_type):
                 item.game = self.current_app
                 yield item
             
-        elif type == "discussion":
+        elif _type == "discussion":
             for item in self.scrape_discussion(html):
                 item.game = self.current_app
                 yield item
-
-
 
     def scrape_comments(self, parent):
         doc = parent.doc
@@ -197,7 +185,6 @@ class SteamScraper(HTTPScraper):
             'count' : 50,
             'sessionid' : [r for r in parent.cssselect("input") if r.get('name') == "sessionid"][0].get('value')
             }
-        print(url)
         json_doc = self.open(url, urlencode(post)).read()
         
         data = json.loads(json_doc)
@@ -235,7 +222,6 @@ class SteamScraper(HTTPScraper):
 
 
     def scrape_media(self,doc,_type):
-        self.media +=1
         scrn = HTMLDocument()
         scrn.doc = doc
         try:
@@ -269,13 +255,6 @@ class SteamScraper(HTTPScraper):
 
         yield scrn
             
-
-
-
-
-
-
-
     def get_author_props(self,document, author_url):
         document.props.author = author_url
         if author_url not in PLAYERS.keys():
@@ -288,7 +267,6 @@ class SteamScraper(HTTPScraper):
 
 
     def get_author_meta(self, url):
-        print(url)
         profile = self.getdoc(url)
         author = {'name':'','location':'','id':url,'url':url,'aliases':[],'games':[],'groups':[]}
 
@@ -315,7 +293,6 @@ class SteamScraper(HTTPScraper):
 
 
         games_url = url+"/games?tab=all"
-        print(games_url)
         games_doc = self.getdoc(games_url)
         script = "\n".join([script.text_content() for script in games_doc.cssselect("script")])
         start = script.find("var rgGames")+14;end = script.find("\n",start)-2
