@@ -19,14 +19,15 @@ from __future__ import unicode_literals, print_function
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
+import re
+import datetime
+from urlparse import urljoin
+
 from amcat.scraping.scraper import HTTPScraper, DatedScraper
 from amcat.scraping.document import HTMLDocument
 from amcat.scraping.htmltools import create_cc_cookies
 
 from amcat.tools import toolkit
-
-from urlparse import urljoin
-import datetime
 from amcat.tools.toolkit import readDate
 
 INDEX_URL = "http://www.parool.nl"
@@ -80,6 +81,7 @@ class ParoolScraper(HTTPScraper, DatedScraper):
             h1.drop_tree()
         page.props.text = page.doc.cssselect("#art_box2")[0]
         page.props.date = readDate(page.doc.cssselect("div.time_post")[0].text.split("Bron:")[0])
+        page.props.section = re.search("parool/nl/[0-9]+/([A-Z\-]+)/article", page.props.url).group(1)
         yield page
 
 

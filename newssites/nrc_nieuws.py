@@ -19,6 +19,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
+import re
 from amcat.scraping.document import Document, HTMLDocument
 
 
@@ -70,6 +71,8 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
         except IndexError:
             page.props.author = "onbekend"
         page.props.headline = page.doc.cssselect("div.article h1")[0].text_content()
+        page.props.section = re.search("nrc.nl/(a-z]+)/", page.props.url).group(1)
+
         try:
             page.props.text = page.doc.cssselect("#broodtekst")[0]
         except IndexError: #next checkt
@@ -82,6 +85,7 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
                 for comment in self.get_comments(page):
                     yield comment
                 
+
         yield page
 
 

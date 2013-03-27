@@ -19,6 +19,8 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
+import re
+
 from amcat.scraping.document import Document, HTMLDocument
 
 from urlparse import urljoin
@@ -76,6 +78,7 @@ class WebVolkskrantScraper(HTTPScraper, DatedScraper):
             if page.props.author:
                 page.props.author = page.props.author[:98]
         page.props.text = page.doc.cssselect("#art_box2")[0]
+        page.props.section = re.search("/vk/nl/[0-9]+/([a-zA-Z\-]+)/article/", page.props.url).group(1)
         yield page
 
 
