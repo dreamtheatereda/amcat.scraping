@@ -23,6 +23,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument, Document
 from amcat.tools.toolkit import readDate
+import datetime
 
 
 INDEX_URL = "http://www.geenstijl.nl/mt/archieven/maandelijks/{y}/{m}/"
@@ -54,6 +55,7 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
                 
                 href = article_unit.cssselect("a")[0].get('href')
                 page = HTMLDocument(url=href, date=self.options['date'])
+                
                 page.prepare(self)
                 page.doc = self.getdoc(href)
                 page = self.get_article(page)
@@ -61,11 +63,14 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
                     comment.is_comment = True
                     yield comment
                 yield page
-        
+                
 
     def get_article(self, page):
         page.props.author = page.doc.cssselect("article footer")[0].text_content().split("|")[0].strip()
-        page.props.headline = page.doc.cssselect("article h1")[0]
+        page.props.headline = page.doc.cssselect("article h1")[0].text.strip()
+        if page.props.headline[0] == '#': page.props.headline = page.props.headline[1:].strip()
+        datestring = page.doc.cssselect("footer time")[0].text_content()
+        page.props.date = datetime.datetime.strptime(datestring, '%d-%m-%y | %H:%M')
         page.doc.cssselect("footer")[0].drop_tree()
         page.props.text = page.doc.cssselect("article")[0]
         page.coords = ""
@@ -73,7 +78,7 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
 
     def get_comments(self,page):
         for article in page.doc.cssselect("#comments article"):
-            comment = HTMLDocument(parent=page)
+            comment = Document(parent=page)
             footer = article.cssselect("footer")[0].text_content().split(" | ")
             comment.props.date = readDate(footer[1])
             comment.props.author = footer[0]

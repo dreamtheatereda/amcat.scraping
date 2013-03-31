@@ -21,9 +21,9 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument, Document
+from amcat.scraping.document import HTMLDocument
 from amcat.tools.toolkit import readDate
-
+import time
 
 FRONTPAGE_URL = "http://frontpage.fok.nl"
 INDEX_URL = "http://frontpage.fok.nl/nieuws/archief/{y:04d}/{m:02d}/{d:02d}"
@@ -31,22 +31,25 @@ INDEX_URL = "http://frontpage.fok.nl/nieuws/archief/{y:04d}/{m:02d}/{d:02d}"
 class FokScraper(HTTPScraper, DatedScraper):
     medium_name = "fok nieuws"
 
-    def __init__(self, *args, **kwargs):
-        
-        super(FokScraper, self).__init__(*args, **kwargs)
-
     def _cookie(self):
-
-        page = self.opener.opener.open(FRONTPAGE_URL)
-
+        page = self.open(FRONTPAGE_URL)
         cookie_string = page.info()["Set-Cookie"]
         token = cookie_string.split(";")[0]
         self.opener.opener.addheaders.append(("Cookie",token+"; allowallcookies=1"))
-        page = self.opener.opener.open(FRONTPAGE_URL)
+        self.open(FRONTPAGE_URL)
 
 
     def _get_units(self):
-        self._cookie()
+        for x in range(3):
+            try:
+                self._cookie()
+            except:
+                print('Error 503 at _cookie function, trying again in 5 minutes...')
+                time.sleep(60*5)
+            else:
+                break
+                
+            
         index_dict = {
             'y' : self.options['date'].year,
             'm' : self.options['date'].month,
@@ -54,23 +57,38 @@ class FokScraper(HTTPScraper, DatedScraper):
         }
 
         url = INDEX_URL.format(**index_dict)
-        index = self.getdoc(url)
+
+        for x in range(3):
+            try:
+                index = self.getdoc(url)
+            except Exception:
+                time.sleep(5)
+            else:
+                break
+        
         articles = index.cssselect('.title')
         for article_unit in articles:
             href = article_unit.cssselect('a')[0].get('href')
             yield HTMLDocument(url=href, date=self.options['date'])
 
     def _scrape_unit(self, page):
-        page.prepare(self)
-        page.doc = self.getdoc(page.props.url)
-        page.props.text = page.doc.cssselect("div.itemBody p")
+        for x in range(3):
+            try:
+                page.prepare(self)
+            except Exception:
+                time.sleep(5)
+            else:
+                break
+        
+        bodyparts = page.doc.cssselect("div.itemBody")[0]
+        page.props.text = bodyparts.text_content().split('Lees ook:\n')[0].strip()
+        page.props.headline = page.doc.cssselect("h1.title")[0].text.strip("\n")
         byline = page.doc.cssselect("span.postedbyline")[0].text_content()
         page.props.author = byline[byline.find("Geschreven door")+16:byline.find(" op ")]
-        page.props.headline = page.doc.cssselect("h1.title")[0].text.strip("\n")
         page.props.date = readDate(page.doc.cssselect("span.postedbyline")[0].text_content().split(" op ")[1])
         for comment in self.get_comments(page):
+            comment.is_comment = True
             yield comment
-        
         yield page
 
     def get_comments(self,page):
