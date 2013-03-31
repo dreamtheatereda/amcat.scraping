@@ -71,6 +71,7 @@ class Gezondheid_blog_nlScraper(HTTPScraper, DatedScraper):
         article.props.text = postentry.text_content()
 
         for comment in self.get_comments(article):
+            comment.is_comment = True
             yield comment
         yield article
 

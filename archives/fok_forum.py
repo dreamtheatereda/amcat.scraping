@@ -97,6 +97,7 @@ class FokForumScraper(HTTPScraper):
         content = topic.doc.text_content()
         if any([(s in content) for s in SEARCHTERMS]):
             for comment in self.get_comments(topic):
+                comment.is_comment = True
                 yield comment
             yield self.get_article(topic)
 

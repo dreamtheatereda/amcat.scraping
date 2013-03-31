@@ -58,6 +58,7 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
                 page.doc = self.getdoc(href)
                 page = self.get_article(page)
                 for comment in self.get_comments(page):
+                    comment.is_comment = True
                     yield comment
                 yield page
         

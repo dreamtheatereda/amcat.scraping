@@ -47,6 +47,7 @@ class GezondheidblogCrawler(Crawler):
         page.prepare(self)
         for comment in self.get_comments(page):
             yield comment
+            comment.is_comment = True
         yield self.get_article(page)
 
     def get_article(self, page):

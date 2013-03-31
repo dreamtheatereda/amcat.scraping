@@ -109,6 +109,7 @@ class WebFDScraper(HTTPScraper, DBScraper):
         article.text = article.doc.cssselect("div.left span.article")[0].text_content()
         
         for comment in self.get_comments(article.doc):
+            comment.is_comment = True
             comment.parent = article
             yield comment
 

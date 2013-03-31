@@ -78,6 +78,7 @@ class WebNieuwsNRCScraper(HTTPScraper, DatedScraper):
         except IndexError: #next checkt
             page.props.text = page.doc.cssselect("div.article p")
             for comment in self.get_comments(page):
+                comment.is_comment = True
                 yield comment
         else:
 

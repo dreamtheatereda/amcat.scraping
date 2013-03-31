@@ -31,8 +31,6 @@ from amcat.models.medium import Medium
 from urllib import quote_plus
 
 
-COMMENT_MEDIUM = Medium.objects.get(pk=989899478)
-
 class HaaretzScraper(HTTPScraper, DBScraper):
     medium_name = "Haaretz"
     login_url = "https://sso.haaretz.com/sso/sso/signIn?cb=parseEngReply&newsso=true&fromlogin=true&layer=eng_login&userName={username}&password={password}"
@@ -82,6 +80,7 @@ class HaaretzScraper(HTTPScraper, DBScraper):
             article.props.section = " > ".join([li.text_content() for li in article.doc.cssselect("ul.breadcrumbs")])            
         yield article
         for comment in self.scrape_comments(article):
+            comment.is_comment = True
             yield comment
 
     def scrape_comments(self, article):
@@ -100,7 +99,6 @@ class HaaretzScraper(HTTPScraper, DBScraper):
             author = html.cssselect("ul.meta li.by")[0].text.strip().lstrip("By").strip(),
             url = parent.props.url + "#{}".format(html.cssselect("a.commentTitle")[0].get('id')))
         c.props._parent = "{p.props.headline}, {p.props.date}".format(p = parent)
-        c.props.medium = COMMENT_MEDIUM
         return c
 
 

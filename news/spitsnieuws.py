@@ -51,6 +51,7 @@ class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
         doc.props.date = toolkit.readDate(" ".join(footer[1:3]))
         for c in self.comments(doc):
             c.parent = doc
+            c,.is_comment = True
             yield c
 
 

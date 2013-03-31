@@ -81,6 +81,7 @@ class Zorgportaal_nlNieuwsScraper(HTTPScraper):
 
             
         for comment in self.scrape_comments(page):
+            comment.is_comment = True
             yield comment
 
         yield page

@@ -66,6 +66,7 @@ class PownewsScraper(HTTPScraper, DatedScraper):
         page.prepare(self)
         page.doc = self.getdoc(page.props.url)
         for comment in self.get_comments(page):
+            comment.is_comment = True
             yield comment
         yield self.get_article(page)
 

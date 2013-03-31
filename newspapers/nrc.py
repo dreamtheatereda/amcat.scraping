@@ -96,7 +96,6 @@ class NRCScraper(HTTPScraper, DBScraper):
         if strong:
             if p.match(strong[0].text):
                 page.props.dateline = strong[0].text
-                print("\n\n{}\n\n".format(page.props.dateline))
         
         return page
 

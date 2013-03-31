@@ -62,6 +62,7 @@ class WebTelegraafArchiveScraper(GoogleScraper):
         page.props.text = page.doc.cssselect("#artikelKolom")[0]
         page.props.section = page.doc.cssselect("#breadcrumbs a")[-1].text
         for comment in self.scrape_comments(page):
+            comment.is_comment = True
             yield comment
 
 

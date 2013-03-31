@@ -73,6 +73,7 @@ class WeblogNRCScraper(HTTPScraper, DatedScraper):
                     article_url = urljoin(url, d_.cssselect("a")[0].get('href'))
                     article = self.get_article(article_url, time)
                     for comment in self.get_comments(article):
+                        comment.is_comment = True
                         yield comment
                     yield article
                 tag = "dt"

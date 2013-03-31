@@ -62,6 +62,7 @@ class WebADScraper(HTTPScraper, DatedScraper):
     def _scrape_unit(self, page): 
         page.prepare(self)
         for comment in self.get_comments(page):
+            comment.is_comment = True
             yield comment
         article = self.get_article(page)
         yield article
