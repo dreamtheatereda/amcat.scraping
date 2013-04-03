@@ -108,9 +108,9 @@ class WebTelegraafScraper(HTTPScraper, DatedScraper):
         for doc in docs:
             for div in doc.cssselect("#comments div.comment"):
                 comment = HTMLDocument()
-                comment.props.text = div.cssselect("div.content")[0]
-                comment.props.author = div.cssselect("span.submitted-username")[0].text_content()
-                comment.props.date = readDate(div.cssselect("div.submitted div.floatr")[0].text_content())
+                comment.props.text = div.cssselect("p")
+                comment.props.author = div.cssselect("div.username")[0].text.strip()
+                comment.props.date = readDate(div.cssselect("div.date")[0].text_content())
                 comment.parent = page
                 yield comment
 
