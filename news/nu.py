@@ -38,7 +38,7 @@ class NuScraper(HTTPScraper, DatedScraper):
         for category_url in self.get_categories():
             category_doc = self.getdoc(category_url)
             first_article_url = urljoin(category_url, 
-                                        category_doc.cssselect("#middlecolumn a")[0].get('href'))
+                                        category_doc.cssselect("#middlecolumn div.subarticle a")[0].get('href'))
             for url, doc in self.iterate_articles(first_article_url):
                 yield (url, doc)
 
@@ -51,8 +51,10 @@ class NuScraper(HTTPScraper, DatedScraper):
                 categories.extend([a.get('href') for a in li.cssselect("ul.subsection li a")])
             else:
                 categories.append(li.cssselect("a")[0].get('href'))
+        skip = ['fotoseries','weer/index','verkeer/index','socialtools','colofon']
         for href in categories:
-            yield urljoin(self.index_url, href)
+            if all([(s not in href) for s in skip]):
+                yield urljoin(self.index_url, href)
 
     def iterate_articles(self, next_url):
         """iterate over articles using the 'last article' button continuously"""
@@ -60,7 +62,8 @@ class NuScraper(HTTPScraper, DatedScraper):
         self.date = datetime(d.year, d.month, d.day)
         while self.date.date() >= self.options['date']:
             doc = self.getdoc(next_url)
-            date_str = re.search("([0-9]{1,2} (januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december) [0-9]{4} [0-9]{2}\:[0-9]{2})", doc.cssselect("div.dateplace div.dateplace-data")[0].text).group(1)
+            if doc.cssselect("div.dateplace div.dateplace-data"):
+                date_str = re.search("([0-9]{1,2} (januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december) [0-9]{4} [0-9]{2}\:[0-9]{2})", doc.cssselect("div.dateplace div.dateplace-data")[0].text).group(1)
             self.date = readDate(date_str)
             if self.date.date() == self.options['date']:
                 yield next_url, doc
@@ -71,16 +74,17 @@ class NuScraper(HTTPScraper, DatedScraper):
     def _scrape_unit(self, urldoc):
         article = HTMLDocument(url = urldoc[0])
         article.doc = urldoc[1]
-        article.props.section = article.doc.cssselect("#categoryheader h2 a")[-1].text
         article.props.date = self.date
         article.props.headline = article.doc.cssselect("div.header h1")[0].text
         article.props.text = article.doc.cssselect("div.content h2, div, p")
         article.props.author = article.doc.cssselect("span.smallprint")[0].text_content()
         if "|" in article.props.author:
             article.props.author = article.props.author.split('|')[0]
+        if 'nuzakelijk.nl' in urldoc[0]:
+            article.props.section = article.doc.cssselect("#articlebody a.category")[-1].text
+        else:
+            article.props.section = article.doc.cssselect("#categoryheader h2 a")[-1].text
         yield article
-
-
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
