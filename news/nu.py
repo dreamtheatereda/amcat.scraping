@@ -19,86 +19,68 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
+import re
+from datetime import timedelta, datetime
+from lxml import html
 
 from amcat.scraping.scraper import HTTPScraper, DatedScraper
 from amcat.scraping.document import HTMLDocument
-import urllib2
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
-
-INDEX_URL = "http://www.nu.nl/zoeken/?site=nu&page={p}&q={d}+{m}+{y}"
-MONTHS = [
-    'januari',
-    'februari',
-    'maart',
-    'april',
-    'mei',
-    'juni',
-    'juli',
-    'augustus',
-    'september',
-    'oktober',
-    'november',
-    'december'
-]
 
 from urllib2 import HTTPError
 
 class NuScraper(HTTPScraper, DatedScraper):
     medium_name = "Nu.nl"
+    index_url = "http://www.nu.nl"
 
     def _get_units(self):
-        url_formats = {
-            'd' : self.options['date'].day,
-            'm' : MONTHS[self.options['date'].month-1],
-            'y' : self.options['date'].year,
-            'p' : 1
-            }
+        for category_url in self.get_categories():
+            category_doc = self.getdoc(category_url)
+            first_article_url = urljoin(category_url, 
+                                        category_doc.cssselect("#middlecolumn a")[0].get('href'))
+            for url, doc in self.iterate_articles(first_article_url):
+                yield (url, doc)
 
-        doc = self.getdoc(INDEX_URL.format(**url_formats))
-        while doc.cssselect("div.searchResultItem"):
-            for unit in doc.cssselect("div.searchResultItem"):
-                a = unit.cssselect("div.title a")[0]
-                if "NU TV Gids" in a.text_content() or not(unit.cssselect("div.updatedAt")):
-                    continue
-                
-                date =readDate(unit.cssselect("div.updatedAt")[0].text_content().lstrip("Latse upd"))
-
-                    
-                yield HTMLDocument(url=a.get('href'), headline = a.text, date = date)
-            if doc.cssselect("div.pagination"):
-                url_formats['p'] += 1
-                doc = self.getdoc(INDEX_URL.format(**url_formats))
+    def get_categories(self):
+        categories = []
+        index_doc = self.getdoc(self.index_url)
+        main_categories = index_doc.cssselect("#mainmenu ul.listleft > li")
+        for li in main_categories[2:]:
+            if li.cssselect("ul.subsection"):
+                categories.extend([a.get('href') for a in li.cssselect("ul.subsection li a")])
             else:
-                break
-                                
+                categories.append(li.cssselect("a")[0].get('href'))
+        for href in categories:
+            yield urljoin(self.index_url, href)
 
-    def _scrape_unit(self, page):
-        page.prepare(self)
-        error = page.doc.cssselect(".errorview")
-        if error:
-            return
-        try:
-            date_str = page.doc.cssselect("div.dateplace-data")[0].text_content()
-        except IndexError:
-            date_str = page.doc.cssselect("div.dateplace")[0].text_content().split(":")[1]
-        if "\n" in date_str:
-            date = readDate(date_str.split("\n")[1])
-        else:
-            date = readDate(date_str)
-        if date.date() != self.options['date']: 
-            return
-        try:
-            page.props.author = page.doc.cssselect("#leadarticle span.smallprint")[0].text.split("Door:")[1].strip()
-        except IndexError:
-            pass
-        page.props.headline = page.doc.cssselect("#leadarticle .header h1")[0].text
-        ads = page.doc.cssselect("center.articlebodyad")
-        if ads:
-            for i in range(len(ads)):
-                ads[i].drop_tree() 
-        page.props.text = page.doc.cssselect("#leadarticle .content")[0]
-        yield page
+    def iterate_articles(self, next_url):
+        """iterate over articles using the 'last article' button continuously"""
+        d = self.options['date']
+        self.date = datetime(d.year, d.month, d.day)
+        while self.date.date() >= self.options['date']:
+            doc = self.getdoc(next_url)
+            date_str = re.search("([0-9]{1,2} (januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december) [0-9]{4} [0-9]{2}\:[0-9]{2})", doc.cssselect("div.dateplace div.dateplace-data")[0].text).group(1)
+            self.date = readDate(date_str)
+            if self.date.date() == self.options['date']:
+                yield next_url, doc
+            next_url = urljoin(
+                next_url, 
+                [a.get('href') for a in doc.cssselect("div.widgetsection a.trackevent") if a.get('data-trackeventaction') == "vorig_artikel"][0])
+
+    def _scrape_unit(self, urldoc):
+        article = HTMLDocument(url = urldoc[0])
+        article.doc = urldoc[1]
+        article.props.section = article.doc.cssselect("#categoryheader h2 a")[-1].text
+        article.props.date = self.date
+        article.props.headline = article.doc.cssselect("div.header h1")[0].text
+        article.props.text = article.doc.cssselect("div.content h2, div, p")
+        article.props.author = article.doc.cssselect("span.smallprint")[0].text_content()
+        if "|" in article.props.author:
+            article.props.author = article.props.author.split('|')[0]
+        yield article
+
+
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
