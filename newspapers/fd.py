@@ -19,110 +19,93 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.scraper import DBScraper, HTTPScraper
-from amcat.scraping.document import HTMLDocument
-
-
-from urllib import urlencode
+from urllib import quote_plus
+import json
 import re
 
-INDEX_URL = "http://digikrant-archief.fd.nl/vw/page.do?id=FD-01-001-{y:04d}{m:02d}{d:02d}&pagedisplay=true&ed=00&date={y:04d}{m:02d}{d:02d}"
-
-LOGIN_URL = "http://fd.nl/handle_login"
-PAGE_URL = "http://digikrant-archief.fd.nl/vw/page.do?id={page_id}&pagedisplay=true&ed=00&date={y:04d}{m:02d}{d:02d}"
-ARTICLE_URL = "http://digikrant-archief.fd.nl/vw/txt.do?id={art_id}"
-
+from amcat.scraping.scraper import DBScraper, HTTPScraper
+from amcat.scraping.document import HTMLDocument
+from amcat.tools.toolkit import readDate
 
 class FDScraper(HTTPScraper, DBScraper):
     medium_name = "Financieel Dagblad"
-
-    def __init__(self, *args, **kwargs):
-        super(FDScraper, self).__init__(*args, **kwargs)
-
+    login_url_1 = "http://fd.nl/handle_login"
+    login_url_2 = "http://digikrant.fd.nl/go?url=digikrant-archief.fd.nl/vw/edition.do?forward=true%26dp=FD%26altd=true%26date={self.datestring}%26uid=null%26oid=null%26abo=null%26ed=00"
 
     def _login(self, username, password):
+        print("logging in...")
 
-        data = {
-            'y':self.options['date'].year,
-            'm':self.options['date'].month,
-            'd':self.options['date'].day
-            }
+        #order of parameters matters
+        parameters = "email={username}&password={password}&remember_me=&target=".format(**locals())        
+        login = self.open(self.login_url_1, quote_plus(parameters, safe="=&"))
 
-        initial = self.opener.opener.open("http://digikrant.fd.nl")
-        form = {
-            'email' : username,
-            'password' : password
-            }
-        pg = self.opener.opener.open(LOGIN_URL,urlencode(form))
+        if json.loads(login.read())["status"] != "ok":
+            print(login.read())
+            raise Exception("Login failed")
 
+        self.datestring = "{d.year:04d}{d.month:02d}{d.day:02d}".format(d = self.options['date'])
+        self.open("http://digikrant.fd.nl")
+        self.open(self.login_url_2.format(**locals()))
 
-        
-
-        # only god knows why opening this particular url twice works, but its the only thing that works..
-        url = "http://digikrant.fd.nl/go?url=digikrant-archief.fd.nl/vw/edition.do?forward=true%26dp=FD%26altd=true%26date={y:04d}{m:02d}{d:02d}%26uid=2570808%26oid=%26abo=DIGITAAL2011%26ed=00".format(**data)
-        self.open(url)
-        self.open(url)
-            
-
+    index_url = "http://digikrant-archief.fd.nl/vw/edition.do?dp=FD&altd=true&date={self.datestring}&ed=00"
+    page_url = "http://digikrant-archief.fd.nl/vw/page.do?id={pageid}&pagedisplay=true&ed=00&date={self.datestring}"
     def _get_units(self):
-        
+        pageid = "FD-01-001-{self.datestring}".format(**locals())
+        index = self.getdoc(self.page_url.format(**locals()))
+        for pagedoc in self.get_pages(index):
+            article_ids = set()
+            for td in pagedoc.cssselect("#framePage td"):
+                if td.get('onclick') and td.get('onclick').startswith("showArticle("):
+                    article_ids.add(td.get('onclick').split("'")[1])
+            for article_id in article_ids:
+                yield article_id
 
-        y = self.options['date'].year
-        m = self.options['date'].month
-        d = self.options['date'].day
-        _url = INDEX_URL.format(**locals())
-        index = self.getdoc(_url)
-        for option in index.cssselect("#selectPage option"):
-            page_id = option.get('value')
-            page_category = option.text.split("-")[1].strip()
-            page_num = option.text.split("-")[0].strip().lstrip('p')
-            yield {'id':page_id,'category':page_category,'page':page_num}
+    def get_pages(self, index):
+        self.current_section = json.dumps(["Voorpagina"])
+        yield index
+        for option in index.cssselect("select#selectPage option")[1:]:
+            self.current_section = [s.strip() for s in option.text.strip().split("-")[1].split("&")]
+            if "Advertentie" in self.current_section:
+                self.current_section.remove("Advertentie")
+            if "Economie" in self.current_section and "Politiek" in self.current_section:
+                self.current_section.remove("Economie")
+                self.current_section.remove("Politiek")
+                self.current_section.append("Economie & Politiek")
+            self.current_section = json.dumps(self.current_section)
+            pageid = option.get('value')
+            page_url = self.page_url.format(**locals())
+            yield self.getdoc(page_url)
 
-        
-    def _scrape_unit(self, p):
-        """gets articles from a page"""
+    article_url = "http://digikrant-archief.fd.nl/vw/txt.do?id={article_id}"
 
-        p_url = PAGE_URL.format(page_id=p['id'],y=self.options['date'].year,m=self.options['date'].month,d=self.options['date'].day)
-        doc = self.getdoc(p_url)
-        for a in doc.cssselect("td.arthref2 a"):
-            
-
-            art_id = a.get('href').split("('")[1].rstrip("');")
-            art_url = ARTICLE_URL.format(art_id=art_id)
-            article = HTMLDocument(date = self.options['date'],url=art_url)
-            article.prepare(self)
-            if "Er is geen tekst weergave beschikbaar" in article.doc.cssselect("table.body")[0].text_content():
-                continue
-
-            article.props.section = p['category']
-            yield self.get_article(article)
-                
-
-    def get_article(self, article):
-        if article.doc.cssselect("td.artauthor"):
-            article.props.author = article.doc.cssselect("td.artauthor")[0].text_content().split(":")[1].strip()
-
-        article.props.headline = article.doc.cssselect("td.artheader")[0].text_content()
+    def _scrape_unit(self, article_id):
+        article = HTMLDocument(url = self.article_url.format(**locals()))
+        article.prepare(self)
+        for i, table in enumerate(article.doc.cssselect("table")):
+            if table.get('class') == "body":
+                table_after_body = article.doc.cssselect("table")[i + 1]
+        page_date = re.search(
+            "Pagina ([0-9]+), ([0-9]{2}\-[0-9]{2}\-[0-9]{4})",
+            table_after_body.text_content())
+        article.props.pagenr = page_date.group(1)
+        article.props.date = readDate(page_date.group(2))
+        article.props.section = self.current_section
+        article.props.headline = article.doc.cssselect("td.artheader")[0].text_content().strip()
+        if article.doc.cssselect(".artsubheader"):
+            article.props.byline = article.doc.cssselect(".artsubheader")[0]
         article.props.text = article.doc.cssselect("font.artbody")
-
-
-        p = re.compile("^[A-Z][a-z]+( [A-Z][a-z]+)?$")
-        for block in article.props.text:
-            if not block.cssselect("font.artsubheader"):
-                if p.match(block.text):
-                    article.props.dateline = block.text
-
-
-        return article
-
-
-
+        if article.doc.cssselect("td.artauthor"):
+            article.props.author = article.doc.cssselect("td.artauthor")[0].text.split(":")[1].strip()
+        article.props.dateline = re.match(
+            "^([A-Z][a-z]+( [A-Z][a-z]+)?)",
+            article.doc.cssselect("font.artbody")[0].text.strip()).group(1)
+                                          
+        yield article
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.scraper")
-    amcatlogging.debug_module("amcat.scraping.document")
+    amcatlogging.info_module("amcat.scraping")
     cli.run_cli(FDScraper)
 
 
