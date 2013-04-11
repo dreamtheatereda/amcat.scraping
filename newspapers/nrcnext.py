@@ -22,7 +22,7 @@ from __future__ import unicode_literals, print_function
 import nrc
 
 class NRCNextScraper(nrc.NRCScraper):
-    medium_name = "NRC.Next"
+    medium_name = "NRC.NEXT"
     nrc_version = "NN"
 
 
