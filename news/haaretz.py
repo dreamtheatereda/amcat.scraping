@@ -39,7 +39,12 @@ class HaaretzScraper(HTTPScraper, DBScraper):
     def _login(self, username, password):
         username = quote_plus(username)
         password = quote_plus(password)
-        self.open(self.login_url.format(**locals()))
+        res = self.open(self.login_url.format(**locals())).read()
+        next_url = res.split('":"')[1].split("\"}'")[0]
+        self.open(next_url)
+        if not 'success' in res:
+            print(res)
+            raise Exception("Login failed")
         
     def _get_units(self):
         for page in self.get_pages():
