@@ -106,7 +106,7 @@ class WebFDScraper(HTTPScraper, DBScraper):
 
         article.props.url = self.get_article_url(row['objectid'])
         article.doc = self.getdoc(article.props.url)
-        article.text = article.doc.cssselect("div.left span.article")[0].text_content()
+        article.props.text = article.doc.cssselect("div.left span.article")[0].text_content()
         
         for comment in self.get_comments(article.doc):
             comment.is_comment = True
