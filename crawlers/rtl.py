@@ -23,40 +23,47 @@ from amcat.scraping.crawler import Crawler
 from amcat.scraping.document import HTMLDocument
 from amcat.tools.toolkit import readDate
 from scraping.newssites.telegraaf import scrape_unit
+from datetime import date
 import re
 
-
-class TelegraafCrawler(Crawler):
-    medium_name = "telegraaf.nl"
-    initial_url = "http://www.telegraaf.nl"
+class RTLCrawler(Crawler):
+    medium_name = "rtl.nl"
+    initial_url = "http://www.rtl.nl/actueel/rtlnieuws/home/"
     include_patterns = [
-        re.compile("http://www.telegraaf.nl"),
+        re.compile("http://www.rtl.nl/actueel/"),
+        re.compile("http://www.rtl.nl/components/actueel/")
         ]
     deny_patterns = [
-        re.compile("/wuz/")
+        re.compile("#comments"),
+        re.compile("http://www.rtl.nl/components/actueel/rtlnieuws/services/")
         ]
 
-
     def article_url(self, url):
-        pattern = re.compile("/\d+/__[a-zA-Z0-9_]+__.html")
+        pattern = re.compile("/components/actueel/rtlnieuws/")
         if pattern.search(url):
             return True
         else:
             return False
 
-
     def _scrape_unit(self, urldoc):
-        url = urldoc[0]
-        page = HTMLDocument(url = urldoc[0])
-        page.prepare(self)
-        for unit in scrape_unit(self, page):
-            yield unit
-        
+        article = HTMLDocument(url = urldoc[0])
+        article.doc = urldoc[1]
+        _date = [
+            int(urldoc[0].split("/")[6]),
+            int(urldoc[0].split("/")[7].split("_")[0]),
+            int(urldoc[0].split("/")[8])]
+        article.props.date = date(*_date)
+        article.props.section = urldoc[0].split("/")[9]
+        article.props.author = article.doc.cssselect("div.fullarticle_tagline")[0].text.split("|")[0]
+        article.props.headline = article.doc.cssselect("h1.title")[0].text
+        article.props.text = article.doc.cssselect("article")[0]
+        yield article
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.crawler")
-    amcatlogging.debug_module("amcat.scraping.scraper")
-    amcatlogging.debug_module("amcat.scraping.document")
-    cli.run_cli(TelegraafCrawler)
+    amcatlogging.debug_module("amcat.scraping")
+    cli.run_cli(RTLCrawler)
 
+
+        
