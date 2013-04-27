@@ -30,23 +30,51 @@ INDEX_URL = "http://www.telegraaf.nl/snelnieuws/"
 from datetime import date as _date
 from amcat.scraping.scraper import HTTPScraper,DatedScraper
 
+#method is defined here so the crawler can import it
+def scrape_unit(scraper, page): 
+    page.props.date = readDate(page.doc.cssselect("span.datum")[0].text_content())
+    page.props.author = "Unknown"
+    page.props.headline = page.doc.cssselect("#artikel h1")[0].text_content().strip()
+    page.doc.cssselect("div.broodMediaBox")[0].drop_tree()
+    page.props.text = page.doc.cssselect("#artikelKolom")[0]
+    page.props.section = page.doc.cssselect("#breadcrumbs a")[-1].text
+
+    for comment in scrape_comments(scraper, page):
+        comment.is_comment = True
+        yield comment
+
+    yield page
+
+
+def scrape_comments(scraper, page):
+    p = page.props.url+"?page={}"
+    if not page.doc.cssselect("ul.pager"):
+        return
+    total = int(page.doc.cssselect("ul.pager li.pager-last a")[0].get('href').split("page=")[-1].split("&")[0]) + 1
+    docs = [scraper.getdoc(p.format(x)) for x in range(total)]
+    for doc in docs:
+        for div in doc.cssselect("#comments div.comment"):
+            comment = HTMLDocument()
+            comment.props.text = div.cssselect("p")
+            comment.props.author = div.cssselect("div.username")[0].text.strip()
+            comment.props.date = readDate(div.cssselect("div.date")[0].text_content())
+            comment.parent = page
+            yield comment
+
+
 class WebTelegraafScraper(HTTPScraper, DatedScraper):
     medium_name = "Telegraaf website"
 
     def __init__(self, *args, **kwargs):
         super(WebTelegraafScraper, self).__init__(*args, **kwargs)
 
-
     def _get_units(self):
-        
         index = self.getdoc(INDEX_URL) 
         for section in index.cssselect("#main li.naar a"):
-            
             date = _date.today()
             href = urljoin("http://www.telegraaf.nl",section.get('href'))
             if "digitaal/games" in href:
                 continue
-
 
             ipage = self.getdoc(href)
             print(href)
@@ -64,7 +92,6 @@ class WebTelegraafScraper(HTTPScraper, DatedScraper):
                     elif date < self.options['date']:
                         break
 
-
                 try:
                     nxt = ipage.cssselect("#main li.sn_navigation a")[0]
                 except IndexError:
@@ -77,44 +104,9 @@ class WebTelegraafScraper(HTTPScraper, DatedScraper):
                     nxt_url = urljoin("http://www.telegraaf.nl",nxt.get('href'))
                     ipage = self.getdoc(nxt_url)
 
-
-
-
-
-
-        
-    def _scrape_unit(self, page): 
-        page.prepare(self)
-        page.props.date = readDate(page.doc.cssselect("span.datum")[0].text_content())
-        page.props.author = "Unknown"
-        page.props.headline = page.doc.cssselect("#artikel h1")[0].text_content().strip()
-        page.doc.cssselect("div.broodMediaBox")[0].drop_tree()
-        page.props.text = page.doc.cssselect("#artikelKolom")[0]
-        page.props.section = page.doc.cssselect("#breadcrumbs a")[-1].text
-
-        for comment in self.scrape_comments(page):
-            comment.is_comment = True
-            yield comment
-
-        yield page
-
-
-    def scrape_comments(self,page):
-        p = page.props.url+"?page={}"
-        if not page.doc.cssselect("ul.pager"):
-            return
-        total = int(page.doc.cssselect("ul.pager li.pager-last a")[0].get('href').split("page=")[-1].split("&")[0]) + 1
-        docs = [self.getdoc(p.format(x)) for x in range(total)]
-        for doc in docs:
-            for div in doc.cssselect("#comments div.comment"):
-                comment = HTMLDocument()
-                comment.props.text = div.cssselect("p")
-                comment.props.author = div.cssselect("div.username")[0].text.strip()
-                comment.props.date = readDate(div.cssselect("div.date")[0].text_content())
-                comment.parent = page
-                yield comment
-
-
+    def _scrape_unit(self, page):
+        for unit in scrape_unit(self, page):
+            yield unit
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli

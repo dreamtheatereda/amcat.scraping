@@ -1,6 +1,7 @@
 from amcat.scraping.crawler import Crawler
 from amcat.scraping.document import HTMLDocument
 from amcat.tools.toolkit import readDate
+from scraping.newssites.telegraaf import scrape_unit
 import re
 
 
@@ -24,41 +25,11 @@ class TelegraafCrawler(Crawler):
 
 
     def _scrape_unit(self, urldoc):
+        url = urldoc[0]
         page = HTMLDocument(url = urldoc[0])
-        page.doc = urldoc[1]
-
-        try:
-            page.props.date = readDate(page.doc.cssselect("span.datum")[0].text_content())
-        except (IndexError,AttributeError) as e: #wrong page or empty page
-            print(e)
-            return
-        page.props.author = "Unknown"
-        page.props.headline = page.doc.cssselect("#artikel h1")[0].text_content().strip()
-        page.doc.cssselect("div.broodMediaBox")[0].drop_tree()
-        page.props.text = page.doc.cssselect("#artikelKolom")[0]
-        page.props.section = page.doc.cssselect("#breadcrumbs a")[-1].text
-        for comment in self.scrape_comments(page):
-            comment.is_comment = True
-            yield comment
-
-
-
-        yield page
-
-    def scrape_comments(self,page):
-        p = page.props.url+"?page={}"
-        if not page.doc.cssselect("ul.pager"):
-            return
-        total = int(page.doc.cssselect("ul.pager li.pager-last a")[0].get('href').split("page=")[-1].split("&")[0]) + 1
-        docs = [self.getdoc(p.format(x)) for x in range(total)]
-        for doc in docs:
-            for div in doc.cssselect("#comments div.comment"):
-                comment = HTMLDocument()
-                comment.props.text = div.cssselect("div.content")[0]
-                comment.props.author = div.cssselect("span.submitted-username")[0].text_content()
-                comment.props.date = readDate(div.cssselect("div.submitted div.floatr")[0].text_content())
-                comment.parent = page
-                yield comment
+        page.prepare(self)
+        for unit in scrape_unit(self, page):
+            yield unit
         
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
