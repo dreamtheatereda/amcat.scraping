@@ -126,6 +126,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
                         pass
                     else:
                         if "\n" in part:
+                             #when title has a linebreak it's probably not an article
                             stop=True
                             break
                         else:
@@ -133,13 +134,11 @@ class TubantiaScraper(HTTPScraper, DBScraper):
                             artpage.props.headline = part
                             break
                 if stop:
-                    break #when title has a linebreak it's probably not an article
+                    break
                 else:
                     
                     p = re.compile("[\\\]udc[\w\w]")
-                    
                     artpage.props.text = literal_eval(p.sub("",repr(body)))
-                
                     artpage.props.byline = byline
                     
                     try:
@@ -147,13 +146,15 @@ class TubantiaScraper(HTTPScraper, DBScraper):
                     except ValueError:
                         pass
                     artpage.props.section = page['section']
+                    dateline_pattern = re.compile("(^[^\n]+\n\n([A-Z]+( [A-Z]+)?) -\n)|(([A-Z]+( [A-Z]+)?)\n\n)")
+                    match = dateline_pattern.search(artpage.props.text)
+                    if match:
+                        #dateline and theme have the same syntax and are therefore undistinguishable
+                        artpage.props.dateline_or_theme = match.group(2) or match.group(5)
+                        print(artpage.props.dateline_or_theme)
                     yield artpage
 
-
-
 if __name__ == '__main__':
-
-
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
     amcatlogging.debug_module("amcat.scraping.scraper")
