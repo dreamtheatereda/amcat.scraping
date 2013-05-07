@@ -99,7 +99,7 @@ class FDScraper(HTTPScraper, DBScraper):
         if article.doc.cssselect("td.artauthor"):
             article.props.author = article.doc.cssselect("td.artauthor")[0].text.split(":")[1].strip()
         dateline_match = re.search(
-            "^([A-Z][a-z]+(( |/)[A-Z][a-z]+)?)\n\n",
+            "^([A-Z][a-z]+(( |/)[A-Z][a-z]+)?)\n",
             "\n".join([n.text_content() for n in article.props.text]).strip())
         if dateline_match:
             article.props.dateline = dateline_match.group(1)
