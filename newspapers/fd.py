@@ -28,7 +28,7 @@ from amcat.scraping.document import HTMLDocument
 from amcat.tools.toolkit import readDate
 
 class FDScraper(HTTPScraper, DBScraper):
-    medium_name = "Financieel Dagblad"
+    medium_name = "Het Financieele Dagblad"
     login_url_1 = "http://fd.nl/handle_login"
     login_url_2 = "http://digikrant.fd.nl/go?url=digikrant-archief.fd.nl/vw/edition.do?forward=true%26dp=FD%26altd=true%26date={self.datestring}%26uid=null%26oid=null%26abo=null%26ed=00"
 
@@ -93,7 +93,10 @@ class FDScraper(HTTPScraper, DBScraper):
         article.props.headline = article.doc.cssselect("td.artheader")[0].text_content().strip()
         if article.doc.cssselect(".artsubheader"):
             article.props.byline = article.doc.cssselect(".artsubheader")[0]
+            
         article.props.text = article.doc.cssselect("font.artbody")
+        if len(article.props.text) < 100:
+            return
         if article.doc.cssselect("td.artauthor"):
             article.props.author = article.doc.cssselect("td.artauthor")[0].text.split(":")[1].strip()
         dateline_match = re.search(
