@@ -81,6 +81,9 @@ class FDScraper(HTTPScraper, DBScraper):
     def _scrape_unit(self, article_id):
         article = HTMLDocument(url = self.article_url.format(**locals()))
         article.prepare(self)
+        article.props.text = article.doc.cssselect("font.artbody")
+        if len("".join([t.text_content() for t in article.props.text])) < 100:
+            return
         for i, table in enumerate(article.doc.cssselect("table")):
             if table.get('class') == "body":
                 table_after_body = article.doc.cssselect("table")[i + 1]
@@ -93,10 +96,6 @@ class FDScraper(HTTPScraper, DBScraper):
         article.props.headline = article.doc.cssselect("td.artheader")[0].text_content().strip()
         if article.doc.cssselect(".artsubheader"):
             article.props.byline = article.doc.cssselect(".artsubheader")[0]
-            
-        article.props.text = article.doc.cssselect("font.artbody")
-        if len("".join([t.text_content() for t in article.props.text])) < 100:
-            return
         if article.doc.cssselect("td.artauthor"):
             article.props.author = article.doc.cssselect("td.artauthor")[0].text.split(":")[1].strip()
         dateline_match = re.search(
@@ -104,7 +103,6 @@ class FDScraper(HTTPScraper, DBScraper):
             "\n".join([n.text_content() for n in article.props.text]).strip())
         if dateline_match:
             article.props.dateline = dateline_match.group(1)
-            print(article.props.dateline)
                                           
         yield article
 
