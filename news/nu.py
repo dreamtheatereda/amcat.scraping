@@ -47,17 +47,15 @@ class NuScraper(HTTPScraper, DatedScraper):
         index_doc = self.getdoc(self.index_url)
         main_categories = index_doc.cssselect("#mainmenu ul.listleft > li")
         for li in main_categories[2:]:
-            if li.cssselect("ul.subsection"):
-                categories.extend([a.get('href') for a in li.cssselect("ul.subsection li a")])
-            else:
-                categories.append(li.cssselect("a")[0].get('href'))
-        skip = ['fotoseries','weer/index','verkeer/index','socialtools','colofon']
+            categories.append(li.cssselect("a")[0].get('href'))
+        skip = ['nufoto','weer/index','verkeer/index','socialtools','colofon']
         for href in categories:
             if all([(s not in href) for s in skip]):
                 yield urljoin(self.index_url, href)
 
     def iterate_articles(self, next_url):
         """iterate over articles using the 'last article' button continuously"""
+        urls = [next_url]
         d = self.options['date']
         self.date = datetime(d.year, d.month, d.day)
         while self.date.date() >= self.options['date']:
@@ -70,6 +68,10 @@ class NuScraper(HTTPScraper, DatedScraper):
             next_url = urljoin(
                 next_url, 
                 [a.get('href') for a in doc.cssselect("div.widgetsection a.trackevent") if a.get('data-trackeventaction') == "vorig_artikel"][0])
+            if next_url in urls:
+                #sadly, sometimes there is a loop
+                break
+            urls.append(next_url)
 
     def _scrape_unit(self, urldoc):
         article = HTMLDocument(url = urldoc[0])
