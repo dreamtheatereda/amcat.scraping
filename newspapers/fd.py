@@ -93,7 +93,10 @@ class FDScraper(HTTPScraper, DBScraper):
         article.props.headline = article.doc.cssselect("td.artheader")[0].text_content().strip()
         if article.doc.cssselect(".artsubheader"):
             article.props.byline = article.doc.cssselect(".artsubheader")[0]
+            
         article.props.text = article.doc.cssselect("font.artbody")
+        if len("".join([t.text_content() for t in article.props.text])) < 100:
+            return
         if article.doc.cssselect("td.artauthor"):
             article.props.author = article.doc.cssselect("td.artauthor")[0].text.split(":")[1].strip()
         dateline_match = re.search(
