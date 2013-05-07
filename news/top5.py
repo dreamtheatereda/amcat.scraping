@@ -32,7 +32,7 @@ import re
 
 class NRC(HTTPScraper):
     index_url = "http://www.nrc.nl"
-    source = 'nrc'
+    source = 'NRC - website'
 
     def __init__(self, *args, **kwargs):
         super(NRC, self).__init__(*args, **kwargs)
@@ -61,7 +61,7 @@ class NRC(HTTPScraper):
 class Volkskrant(HTTPScraper):
     index_url = "http://www.volkskrant.nl/vk/nl/2/Home/homepage/right.dhtml"
     cookie_url = "http://www.volkskrant.nl/?utm_source=scherm1&utm_medium=button&utm_campaign=Cookiecheck"
-    source = 'De Volkskrant'
+    source = 'Volkskrant - website'
     domain = '.volkskrant.nl'
 
     def _set_cookies(self):
@@ -89,7 +89,7 @@ class Volkskrant(HTTPScraper):
         yield article
 
 class Trouw(Volkskrant):
-    source = 'Trouw'
+    source = 'Trouw - website'
     cookie_url = 'http://www.trouw.nl/?utm_source=scherm1&utm_medium=button&utm_campaign=Cookiecheck'
     index_url = "http://www.trouw.nl/tr/nl/15/Home/homepage/right.dhtml"
     domain = '.trouw.nl'
@@ -97,7 +97,7 @@ class Trouw(Volkskrant):
 
 class Telegraaf(HTTPScraper):
     index_url = "http://www.telegraaf.nl/"
-    source = 'De Telegraaf'
+    source = 'Telegraaf - website'
     def _get_units(self):
         doc = self.getdoc(self.index_url)
         for a in doc.cssselect("div.meestgelezenwidget div.pad5")[0].cssselect("div.item a"):
@@ -117,7 +117,7 @@ class Telegraaf(HTTPScraper):
     
 
 class Nu(HTTPScraper):
-    source = 'Nu.nl'
+    source = 'nu.nl - website'
     index_url = 'http://www.nu.nl'
     
     def _get_units(self):
@@ -137,7 +137,7 @@ class Nu(HTTPScraper):
         yield article
 
 class AD(HTTPScraper):
-    source = 'Algemeen Dagblad'
+    source = 'Algemeen Dagblad - website'
     index_url = 'http://www.ad.nl'
 
     def _get_units(self):
