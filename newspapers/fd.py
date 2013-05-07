@@ -28,7 +28,7 @@ from amcat.scraping.document import HTMLDocument
 from amcat.tools.toolkit import readDate
 
 class FDScraper(HTTPScraper, DBScraper):
-    medium_name = "Financieel Dagblad"
+    medium_name = "Het Financieele Dagblad"
     login_url_1 = "http://fd.nl/handle_login"
     login_url_2 = "http://digikrant.fd.nl/go?url=digikrant-archief.fd.nl/vw/edition.do?forward=true%26dp=FD%26altd=true%26date={self.datestring}%26uid=null%26oid=null%26abo=null%26ed=00"
 
