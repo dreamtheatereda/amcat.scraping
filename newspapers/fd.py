@@ -37,11 +37,15 @@ class FDScraper(HTTPScraper, DBScraper):
 
         #order of parameters matters
         parameters = "email={username}&password={password}&remember_me=&target=".format(**locals())        
-        login = self.open(self.login_url_1, quote_plus(parameters, safe="=&"))
-
-        if json.loads(login.read())["status"] != "ok":
-            print(login.read())
-            raise Exception("Login failed")
+        for x in range(3):
+            login = self.open(self.login_url_1, quote_plus(parameters, safe="=&"))
+            if json.loads(login.read())["status"] != "ok":
+                print(login.read())
+                print("Login failed. trying again...")
+            else:
+                break
+            if x == 3:
+                raise Exception("Login failed thrice in a row")
 
         self.datestring = "{d.year:04d}{d.month:02d}{d.day:02d}".format(d = self.options['date'])
         self.open("http://digikrant.fd.nl")
