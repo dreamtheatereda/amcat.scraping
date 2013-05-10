@@ -26,6 +26,7 @@ from urllib import urlencode
 from urllib2 import HTTPError
 from datetime import date
 import time
+import re
 #from amcat.tools.toolkit import readDate
 #from amcat.scraping.tools import toolkit
 
@@ -106,10 +107,10 @@ class SpitsKrantScraper(HTTPScraper, DatedScraper):
         article.props.pagenr = self.pagenum
         article.props.headline = article.doc.cssselect("#article h1")[0].text_content()
         article.props.text = article.doc.cssselect("div.body")[0]
-        dateline_pattern = "^[A-Z]+( [A-Z]+)?"
+        dateline_pattern = re.compile("^([A-Z]+( [A-Z]+)?)$")
         b = article.props.text.cssselect("b")
-        if b and dateline_pattern.search(b.text_content()):
-            article.props.dateline = dateline_pattern.search(b.text_content()).groups(0)
+        if b and dateline_pattern.search(b[0].text_content()):
+            article.props.dateline = dateline_pattern.search(b[0].text_content()).group(1)
             
         if article.doc.cssselect("#article address"):
             article.props.author = article.doc.cssselect("#article address")[0].text_content().lstrip("dor").strip()
