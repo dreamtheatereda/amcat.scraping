@@ -106,9 +106,11 @@ class SpitsKrantScraper(HTTPScraper, DatedScraper):
         article.props.pagenr = self.pagenum
         article.props.headline = article.doc.cssselect("#article h1")[0].text_content()
         article.props.text = article.doc.cssselect("div.body")[0]
-        dateline = article.props.text.cssselect("b")
-        if dateline:
-            article.props.dateline = dateline[0].text_content()
+        dateline_pattern = "^[A-Z]+( [A-Z]+)?"
+        b = article.props.text.cssselect("b")
+        if b and dateline_pattern.search(b.text_content()):
+            article.props.dateline = dateline_pattern.search(b.text_content()).groups(0)
+            
         if article.doc.cssselect("#article address"):
             article.props.author = article.doc.cssselect("#article address")[0].text_content().lstrip("dor").strip()
 
