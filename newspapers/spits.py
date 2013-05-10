@@ -31,7 +31,7 @@ import time
 
 
 class SpitsKrantScraper(HTTPScraper, DatedScraper):
-    medium_name = "Spitsnieuws krant"
+    medium_name = "Spits"
 
     cookie_url = "http://tmgonlinemedia.nl/consent/consent/?return=http%3A%2F%2Fwww.spitsnieuws.nl%2F&clienttime={timestamp}&detect={detect}&version={version}"
     page_url = "http://krant.spitsnieuws.nl/spits/_main_/{y:04d}/{m:02d}/{d:02d}/{pagenum:03d}/page.html"
@@ -106,6 +106,9 @@ class SpitsKrantScraper(HTTPScraper, DatedScraper):
         article.props.pagenr = self.pagenum
         article.props.headline = article.doc.cssselect("#article h1")[0].text_content()
         article.props.text = article.doc.cssselect("div.body")[0]
+        dateline = article.props.text.cssselect("b")
+        if dateline:
+            article.props.dateline = dateline[0].text_content()
         if article.doc.cssselect("#article address"):
             article.props.author = article.doc.cssselect("#article address")[0].text_content().lstrip("dor").strip()
 
