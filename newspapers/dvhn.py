@@ -48,7 +48,10 @@ class DVHNScraper(HTTPScraper, DBScraper):
         form = toolkit.parse_form(page)
         form['email'] = username
         form['password'] = password
-        self.open(LOGIN_URL, urlencode(form))
+        res = self.getdoc(LOGIN_URL, urlencode(form))
+        error = res.cssselect("td.error")
+        if error:
+            print("\n{error[0].text}\n".format(**locals()))
 
 
     def _get_units(self):
