@@ -26,8 +26,9 @@ except ImportError:
 
 
 class DVHNArchiveScraper(DeKrantVanToenScraper):
+    medium_name = "Dagblad van het Noorden"
     paper="DVHN"
-    
+    paper_full_name = "Dagblad van het Noorden"
 
 
 
