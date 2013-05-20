@@ -104,19 +104,15 @@ class PCMScraper(HTTPScraper, DBScraper):
         # Login
         log.info("Logging in..")
         login_page = self.getdoc(url)
-
         form = toolkit.parse_form(login_page)
         form['username'] = username
         form['password'] = password
-
-        login_page = self.opener.opener.open(
+        login_page = self.open(
             url, urllib.urlencode(form)
         )
-
         # Resolve ticket_url and save it
-        #print(login_page.read())
         self.ticket_url = login_page.geturl()
-
+        
         if 'ticket' not in self.ticket_url:
             log.error(CHECK_CREDENTIALS)
             raise ValueError(CHECK_CREDENTIALS)
@@ -129,20 +125,6 @@ class PCMScraper(HTTPScraper, DBScraper):
 
         self.headers.update(res.body.headers)
 
-        # Save to webserver
-        url = SAVEURL % {
-            'paper_id' : paper_id,
-            'regio_code' : self.context_id,
-            'main_id' : self.paper_id,
-            'username' : quote(username).replace('.', '%2E'),
-            'domain' : self.domain
-        }
-
-        req = urllib2.Request(url, data=None, headers={
-            'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-        })
-
-        self.opener.opener.open(req).read()
 
         # Send AMF Auth message to server
         ticket = "TICKET_%s:%s%s" % (
@@ -185,7 +167,7 @@ class PCMScraper(HTTPScraper, DBScraper):
         })
 
         resp = remoting.decode(
-            self.opener.opener.open(req).read()
+            self.open(req).read()
         )
 
         return resp
