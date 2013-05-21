@@ -42,7 +42,7 @@ class HandelingenPerSprekerScraper(OfficieleBekendmakingenScraper):
         
         url = url.replace('.xml','.html')
         
-        metadict = self.getMetaDict(xml, printit=True)
+        metadict = self.getMetaDict(xml, printit=False)
         if len(metadict) == 0:
             log.warn("NO METADATA FOR %s. SKIPPING URL" % url) 
             return
@@ -55,10 +55,14 @@ class HandelingenPerSprekerScraper(OfficieleBekendmakingenScraper):
         except: date = datetime.datetime.strptime(datestring, '%Y-%m-%d')
         section = self.safeMetaGet(metadict,'OVERHEID.category')
         document_id = metadict['DC.identifier']
-        omschrijving = metadict['DC.title']
+   
+        try: omschrijving = xml.cssselect('itemkop')[0].text_content()
+        except:
+            try: omschrijving = xml.cssselect('onderwerp')[0].text_content()
+            except: omschrijving = metadict['DC.title']
 
         #metabody = '\n'.join(["%s:\t%s;" % (meta, metadict[meta]) for meta in metadict])
-        parentbody = omschrijving
+        parentbody = omschrijving 
         
         parent = Article(headline=document_id, byline=itemnaam, text=parentbody, date=date, section=section, url=url, pagenr=0)
         yield parent
@@ -135,21 +139,23 @@ class HandelingenPerSprekerScraper(OfficieleBekendmakingenScraper):
         if len(otherelements) > 0: log.warn("UNUSED <SPREKER> ELEMENTS, CONTAINING: %s" % [o for o in otherelements])
         return sprekerdict
 
-    def sprekerDictReader(self, xml, with_voorz=True):
+    def sprekerDictReader(self, xml):
         """yields dictionaries containing meta-info and text for each consequtive speaker"""
         if len(xml.cssselect('spreekbeurt')) == 0: # Determines which parseSpreker() should be used for respective xml
             print('Using parsSpreker1')
             try: sprekerparent = xml.cssselect('spreker')[0].getparent()
-            except: return
+            except:
+            	try: sprekerparent = xml.cssselect('voorz')[0].getparent()
+            	except: return
 
-            if with_voorz == True:
-                try: naam = "Voorzitter (%s)" % xml.cssselect('vrznaam')[0].text_content()
-                except: naam = 'Voorzitter'
+
+            try: naam = "Voorzitter (%s)" % xml.cssselect('vrznaam')[0].text_content()
+            except: naam = 'Voorzitter'
                 
             for par in sprekerparent.getchildren():
                 if par.tag == 'spreker': yield self.parseSpreker1(par)
-                if with_voorz == True:
-                    if par.tag == 'voorz': yield self.parseVoorzitter(par, naam)
+                if par.tag == 'voorz': yield self.parseVoorzitter(par, naam)
+                
         else:
             print('Using parsSpreker2')
         

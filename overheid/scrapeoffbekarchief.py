@@ -14,34 +14,30 @@ log = logging.getLogger(__name__)
 
 class RunScraper(Script):  
     def run(self, _input):
-        startdate = datetime.date(2006,1,1)
-        #startdate = datetime.date(2012,7,3)
-        #astdate = datetime.date(2012,7,3)
-
-        #lastdate = datetime.date(2011,7,22)
-        lastdate = datetime.date(2012,1,1)
-
-        
+        startdate = datetime.date(2000,1,1)
+        lastdate = datetime.date(2013,3,31)
         dateinterval = 1
-        #articleset = 22855 # handelingen
-        #articleset = 22859 # kamervragen
-        project = 15
         
+        project = 34
         date = startdate
-
-        scrapers = []
-        
 
         while date <= lastdate:
             print('------------------', date)
+           
             scrapers = []
-            #scrapers.append(HandelingenPerSprekerScraper(date=date, articleset=220, project=project))
-            scrapers.append(KamervragenVraagScraper(date=date, articleset=414, project=project))
+            scrapers.append(HandelingenPerSprekerScraper(date=date, articleset=2245, project=project))
+            result = {s : [] for s in scrapers}
+            counts = dict((s, 0) for s in scrapers)
+
+            controller = SimpleController()
+            for a in controller.scrape(scrapers):
+                a.scraper
+            #scrapers.append(KamervragenVraagScraper(date=date, articleset=414, project=project))
             #scrapers.append(KamervragenAntwoordScraper(date=date, articleset=418, project=project))
             #scrapers.append(KamerstukkenScraper(date=date, articleset=22860, project=project))
-            log.info("Starting scraping with {} scrapers: {}".format(
-                len(scrapers), [s.__class__.__name__ for s in scrapers]))
-            count, messages =  scrape_logged(SimpleController(), scrapers)
+            #log.info("Starting scraping with {} scrapers: {}".format(
+            #    len(scrapers), [s.__class__.__name__ for s in scrapers]))
+            #count, messages =  scrape_logged(SimpleController(), scrapers)
             date += datetime.timedelta(dateinterval)
 
 if __name__ == '__main__':
