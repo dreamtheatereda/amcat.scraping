@@ -50,7 +50,7 @@ def getUrlsFromSet(setid, check_back=30):
     fromdate = (datetime.date.today() - datetime.timedelta(days = check_back))
     articles = (Article.objects.filter(date__gt = fromdate)
                 .filter(articlesets_set = setid).only("url"))
-    urls = set(a.url.split('/')[-1] for a in articles)
+    urls = set(a.url for a in articles)
     return urls
 
 def cleanUpDraaiboek(text):
@@ -62,7 +62,6 @@ def cleanUpDraaiboek(text):
         if '000 ' in t: t = '\n\n'
         if '888' in t: t = '\n\n'
         body += t
-    print(body)
     return body
             
 class DraaiboekenScraper(DBScraper):
@@ -83,7 +82,7 @@ class DraaiboekenScraper(DBScraper):
         
     def _get_units(self):
         existing_files = getUrlsFromSet(setid=self.articleset, check_back=30)
-
+        print(existing_files)
         with self.ftp() as ftp:
             for folder in ftp.nlst():
                 if '.txt' in folder: continue
@@ -97,6 +96,9 @@ class DraaiboekenScraper(DBScraper):
                         files[f.split('/')[1].split('.txt')[0]] = f
                     if '.xml' in f: got_xml = f
                 if got_xml:
+                    if len(files) == 0:
+                        print('\nAll files in %s already in database\n' % got_xml)
+                        continue
                     dest = StringIO()
                     ftp.retrbinary(b'RETR %s' % got_xml, dest.write)
                     
@@ -111,7 +113,7 @@ class DraaiboekenScraper(DBScraper):
                             body = cleanUpDraaiboek(dest)
                             yield (pn,files[tb],body)
                         else:
-                            print('Missing: %s' % tb)
+                            print('Missing or already in database: %s' % tb)
                     
 
     def _scrape_unit(self, ftuple):
@@ -124,10 +126,10 @@ class DraaiboekenScraper(DBScraper):
         print(title, date)
         med = get_or_create_medium(medium)
     
-        art = Article(headline=medium, text=body.decode('latin-1'),
+        art = Article(headline=medium, text=body,
                       medium = med, date=date, url = url)
-        yield art
-        
+        #yield art
+        return []
 
 
 if __name__ == '__main__':
