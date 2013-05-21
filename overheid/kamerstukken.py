@@ -32,10 +32,60 @@ from amcat.models.article import Article
 from amcat.tools import toolkit
 from amcat.models.medium import get_or_create_medium
         
+def adhocDateFix(datestring):
+    datestring = datestring.replace('-02-31','-03-03').replace('-02-30','-03-02').replace('20090', '2009')
+    return datestring
+
+
 class KamerstukkenScraper(OfficieleBekendmakingenScraper):
     doctypelist = ['kamerstuk']
     
     def _scrape_unit(self, url):
+        try: xml = self.getdoc(url)
+        except: return
+
+        url = url.replace('.xml','.html')
+        metadict = self.getMetaDict(xml, printit=False)
+        
+        try: kamerwrk = xml.cssselect('kamerwrk')[0].getchildren()
+        except: return []
+        #print(kamerwrk)
+        headtags = [headtag.tag for headtag in kamerwrk]
+
+        if 'wet' in headtags: return []
+        if 'blwstuk' in headtags: return []
+        for bodypart in xml.cssselect('stuk')[0].getchildren():
+            if bodypart.tag == 'titel':
+                if bodypart.text == None: return []
+                if not 'amendement' in bodypart.text.lower(): return []
+                
+                for titelpart in bodypart.getchildren():
+                    print(titelpart.tag)
+        
+        
+        if len(metadict) == 0:
+            log.warn("NO METADATA FOR %s. SKIPPING URL" % url)
+            return
+
+        section = self.safeMetaGet(metadict,'OVERHEID.category')
+        document_id = metadict['DC.identifier']
+        author = self.safeMetaGet(metadict,'OVERHEIDop.indiener')
+        try: archieftype = metadict['OVERHEIDop.ArchiefType']
+        except: archieftype = metadict['DC.type']
+        aanleiding = metadict['DC.title']
+
+        headline = ("%s | %s - %s" % (document_id, archieftype, author)).strip()
+        try: datestring = adhocDateFix(metadict['DCTERMS.issued'])
+        except:
+            datestring = adhocDateFix(metadict['OVERHEIDop.datumOntvangst'])
+            headline += " (publicatiedatum)"
+
+        try: date = datetime.datetime.strptime(datestring, '%Y-%m-%d')
+        except: date = datetime.datetime.strptime(datestring, '%d-%m-%Y')
+
+        
+        #yield Article(headline=headline, byline=vraagnummer, text=body, date=date, section=section, url=url)
+                
         return []
 
 if __name__ == '__main__':

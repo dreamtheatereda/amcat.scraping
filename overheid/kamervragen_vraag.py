@@ -31,11 +31,14 @@ from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 from amcat.models.article import Article
 from amcat.tools import toolkit
-from amcat.models.medium import get_or_create_medium
 
 def adhocDatefix(datestring):
     datestring = datestring.replace('-02-31','-03-03').replace('-02-30','-03-02').replace('20090', '2009')
     return datestring
+
+
+
+
         
 class KamervragenVraagScraper(OfficieleBekendmakingenScraper):
     doctypelist = ['kamervragen_zonder_antwoord']
@@ -55,7 +58,7 @@ class KamervragenVraagScraper(OfficieleBekendmakingenScraper):
         body = ''
         notesdict = self.getNotesDict(xml, printit=False)
     
-        try: bodyparts = xml.cssselect('vragen')[0].getchildren() # alternatives for different notation styles
+        try: bodyparts = xml.cssselect('vragen')[0].getchildren()
         except: bodyparts = xml.cssselect('kamervragen')[0].getchildren()
 
         for bodypart in bodyparts:
@@ -65,7 +68,8 @@ class KamervragenVraagScraper(OfficieleBekendmakingenScraper):
                 body += "\n%s\n" % self.getVraag(bodypart, xml)
             elif bodypart.tag in ['toelicht']:
                 body += '\n' + bodypart.text_content().replace('\n',' ').replace('\r','').replace('Toelichting:', 'Toelichting:\n') + '\n'
-            elif bodypart.tag in ['vraagnummer','noot','kamervraagkop','kamervraagnummer']: None
+            elif bodypart.tag == 'kamervraagopmerking': body += '\n' + bodypart.text_content().replace('\n',' ').replace('\r','').replace('Mededeling','Mededeling:\n') + '\n'
+            elif bodypart.tag in ['titel','vraagnummer','noot','kamervraagkop','kamervraagnummer']: None
             else:
                 print('\n\n\n\n',bodypart)
                 
@@ -81,20 +85,35 @@ class KamervragenVraagScraper(OfficieleBekendmakingenScraper):
         except:
             log.warn("COULD NOT FIND XML FOR %s" % url) 
             return
-           
+            #return []
+
         url = url.replace('.xml','.html')
         metadict = self.getMetaDict(xml, printit=False)
+        if len(metadict) == 0:
+            log.warn("NO METADATA FOR %s. SKIPPING URL" % url) 
+            return
+            #return []
 
-        datestring = adhocDatefix(metadict['OVERHEIDop.datumIndiening'])
-        date = datetime.datetime.strptime(datestring, '%Y-%m-%d')
-        
         section = self.safeMetaGet(metadict,'OVERHEID.category')
+
         document_id = metadict['DC.identifier'].strip()
+        
+        print('document id:', document_id)
+
         author = self.safeMetaGet(metadict,'OVERHEIDop.indiener')
         typevraag = metadict['DC.type']
 
         body = self.getBody(xml)
         headline = "document_id (%s)" % author
+
+        try: datestring = adhocDatefix(metadict['OVERHEIDop.datumOntvangst'])
+        except:
+            datestring = adhocDatefix(metadict['OVERHEIDop.datumIndiening'])
+            headline += " (publicatiedatum)"
+
+        try: date = datetime.datetime.strptime(datestring, '%Y-%m-%d')
+        except: date = datetime.datetime.strptime(datestring, '%d-%m-%Y')
+        
         #print('--------------\n', document_id, typevraag, '\n', body, '\n\n') 
        
         yield Article(headline=document_id, byline=typevraag, text=body, date=date, section=section, url=url)

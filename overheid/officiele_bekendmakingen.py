@@ -29,22 +29,29 @@ from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 from amcat.models.article import Article
 from amcat.tools import toolkit
-from amcat.models.medium import get_or_create_medium
         
 INDEXURL = "%s/actueel/1/%s"
 BASEURL = "https://zoek.officielebekendmakingen.nl/%s"
 
-
+def getUrlsFromSet(setid):
+    articles = (Article.objects.filter(articlesets_set = setid).only("url"))
+    urls = set(a.url.split('#')[0] for a in articles)
+    return urls
 
 class OfficieleBekendmakingenScraper(DatedScraper, HTTPScraper):
     """Downloads XML files of documents that are PUBLISHED (!) on the assigned date"""
     doctypelist = ['kamerstuk','handelingen','kamervragen_zonder_antwoord', 'kamervragen_aanhangsel','agenda','niet_dossierstuk']
     
     def _get_units(self):
+        existing_urls = []
         for page in self.get_pages():
             doc = self.getdoc(page)
             for arturl in set(a.get('href') for a in doc.cssselect('div.lijst > ul > li > a')):
+                if existing_urls == []: existing_urls = getUrlsFromSet(setid=self.articleset)
                 arturl = BASEURL % arturl
+                if arturl in existing_urls:
+                    print("Already in articleset: %s" % arturl)
+                    continue
                 yield(arturl.replace('html','xml'))
  
     def get_pages(self):
@@ -60,11 +67,20 @@ class OfficieleBekendmakingenScraper(DatedScraper, HTTPScraper):
     def getNotesDict(self, xml, printit=False):
         notesdict = {}
         for noot in xml.cssselect('noot'):
+            
             if 'nr' in [e.tag for e in noot]:
                 print(noot.get('nr'))
-                notesdict[noot.get('nr')] = noot.text_content().strip()   # alternatives for different notation styles
+                notesdict[noot.get('nr')] = noot.text_content().strip()
             elif not noot.get('nr') == None: notesdict[noot.get('nr')] = noot.text_content().strip()
-            else: notesdict[noot.find('noot.nr').text_content()] = noot.find('noot.al').text_content().strip()
+            elif not noot.find('noot.lijst') == None:
+                for nr, n in enumerate(noot.find('noot.lijst')):
+                        notesdict[noot.find('noot.nr').text_content() + '.%s' % nr] = n.text_content()
+            else:
+                try: nootid = noot.find('noot.nr').text_content()
+                except: nootid = noot.get('id').strip('n')
+                notesdict[nootid] = noot.find('noot.al').text_content().strip()
+ 
+                    
         if printit == True:
             for note in notesdict: print(note, ': ', notesdict[note])
         return notesdict
