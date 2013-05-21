@@ -117,13 +117,12 @@ class DraaiboekenScraper(DBScraper):
                     
 
     def _scrape_unit(self, ftuple):
-        medium = ftuple[0]
+        title = ftuple[0]
         url = ftuple[1]
         body = ftuple[2]
         
-        title = medium
         date = getDate(url)    
-        print(title, date)
+        medium = title.lower()
         med = get_or_create_medium(medium)
     
         art = Article(headline=medium, text=body,

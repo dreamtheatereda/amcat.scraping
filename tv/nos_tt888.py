@@ -91,13 +91,16 @@ class tt888Scraper(DBScraper):
         dest = StringIO()
         with self.ftp() as ftp:
             ftp.retrbinary(b'RETR %s' % (fn.encode('latin-1')) , dest.write)
-        body = STLtoText(dest.getvalue()).strip().lstrip('888').strip()
+        body = STLtoText(dest.getvalue())
+        body = body.decode('latin-1','ignore').strip().lstrip('888').strip()
         title = fn.split('/')[-1]
-        medium = title.split('-')[-1].split('.stl')[0].strip()
-        date = getDate(title)    
+        medium = title.split('-')[-1].split('.stl')[0].strip().lower()
+        date = getDate(title)
+
+        if medium == 'nos journaal' and int(format(date, '%H')) == 20 and int(format(date, '%M')) == 0: medium = 'nos journaal 20:00'
         med = get_or_create_medium(medium)
-    
-        art = Article(headline=medium, text=body.decode('latin-1'),
+        
+        art = Article(headline=medium, text=body,
                       medium = med, date=date, url = fn)
         yield art
         
