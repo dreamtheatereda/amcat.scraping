@@ -31,8 +31,6 @@ log = logging.getLogger(__name__)
 from amcat.scraping.scraper import DBScraper
 from amcat.scraping.document import HTMLDocument
 from amcat.models.article import Article
-#from amcat.tools import toolkit
-from amcat.scraping import toolkit
 from amcat.tools.stl import STLtoText
 from amcat.scraping.toolkit import todate
 from amcat.models.medium import get_or_create_medium
@@ -93,15 +91,16 @@ class tt888Scraper(DBScraper):
         dest = StringIO()
         with self.ftp() as ftp:
             ftp.retrbinary(b'RETR %s' % (fn.encode('latin-1')) , dest.write)
-        body = STLtoText(dest.getvalue())
+        body = STLtoText(dest.getvalue()).strip().lstrip('888').strip()
         title = fn.split('/')[-1]
-        medium = title.split('-')[-1].split('.stl')[0].strip().lower()
+        medium = title.split('-')[-1].split('.stl')[0].strip()
         date = getDate(title)    
         med = get_or_create_medium(medium)
     
-        art = Article(headline=naam, text=body.decode('latin-1'),
+        art = Article(headline=medium, text=body.decode('latin-1'),
                       medium = med, date=date, url = fn)
-        yield art
+        #yield art
+        return []
 
 
 if __name__ == '__main__':
