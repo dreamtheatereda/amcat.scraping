@@ -54,7 +54,7 @@ def getUrlsFromSet(setid, check_back=30):
     """Returns list with all URLS of articles in the articleset for the last [check_back] days"""
     fromdate = (datetime.date.today() - datetime.timedelta(days = check_back))
     articles = (Article.objects.filter(date__gt = fromdate)
-                .filter(articlesets = setid).only("url"))
+                .filter(articlesets_set = setid).only("url"))
     urls = set(a.url.split('/')[-1] for a in articles)
     return urls
             
