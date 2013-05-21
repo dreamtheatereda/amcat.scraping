@@ -31,7 +31,8 @@ log = logging.getLogger(__name__)
 from amcat.scraping.scraper import DBScraper
 from amcat.scraping.document import HTMLDocument
 from amcat.models.article import Article
-from amcat.tools import toolkit
+#from amcat.tools import toolkit
+from amcat.scraping import toolkit
 from amcat.tools.stl import STLtoText
 from amcat.scraping.toolkit import todate
 from amcat.models.medium import get_or_create_medium
@@ -59,7 +60,6 @@ def getUrlsFromSet(setid, check_back=30):
     return urls
             
 class tt888Scraper(DBScraper):
-    medium_name = 'TT888_unassigned'
 
     def __init__(self, *args, **kargs):
         super(tt888Scraper, self).__init__(*args, **kargs)
@@ -95,9 +95,9 @@ class tt888Scraper(DBScraper):
             ftp.retrbinary(b'RETR %s' % (fn.encode('latin-1')) , dest.write)
         body = STLtoText(dest.getvalue())
         title = fn.split('/')[-1]
-        naam = title.split('-')[-1].split('.stl')[0].strip().lower()
+        medium = title.split('-')[-1].split('.stl')[0].strip().lower()
         date = getDate(title)    
-        med = get_or_create_medium(mediadict[naam]) if naam in mediadict else get_or_create_medium('TT888_unassigned')
+        med = get_or_create_medium(medium)
     
         art = Article(headline=naam, text=body.decode('latin-1'),
                       medium = med, date=date, url = fn)
