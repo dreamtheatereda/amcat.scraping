@@ -99,8 +99,8 @@ class tt888Scraper(DBScraper):
     
         art = Article(headline=medium, text=body.decode('latin-1'),
                       medium = med, date=date, url = fn)
-        #yield art
-        return []
+        yield art
+        
 
 
 if __name__ == '__main__':
