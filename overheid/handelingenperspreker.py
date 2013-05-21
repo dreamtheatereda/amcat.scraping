@@ -31,17 +31,22 @@ from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 from amcat.models.article import Article
 from amcat.tools import toolkit
-from amcat.models.medium import get_or_create_medium
         
 class HandelingenPerSprekerScraper(OfficieleBekendmakingenScraper):
     doctypelist = ['handelingen']
     medium_name = "Handelingen 2e kamer"
 
     def _scrape_unit(self, url):
-        xml = self.getdoc(url)
+        try: xml = self.getdoc(url)
+        except: return
+        
         url = url.replace('.xml','.html')
         
-        metadict = self.getMetaDict(xml, printit=False)
+        metadict = self.getMetaDict(xml, printit=True)
+        if len(metadict) == 0:
+            log.warn("NO METADATA FOR %s. SKIPPING URL" % url) 
+            return
+            
         try: itemnaam = xml.cssselect('itemnaam')[0].text_content()
         except: itemnaam = ''
 
@@ -52,26 +57,20 @@ class HandelingenPerSprekerScraper(OfficieleBekendmakingenScraper):
         document_id = metadict['DC.identifier']
         omschrijving = metadict['DC.title']
 
-        metabody = '\n'.join(["%s:\t%s;" % (meta, metadict[meta]) for meta in metadict])
-        parentbody = omschrijving + '\n\n' + metabody
+        #metabody = '\n'.join(["%s:\t%s;" % (meta, metadict[meta]) for meta in metadict])
+        parentbody = omschrijving
         
         parent = Article(headline=document_id, byline=itemnaam, text=parentbody, date=date, section=section, url=url, pagenr=0)
-        #yield parent
+        yield parent
 
         for nr, sprekerdict in enumerate(self.sprekerDictReader(xml)):
             spreker = self.printSpreker(sprekerdict)
             headline_spreker = "%s - #%s | %s" % (document_id, nr+1, spreker)
-            #if len(sprekerdict['moties']) > 0:
-            #    print('MOTIE:\n', sprekerdict['moties'])
-            #    print('Tekst:\n', sprekerdict['tekst'])
-            #for key in sprekerdict:
-            #    print(key, "\t- ", sprekerdict[key][0:30])
-            #yield Article(headline=headline_spreker, author=spreker, byline=itemnaam, text=sprekerdict['tekst'], date=date, section=section, url="%s#%s" % (url, nr+1), pagenr=nr+1, parent=parent)
+            yield Article(headline=headline_spreker, author=spreker, byline=itemnaam, text=sprekerdict['tekst'], date=date, section=section, url="%s#%s" % (url, nr+1), pagenr=nr+1, parent=parent)
 
-            #for motie in sprekerdict['moties']:
-            #    yield Article(headline="%s | MOTIE" % headline_spreker, author=spreker, byline=itemnaam, text=motie, date=date, section=section,
-            #                  url="%s#%s" % (url, nr+1), pagenr=nr+1, parent=parent)
-        return []
+            for motie in sprekerdict['moties']:
+                yield Article(headline="%s | MOTIE" % headline_spreker, author=spreker, byline=itemnaam, text=motie, date=date, section=section, url="%s#%s" % (url, nr+1), pagenr=nr+1, parent=parent)
+        #return []
 
     def getMotie(self, element):
         try: motie = '\n'.join([mtekst.text_content() for mtekst in element.find('mtekst')])
