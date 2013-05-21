@@ -128,8 +128,7 @@ class DraaiboekenScraper(DBScraper):
     
         art = Article(headline=medium, text=body,
                       medium = med, date=date, url = url)
-        #yield art
-        return []
+        yield art
 
 
 if __name__ == '__main__':
