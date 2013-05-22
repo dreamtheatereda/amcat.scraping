@@ -55,8 +55,11 @@ class DeKrantVanToenScraper(HTTPScraper):
                     continue
                 article_id = onclick.split("('")[1].split("',")[0]
 
-                right_td = [td for td in table.cssselect("td") if td.get('align') == 'right'][0]
-                date = readDate(right_td.text_content())
+                try:
+                    right_td = [td for td in table.cssselect("td") if td.get('align') == 'right'][0]
+                    date = readDate(right_td.text_content())
+                except IndexError:
+                    continue
                 
                 footer = table.cssselect("span i nobr")[0].text_content()
                 pagenr_section_pattern = re.compile(
