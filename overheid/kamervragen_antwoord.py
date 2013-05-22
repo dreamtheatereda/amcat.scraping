@@ -31,7 +31,6 @@ from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 from amcat.models.article import Article
 from amcat.tools import toolkit
-from amcat.models.medium import get_or_create_medium
 
 def adhocDateFix(datestring):
     datestring = datestring.replace('-02-31','-03-03').replace('-02-30','-03-02').replace('20090', '2009')
@@ -39,7 +38,7 @@ def adhocDateFix(datestring):
         
 class KamervragenAntwoordScraper(OfficieleBekendmakingenScraper):
     doctypelist = ['kamervragen_aanhangsel']
-    medium_name = "antwoord op kamervraag"
+    medium_name ="antwoord op kamervraag"
 
     def getAntwoord(self, bodypart, xml):
         nr = bodypart.find('nummer')
@@ -58,9 +57,11 @@ class KamervragenAntwoordScraper(OfficieleBekendmakingenScraper):
     def getBody(self, xml):
         body = ''
         notesdict = self.getNotesDict(xml, printit=False)
-    
-        try: bodyparts = xml.cssselect('reactie')[0].getchildren() # alternatives for different notation styles
-        except: bodyparts = xml.cssselect('kamervragen')[0].getchildren()
+
+        if len(xml.cssselect('reactie')) > 0: bodyparts = xml.cssselect('reactie')[0].getchildren() 
+        elif len(xml.cssselect('kamervragen')) > 0: bodyparts = xml.cssselect('kamervragen')[0].getchildren()
+        else: bodyparts = xml.cssselect('body')[0].getchildren()
+        
 
         for bodypart in bodyparts:
             if bodypart.tag in ['omschr', 'kamervraagomschrijving']:               
@@ -71,7 +72,7 @@ class KamervragenAntwoordScraper(OfficieleBekendmakingenScraper):
                 body += '\n' + bodypart.text_content().replace('\n',' ').replace('\r','').replace('Toelichting:', 'Toelichting:\n') + '\n'
             elif bodypart.tag == 'al': body += '\n' + bodypart.text_content().replace('\n',' ').replace('\r','') + '\n'
             elif bodypart.tag == 'kamervraagopmerking': body += '\n' + bodypart.text_content().replace('\n',' ').replace('\r','').replace('Mededeling','\n') + '\n'
-            elif bodypart.tag in ['vraagnummer','noot','kamervraagkop','kamervraagnummer','vraag']: None
+            elif bodypart.tag in ['titel','vraagnummer','noot','kamervraagkop','kamervraagnummer','vraag']: None
             else:
                 log.warn("Unused <reactie> element: %s" % bodypart)
                 
@@ -88,10 +89,13 @@ class KamervragenAntwoordScraper(OfficieleBekendmakingenScraper):
         except:
             log.warn("COULD NOT FIND XML FOR %s" % url) 
             return
-           
+   
         url = url.replace('.xml','.html')
-        metadict = self.getMetaDict(xml, printit=True)
-        notesdict = self.getNotesDict(xml, printit=False)
+        metadict = self.getMetaDict(xml, printit=False)
+
+        if len(metadict) == 0:
+            log.warn("NO METADATA FOR %s. SKIPPING URL" % url) 
+            return
 
         section = self.safeMetaGet(metadict,'OVERHEID.category')
         document_id = metadict['DC.identifier']
