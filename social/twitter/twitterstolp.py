@@ -70,7 +70,7 @@ from lxml import html
 
 
 class TwitterPoliticiScraper(HTTPScraper, DBScraper):
-    medium_name = "Twitter - invloedrijke twitteraars en politici"
+    medium_name = "Twitter"
 
     def __init__(self, *args, **kwargs):
         super(TwitterPoliticiScraper, self).__init__(*args, **kwargs)
