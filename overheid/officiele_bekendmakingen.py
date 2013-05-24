@@ -28,13 +28,15 @@ log = logging.getLogger(__name__)
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 from amcat.models.article import Article
-from amcat.tools import toolkit
-        
+from amcat.tools import toolkit        
+
 INDEXURL = "%s/actueel/1/%s"
 BASEURL = "https://zoek.officielebekendmakingen.nl/%s"
 
-def getUrlsFromSet(setid):
-    articles = (Article.objects.filter(articlesets_set = setid).only("url"))
+def getUrlsFromSet(setid, date):
+    fromdate = date - datetime.timedelta(150)
+    todate = date + datetime.timedelta(2)
+    articles = (Article.objects.filter(date__gt = fromdate).filter(date__lt = todate).filter(articlesets_set = setid).only("url"))
     urls = set(a.url.split('#')[0] for a in articles)
     return urls
 
@@ -47,7 +49,9 @@ class OfficieleBekendmakingenScraper(DatedScraper, HTTPScraper):
         for page in self.get_pages():
             doc = self.getdoc(page)
             for arturl in set(a.get('href') for a in doc.cssselect('div.lijst > ul > li > a')):
-                if existing_urls == []: existing_urls = getUrlsFromSet(setid=self.articleset)
+                if existing_urls == []: 
+                    existing_urls = getUrlsFromSet(setid=self.articleset,date=self.options['date'])
+                    print(len(existing_urls))
                 arturl = BASEURL % arturl
                 if arturl in existing_urls:
                     print("Already in articleset: %s" % arturl)
