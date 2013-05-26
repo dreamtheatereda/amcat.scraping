@@ -19,79 +19,103 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
+from math import ceil
 import re
-from datetime import timedelta, datetime
-from lxml import html
 
 from amcat.scraping.scraper import HTTPScraper, DatedScraper
 from amcat.scraping.document import HTMLDocument
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
 
-from urllib2 import HTTPError
 
 class NuScraper(HTTPScraper, DatedScraper):
-    medium_name = "Nu.nl"
-    index_url = "http://www.nu.nl"
+    medium_name = "nu.nl - website"
+    search_url = "http://www.nu.nl/zoeken/?q=&limit=50&preview=0&page={p}"
 
     def _get_units(self):
-        for category_url in self.get_categories():
-            category_doc = self.getdoc(category_url)
-            first_article_url = urljoin(category_url, 
-                                        category_doc.cssselect("#middlecolumn div.subarticle a")[0].get('href'))
-            for url, doc in self.iterate_articles(first_article_url):
-                yield (url, doc)
-
-    def get_categories(self):
-        categories = []
-        index_doc = self.getdoc(self.index_url)
-        main_categories = index_doc.cssselect("#mainmenu ul.listleft > li")
-        for li in main_categories[2:]:
-            categories.append(li.cssselect("a")[0].get('href'))
-        skip = ['nufoto','weer/index','verkeer/index','socialtools','colofon']
-        for href in categories:
-            if all([(s not in href) for s in skip]):
-                yield urljoin(self.index_url, href)
-
-    def iterate_articles(self, next_url):
-        """iterate over articles using the 'last article' button continuously"""
-        urls = [next_url]
-        d = self.options['date']
-        self.date = datetime(d.year, d.month, d.day)
-        while self.date.date() >= self.options['date']:
-            doc = self.getdoc(next_url)
-            if doc.cssselect("div.dateplace div.dateplace-data"):
-                date_str = re.search("([0-9]{1,2} (januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december) [0-9]{4} [0-9]{2}\:[0-9]{2})", doc.cssselect("div.dateplace div.dateplace-data")[0].text).group(1)
-            self.date = readDate(date_str)
-            if self.date.date() == self.options['date']:
-                yield next_url, doc
-            next_url = urljoin(
-                next_url, 
-                [a.get('href') for a in doc.cssselect("div.widgetsection a.trackevent") if a.get('data-trackeventaction') == "vorig_artikel"][0])
-            if next_url in urls:
-                #sadly, sometimes there is a loop
+        initial_url = self.search_url.format(p = 1)
+        initial_doc = self.getdoc(initial_url)
+        n_results = int(initial_doc.cssselect("#searchlist header h1")[0].text.strip().split(" ")[-1])
+        for page in self.pinpoint_pages(n_results):
+            for div in page.cssselect("div.subarticle"):
+                date = readDate(div.cssselect("span.date")[0].text).date()
+                if date == self.options['date']:
+                    url = div.cssselect("h2 a")[0].get('href')
+                    yield (date, url)
+        
+    def pinpoint_pages(self, n_results):
+        #loading a single page takes a long time so we're using a smarter algorithm
+        n_pages = int(ceil(n_results / 50.))
+        p = n_pages / 2
+        anchor_page = 0
+        jump_distance = n_pages / 4
+        while True:
+            print("Inspecting page {p} of search results...".format(**locals()))
+            dates, page = self.page_has_articles(p)
+            if page:
+                print("Page with correct date found!")
+                yield page
+                anchor_page = p
                 break
-            urls.append(next_url)
+            elif dates[0] < self.options['date']:
+                #if articles too old, jump a few pages back
+                p -= jump_distance
+            elif dates[0] > self.options['date']:
+                #if articles too young, jump a few pages forward
+                p += jump_distance
+            jump_distance /= 2
 
-    def _scrape_unit(self, urldoc):
-        article = HTMLDocument(url = urldoc[0])
-        article.doc = urldoc[1]
-        article.props.date = self.date
-        article.props.headline = article.doc.cssselect("div.header h1")[0].text
-        article.props.text = article.doc.cssselect("div.content h2, div, p")
-        article.props.author = article.doc.cssselect("span.smallprint")[0].text_content()
-        if "|" in article.props.author:
-            article.props.author = article.props.author.split('|')[0]
-        if 'nuzakelijk.nl' in urldoc[0]:
-            article.props.section = article.doc.cssselect("#articlebody a.category")[-1].text
+            if jump_distance == 0:
+                raise Exception("No articles found for given date")
+
+        #check back
+        while True:
+            p -= 1
+            d, page = self.page_has_articles(p)
+            if page:
+                yield page
+            else:
+                break
+            
+        #check forward
+        p = anchor_page
+        while True:
+            p += 1
+            d, page = self.page_has_articles(p)
+            if page:
+                yield page
+            else:
+                break
+        
+    def page_has_articles(self, p):
+        page = self.getdoc(self.search_url.format(**locals()))
+        articles = page.cssselect("div.subarticle")
+        dates = [readDate(article.cssselect("span.date")[0].text).date() for article in articles]
+        if any([date == self.options['date'] for date in dates]):
+            return dates, page
         else:
-            article.props.section = article.doc.cssselect("#categoryheader h2 a")[-1].text
+            return dates, None
+
+
+    def _scrape_unit(self, date_url):
+        date, url = date_url
+        article = HTMLDocument(url = url, date = date)
+        article.prepare(self)
+        article.props.headline = article.doc.cssselect("#leadarticle div.header h1")[0].text_content().strip()
+        article.props.section = url.split("/")[3].upper()
+        article.props.summary = article.doc.cssselect("#leadarticle div.content h2.summary")
+        article.doc.cssselect("center.articlebodyad")[0].drop_tree()
+        article.props.text = article.doc.cssselect("#leadarticle div.content")
+        smallprint = article.doc.cssselect(
+            "#leadarticle div.content span.smallprint")[0].text_content().split("|")[0]
+        article.props.author = smallprint.split("Door:")[1].strip()
+        article.props.tags = [a.text_content() for a in article.doc.cssselect("#middlecolumn div.tags li a")]
         yield article
+
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.scraper")
-    amcatlogging.debug_module("amcat.scraping.document")
+    amcatlogging.debug_module("amcat.scraping")
     cli.run_cli(NuScraper)
     
