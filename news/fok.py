@@ -99,6 +99,8 @@ class FokScraper(HTTPScraper, DatedScraper):
             comment.props.date = readDate(div.cssselect("a.timelink")[0].text)
             comment.props.text = div.cssselect("div.reactieBody")[0]
             comment.props.parent = page
+            comment.props.section = page.props.section
+            comment.props.url = page.props.url
             yield comment
 
 
