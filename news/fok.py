@@ -79,7 +79,7 @@ class FokScraper(HTTPScraper, DatedScraper):
                 time.sleep(5)
             else:
                 break
-        
+        page.props.section = page.props.url.split("/")[3]
         bodyparts = page.doc.cssselect("div.itemBody")[0]
         page.props.text = bodyparts.text_content().split('Lees ook:\n')[0].strip()
         page.props.headline = page.doc.cssselect("h1.title")[0].text.strip("\n")
@@ -98,7 +98,7 @@ class FokScraper(HTTPScraper, DatedScraper):
             comment.props.author = div.cssselect("span.left a")[0].text
             comment.props.date = readDate(div.cssselect("a.timelink")[0].text)
             comment.props.text = div.cssselect("div.reactieBody")[0]
-            comment.parent = page
+            comment.props.parent = page
             yield comment
 
 
