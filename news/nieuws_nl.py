@@ -30,14 +30,8 @@ from amcat.scraping.scraper import HTTPScraper,DatedScraper
 class Nieuws_nlScraper(HTTPScraper, DatedScraper):
     medium_name = "nieuws.nl"
 
-    def __init__(self, *args, **kwargs):
-        super(Nieuws_nlScraper, self).__init__(*args, **kwargs)
-
-
     def _get_units(self):
-
-        url = INDEX_URL
-        index = self.getdoc(url)
+        index = self.getdoc(INDEX_URL)
         for unit in index.cssselect('div.submenu a'):
             href = unit.get('href')
             for page in self.get_pages(self.getdoc(href)):
@@ -49,15 +43,11 @@ class Nieuws_nlScraper(HTTPScraper, DatedScraper):
                     if i > 0:
                         yield HTMLDocument(url=article.get('href'),headline=article.get('title'))
                     i-=1
-
-
                     
     def get_pages(self, doc):
         for page in doc.cssselect("#page_navigation_bar a")[:-1]:
             url = page.get('href')
             yield self.getdoc(url)
-
-
         
     def _scrape_unit(self, article): 
         
