@@ -84,39 +84,56 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
         }
         self.open(INDEX_URL, urlencode(POST_DATA))
 
+    def fix_row(self, row):
+        #as of 2013-05-28 the csv file has a strange format in an unknown dialect
+        #this is a quick fix in wait of a more elegant solution
+        n_row = row[:]
+        for item in row:
+            n_row = unicode(item, 'utf-8')
+        row = n_row[:]
+        if len(row) > 1:
+            return row
+        list_initial = unicode(row[0],'utf-8').split(",")
+        list_final = []
+        chain = False
+        for item in list_initial:
+            if item.strip().startswith('"') and item.strip().endswith('"'):
+                list_final.append(item)
+            elif item.startswith('"'):
+                chain = item.lstrip('"')
+            elif item.endswith('"') and chain:
+                list_final.append(chain + item.rstrip('"'))
+                chain = False
+            else:
+                if chain:
+                    chain += item
+                else:
+                    list_final.append(item)
+        return list_final
 
     def _get_units(self):
         """get pages"""
         i = 0
         for row in CSV_FILE:
-            for index, cell in enumerate(row):
-                row[index] = cell.decode('utf-8')
+            row = self.fix_row(row)
             i = i + 1
             if i == 1:
                 continue
-            try:
-                url = row[7]
-                if len(url)<5:
-                    continue
-                page = self.open(url)
-            except (HTTPError,URLError):
-                msg = "{} twitter addres ({}) not found\n".format(row[0],row[7]).encode('utf-8')
-                print(msg)
-                self.notfound.write(msg)
-                continue
-
+            url = row[7]
             screenname = url.split("/")[-1]
             yield DATA_URL.format(screenname=screenname)
-                
-
-
-        
 
         
     def _scrape_unit(self, url):
         """gets articles from a page"""
+        try:
+            _json = self.open(url).read()
+        except (HTTPError, URLError):
+            msg = "{} twitter addres ({}) not found\n".format(row[0],row[7]).encode('utf-8')
+            print(msg)
+            self.notfound.write(msg)
+            return
 
-        _json = self.open(url).read()
         data = json.loads(_json)
         done=False
         while data['has_more_items'] and done==False:
