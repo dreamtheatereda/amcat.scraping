@@ -26,8 +26,7 @@ from urllib import urlencode
 
 from lxml import etree
 from urlparse import urljoin
-#from amcat.tools.toolkit import readDate
-
+import re
 
 INDEX_URL = "http://dvhn.x-cago.net/{y}{m:02d}{d:02d}/public/"
 LOGIN_URL = "http://dvhn.x-cago.net/login.vm"
@@ -37,10 +36,6 @@ from amcat.scraping.scraper import HTTPScraper,DBScraper
 
 class DVHNScraper(HTTPScraper, DBScraper):
     medium_name = "Dagblad van het Noorden"
-
-    def __init__(self, *args, **kwargs):
-        super(DVHNScraper, self).__init__(*args, **kwargs)
-
 
     def _login(self, username, password):
         
@@ -60,28 +55,28 @@ class DVHNScraper(HTTPScraper, DBScraper):
             'm' : self.options['date'].month,
             'd' : self.options['date'].day
         }
-
-
         url = INDEX_URL.format(**index_dict)
         index = self.getdoc(url) 
-
+        self.sections_pages(index)
         scripts = index.cssselect("script")
-
         pages = []
         for script in scripts:
             string = etree.tostring(script)
             if "document.write('&lt;option name=" in string:
                 start = string.find("value=\"")+7;end = string.find("\"",start)
                 pages.append(int(string[start:end]))
-
-
         for page in pages:
             url = PAGE_URL.format(p=page,**index_dict)
             yield (page,url)
         
-                
-
-
+    def sections_pages(self, doc):
+        #map sections  to pages
+        self.section_dict = {}
+        for option in doc.cssselect("#pageSelect option"):
+            if option.get('class') == "opttitle":
+                cur_section = option.text
+            else:
+                self.section_dict[int(option.get('value'))] = cur_section
         
     def _scrape_unit(self, p_u):
         (pagenr, url) = p_u
@@ -96,10 +91,15 @@ class DVHNScraper(HTTPScraper, DBScraper):
                 
                 href = "/".join(args[0].split("/")[4:])
                 url = urljoin("http://dvhn.x-cago.net",href)
+                
                 articles.add(HTMLDocument(url=url[:-6]+"_text.html", pagenr = pagenr))
 
         for article in articles:
-            yield self.get_article(article)
+            article.props.section = self.sections_dict[article.props.pagenr]
+            no_text = "Er is geen tekst weergave beschikbaar voor dit artikel."
+            article = self.get_article(article)
+            if not no_text in article.props.text:
+                yield article
 
 
     def get_article(self, page):
@@ -113,8 +113,6 @@ class DVHNScraper(HTTPScraper, DBScraper):
         page.props.date = self.options['date']
         return page
     
-
-
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging

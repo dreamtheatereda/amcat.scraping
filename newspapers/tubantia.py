@@ -43,7 +43,7 @@ from httplib import BadStatusLine
 from ast import literal_eval
 
 class TubantiaScraper(HTTPScraper, DBScraper):
-    medium_name = "Tubantia"
+    medium_name = "Dagblad Tubantia/Twentsche Courant"
     paper = "tubantia"
 
 
@@ -115,7 +115,9 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         ipage.doc = self.open(page['url'])
         
         text = wegenertools.clean(ipage.doc.read())
-
+        err_text = "Uw account is niet geregistreerd voor de door u gekozen uitgave."
+        if err_text in text:
+            raise Exception(err_text)
         for article_ids in wegenertools.get_article_ids(text):
             body,headline,byline = wegenertools.get_article(text,article_ids)
             if len(body) >= 300: #filtering non-articles, image links and other html crap
@@ -152,6 +154,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
                     if match:
                         #dateline and theme have the same syntax and are therefore undistinguishable
                         artpage.props.dateline_or_theme = match.group(2) or match.group(5)
+                    artpage.props.url = page['url']
                     yield artpage
 
 if __name__ == '__main__':
