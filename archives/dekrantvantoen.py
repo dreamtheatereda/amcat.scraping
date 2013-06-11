@@ -55,7 +55,6 @@ class DeKrantVanToenScraper(HTTPScraper):
                 except IndexError:
                     continue
                 article_id = onclick.split("('")[1].split("',")[0]
-
                 try:
                     right_td = [td for td in table.cssselect("td") if td.get('align') == 'right'][0]
                     date = readDate(right_td.text_content())
@@ -66,9 +65,7 @@ class DeKrantVanToenScraper(HTTPScraper):
                 pagenr_section_pattern = re.compile(
                     "\({self.paper_full_name} +([a-zA-Z ]+) +, blz ([0-9]+)\)".format(**locals()))
                 section, pagenr = pagenr_section_pattern.search(footer).groups()
-
                 headline = table.cssselect("td.result a")[0].text_content().strip()
-
                 yield (headline, date, pagenr, section.strip(), self.pdf_url.format(**locals()))
             if n == 0:
                 break
@@ -85,13 +82,14 @@ class DeKrantVanToenScraper(HTTPScraper):
             offset += 11
             page = self.getdoc(self.search_url.format(**locals()))
             yield page                    
-        
+     
     def _scrape_unit(self, data): 
         headline, article_date, pagenr, section, url = data
         art = HTMLDocument(
             headline = headline, date = article_date, 
             pagenr = pagenr, section = section, url = url)
         art.doc = self.open(url).read()
+
         text = self.pdf_to_text(art.doc).decode('utf-8')
         art.props.text = self.fix_text(text)
         art.props.source = "dekrantvantoen.nl"
