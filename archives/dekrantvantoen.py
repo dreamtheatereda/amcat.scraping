@@ -48,6 +48,7 @@ class DeKrantVanToenScraper(HTTPScraper):
 
     def _get_units(self):
         for page in self.search_result_pages():
+            n = 0
             for table in page.cssselect("#containerContent table"):
                 try:
                     onclick = table.cssselect("td.result a")[0].get('onclick')
@@ -60,7 +61,7 @@ class DeKrantVanToenScraper(HTTPScraper):
                     date = readDate(right_td.text_content())
                 except IndexError:
                     continue
-                
+                n += 1
                 footer = table.cssselect("span i nobr")[0].text_content()
                 pagenr_section_pattern = re.compile(
                     "\({self.paper_full_name} +([a-zA-Z ]+) +, blz ([0-9]+)\)".format(**locals()))
@@ -69,14 +70,18 @@ class DeKrantVanToenScraper(HTTPScraper):
                 headline = table.cssselect("td.result a")[0].text_content().strip()
 
                 yield (headline, date, pagenr, section.strip(), self.pdf_url.format(**locals()))
+            if n == 0:
+                break
         
     def search_result_pages(self):
         sdate = self.options['first_date']
         edate = self.options['last_date']
         offset = 0
+        print(self.search_url.format(**locals()))
+        print("\n")
         page = self.getdoc(self.search_url.format(**locals()))
         yield page
-        while len(page.cssselect("#containerContent table")) > 11:
+        while True:
             offset += 11
             page = self.getdoc(self.search_url.format(**locals()))
             yield page                    

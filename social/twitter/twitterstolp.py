@@ -87,13 +87,14 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
     def fix_row(self, row):
         #as of 2013-05-28 the csv file has a strange format in an unknown dialect
         #this is a quick fix in wait of a more elegant solution
-        n_row = row[:]
+        n_row = []
         for item in row:
-            n_row = unicode(item, 'utf-8')
+            n_row.append(unicode(item, 'utf-8'))
         row = n_row[:]
         if len(row) > 1:
             return row
-        list_initial = unicode(row[0],'utf-8').split(",")
+        
+        list_initial = row[0].split(",")
         list_final = []
         chain = False
         for item in list_initial:
@@ -126,14 +127,7 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
         
     def _scrape_unit(self, url):
         """gets articles from a page"""
-        try:
-            _json = self.open(url).read()
-        except (HTTPError, URLError):
-            msg = "{} twitter addres ({}) not found\n".format(row[0],row[7]).encode('utf-8')
-            print(msg)
-            self.notfound.write(msg)
-            return
-
+        _json = self.open(url).read()
         data = json.loads(_json)
         done=False
         while data['has_more_items'] and done==False:
