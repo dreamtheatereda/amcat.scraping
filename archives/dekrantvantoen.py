@@ -48,45 +48,48 @@ class DeKrantVanToenScraper(HTTPScraper):
 
     def _get_units(self):
         for page in self.search_result_pages():
+            n = 0
             for table in page.cssselect("#containerContent table"):
                 try:
                     onclick = table.cssselect("td.result a")[0].get('onclick')
                 except IndexError:
                     continue
                 article_id = onclick.split("('")[1].split("',")[0]
-
                 try:
                     right_td = [td for td in table.cssselect("td") if td.get('align') == 'right'][0]
                     date = readDate(right_td.text_content())
                 except IndexError:
                     continue
-                
+                n += 1
                 footer = table.cssselect("span i nobr")[0].text_content()
                 pagenr_section_pattern = re.compile(
                     "\({self.paper_full_name} +([a-zA-Z ]+) +, blz ([0-9]+)\)".format(**locals()))
                 section, pagenr = pagenr_section_pattern.search(footer).groups()
-
                 headline = table.cssselect("td.result a")[0].text_content().strip()
-
                 yield (headline, date, pagenr, section.strip(), self.pdf_url.format(**locals()))
+            if n == 0:
+                break
         
     def search_result_pages(self):
         sdate = self.options['first_date']
         edate = self.options['last_date']
         offset = 0
+        print(self.search_url.format(**locals()))
+        print("\n")
         page = self.getdoc(self.search_url.format(**locals()))
         yield page
-        while len(page.cssselect("#containerContent table")) > 11:
+        while True:
             offset += 11
             page = self.getdoc(self.search_url.format(**locals()))
             yield page                    
-        
+     
     def _scrape_unit(self, data): 
         headline, article_date, pagenr, section, url = data
         art = HTMLDocument(
             headline = headline, date = article_date, 
             pagenr = pagenr, section = section, url = url)
         art.doc = self.open(url).read()
+
         text = self.pdf_to_text(art.doc).decode('utf-8')
         art.props.text = self.fix_text(text)
         art.props.source = "dekrantvantoen.nl"

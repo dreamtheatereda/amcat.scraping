@@ -21,57 +21,53 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from amcat.scraping.document import HTMLDocument
 from amcat.tools.toolkit import readDate
-
-
-INDEX_URL = "http://www.nieuws.nl"
-
 from amcat.scraping.scraper import HTTPScraper,DatedScraper
 
 class Nieuws_nlScraper(HTTPScraper, DatedScraper):
     medium_name = "nieuws.nl"
-
-    def __init__(self, *args, **kwargs):
-        super(Nieuws_nlScraper, self).__init__(*args, **kwargs)
-
+    index_url = "https://www.nieuws.nl"
 
     def _get_units(self):
-
-        url = INDEX_URL
-        index = self.getdoc(url)
-        for unit in index.cssselect('div.submenu a'):
-            href = unit.get('href')
-            for page in self.get_pages(self.getdoc(href)):
-                i = 0
-                for _article in page.cssselect("#mainlayout_rundown .mainlayout_datum"):
-                    if readDate(_article.text_content()).date() == self.options['date']:
-                        i += 1
-                for article in page.cssselect("h2 a"):
-                    if i > 0:
-                        yield HTMLDocument(url=article.get('href'),headline=article.get('title'))
-                    i-=1
-
-
+        index_page = self.getdoc(self.index_url)
+        for category_url in [a.get('href') for a in index_page.cssselect("#mainMenu a.menuMainItem")]:
+            for a, _date in self.get_articles(category_url):
+                article = HTMLDocument(date = _date)
+                article.props.url = a.get('href')
+                article.props.section = a.cssselect("div.meta span.tag")[0].text
+                article.props.headline = a.cssselect("h3")[0].text_content()
+                article.props.thumbnail = a.cssselect("div.text p")
+                yield article
                     
-    def get_pages(self, doc):
-        for page in doc.cssselect("#page_navigation_bar a")[:-1]:
-            url = page.get('href')
-            yield self.getdoc(url)
-
-
-        
+    page_url = "{category_url}?ajax=1&after={data_after}&ajax=1"
+    def get_articles(self, category_url):
+        cat_doc = self.getdoc(category_url)
+        data_after = cat_doc.cssselect("#nextPage")
+        if not data_after:
+            for a in cat_doc.cssselect("a.article"):
+                _date = readDate(a.cssselect("div.meta span.time")[0].text.split(":")[1])
+                if _date.date() == self.options['date']:
+                    yield a, _date
+            return
+        else:
+            data_after = data_after[0].get('data-after')
+        while True:
+            page_doc = self.getdoc(self.page_url.format(**locals()))
+            for a in page_doc.cssselect("a.article"):
+                _date = readDate(a.cssselect("div.meta span.time")[0].text.split(":")[1])
+                if _date.date() == self.options['date']:
+                    yield a, _date
+                elif _date.date() < self.options['date']:
+                    return
+            data_after = cat_doc.cssselect("#nextPage").get('data-after')
+            
     def _scrape_unit(self, article): 
-        
         article.prepare(self)
-        article.doc = self.getdoc(article.props.url)
-        article.props.section = article.doc.cssselect("div.page_title h1")[0].text
-        article.props.date = self.options['date']
-        article.props.text = article.doc.cssselect("p")
+        article.props.last_updated = readDate(article.doc.cssselect("div.meta span.time")[0].text.split(":")[1])
+        article.props.intro = article.doc.cssselect("div.intro h2")
+        article.props.text = article.doc.cssselect("div.article div.text")[0]
+        article.props.author = article.doc.cssselect("div.metafooter span.author")[0].text.split(":")[1].strip()
         yield article
         
-
-
-
-
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging

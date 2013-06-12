@@ -29,7 +29,7 @@ FRONTPAGE_URL = "http://frontpage.fok.nl"
 INDEX_URL = "http://frontpage.fok.nl/nieuws/archief/{y:04d}/{m:02d}/{d:02d}"
 
 class FokScraper(HTTPScraper, DatedScraper):
-    medium_name = "fok nieuws"
+    medium_name = "fok.nl"
 
     def _cookie(self):
         page = self.open(FRONTPAGE_URL)
@@ -99,6 +99,8 @@ class FokScraper(HTTPScraper, DatedScraper):
             comment.props.date = readDate(div.cssselect("a.timelink")[0].text)
             comment.props.text = div.cssselect("div.reactieBody")[0]
             comment.props.parent = page
+            comment.props.section = page.props.section
+            comment.props.url = page.props.url
             yield comment
 
 

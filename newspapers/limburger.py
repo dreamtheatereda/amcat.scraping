@@ -76,7 +76,11 @@ class LimburgerScraper(HTTPScraper, DBScraper):
                 for td in table.cssselect("td.artitem"):
                     link = td.get('onclick').split(",")[0].lstrip("showDetails('").rstrip("'")
                     arturl = urljoin(url, link)
-                    yield self.get_article(arturl)
+                    article = self.get_article(arturl)
+                    if "Er is geen tekst weergave beschikbaar voor dit artikel." in article.props.text:
+                        continue
+        
+                    
                 correcttable = False
                                                                
             if "Artikelen op deze pagina" in table.text_content():
@@ -91,8 +95,6 @@ class LimburgerScraper(HTTPScraper, DBScraper):
         article.props.text = article.doc.cssselect("table.body")[0]
         if article.doc.cssselect("td.artauthor"):
             article.props.author = article.doc.cssselect("td.artauthor")[0].text_content().lstrip("dor")
-        else:
-            article.props.author = "-"
         article.props.date = self.options['date']
         article.props.section = self.section
         return article
