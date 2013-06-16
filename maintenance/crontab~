@@ -1,0 +1,21 @@
+#crontab file for amcat scraping defining at what time which scrapers must run
+#commands are preceded by '. ~/.profile' which sets environment variables that either vary per user or are confidential
+#In order to put this crontab into place, run 'sudo crontab -u $USER $PYTHONPATH/amcat/scraping/maintenance/crontab'
+#Then, set the environment variables in your ~/.profile
+#
+#Mandatory:
+#	PYTHONPATH
+#Recommended:
+#	DJANGO_DB_USER
+#	DJANGO_DB_PASSWORD
+#	DJANGO_EMAIL_USER
+#	DJANGO_EMAIL_PASSWORD
+#	DJANGO_DB_HOST
+#Optional: Any
+
+DJANGO_SETTINGS_MODULE='settings'
+30 * * * * . ~/.profile; bash /home/amcat/hourly.sh
+0 3 * * * . ~/.profile; bash $PYTHONPATH/scraping/maintenance/daily.sh
+0 0,12 * * * . ~/.profile; python $PYTHONPATH/scraping/news/top5.py 10 --articleset 47
+0 1 * * * . ~/.profile; bash $PYTHONPATH/scraping/maintenance/midnight.sh
+0 0 1 * * . ~/.profile; bash $PYTHONPATH/amcat/scripts/maintenance/generate_expected_articles.py

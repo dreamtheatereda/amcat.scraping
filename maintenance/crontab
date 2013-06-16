@@ -1,0 +1,25 @@
+#crontab file for amcat scraping defining at what time which scrapers must run
+#commands are preceded by '. ~/.amcat_crontab' which sets user-dependent or confidential environment variables
+#To activate, run 'sudo crontab -u $USER $PYTHONPATH/scraping/maintenance/crontab'
+#Then, set the environment variables in ~/.amcat_crontab
+#
+#Mandatory:
+#	PYTHONPATH
+#Recommended:
+#	TOP5_ARTICLESET
+#	SCRAPING_CHECK_MAIL
+#	DJANGO_DB_USER
+#	DJANGO_DB_PASSWORD
+#	DJANGO_EMAIL_USER
+#	DJANGO_EMAIL_PASSWORD
+#	DJANGO_DB_HOST
+#Optional: Any
+#
+#Defaults are defined below and can be overwritten
+TOP5_ARTICLESET=47
+DJANGO_SETTINGS_MODULE='settings'
+
+30 * * * * . ~/.amcat_crontab; bash $PYTHONPATH/scraping/maintenance/hourly.sh
+0 3 * * * . ~/.amcat_crontab; DJANGO_DISABLE_SENTRY=Y DJANGO_DEBUG=N bash $PYTHONPATH/scraping/maintenance/daily.sh
+0 0,12 * * * . ~/.amcat_crontab; python $PYTHONPATH/scraping/news/top5.py 10 --articleset $TOP5_ARTICLESET
+0 0 1 * * . ~/.amcat_crontab; python $PYTHONPATH/amcat/scripts/maintenance/generate_expected_articles.py
