@@ -22,6 +22,9 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.document import HTMLDocument
 from amcat.tools.toolkit import readDate
 from amcat.scraping.scraper import HTTPScraper,DatedScraper
+import json
+from datetime import date, datetime
+from lxml import html
 
 class Nieuws_nlScraper(HTTPScraper, DatedScraper):
     medium_name = "nieuws.nl"
@@ -33,39 +36,68 @@ class Nieuws_nlScraper(HTTPScraper, DatedScraper):
             for a, _date in self.get_articles(category_url):
                 article = HTMLDocument(date = _date)
                 article.props.url = a.get('href')
-                article.props.section = a.cssselect("div.meta span.tag")[0].text
-                article.props.headline = a.cssselect("h3")[0].text_content()
-                article.props.thumbnail = a.cssselect("div.text p")
+                article.props.section = article.props.url.split("/")[3]
+                article.props.headline = a.get('title')
+                if a.cssselect("div.text p"):
+                    article.props.thumbnail = a.cssselect("div.text p")
                 yield article
                     
     page_url = "{category_url}?ajax=1&after={data_after}&ajax=1"
     def get_articles(self, category_url):
-        cat_doc = self.getdoc(category_url)
-        data_after = cat_doc.cssselect("#nextPage")
+        page_doc = self.getdoc(category_url)
+        data_after = page_doc.cssselect("#nextPage")
         if not data_after:
-            for a in cat_doc.cssselect("a.article"):
-                _date = readDate(a.cssselect("div.meta span.time")[0].text.split(":")[1])
-                if _date.date() == self.options['date']:
-                    yield a, _date
-            return
-        else:
-            data_after = data_after[0].get('data-after')
-        while True:
-            page_doc = self.getdoc(self.page_url.format(**locals()))
-            for a in page_doc.cssselect("a.article"):
-                _date = readDate(a.cssselect("div.meta span.time")[0].text.split(":")[1])
+            for a, _date in self.scrape_page(page_doc):
                 if _date.date() == self.options['date']:
                     yield a, _date
                 elif _date.date() < self.options['date']:
-                    return
-            data_after = cat_doc.cssselect("#nextPage").get('data-after')
-            
+                    break
+        else:
+            data_after = data_after[0].get('data-after')
+            while True:
+                br = False
+                for a, _date in self.scrape_page(page_doc):
+                    if _date.date() == self.options['date']:
+                        yield a, _date
+                    elif _date.date() < self.options['date']:
+                        br = True
+                        break
+                if br:
+                    break
+                data_after = page_doc.cssselect("#nextPage")[0].get('data-after')
+                page_doc = json.loads(self.open(self.page_url.format(**locals())).read())
+                page_doc = html.fromstring(page_doc['content']['div#nextPage'])
+
+    def scrape_page(self, page_doc):
+        for a in page_doc.cssselect("a.article"):
+            date_str = a.cssselect("div.meta span.time")[0].text.strip()
+            if len(date_str) == 5:
+                if ":" in date_str:
+                    today = date.today()
+                    hour, minute = [int(n) for n in date_str.split(":")]
+                    self._date = datetime(today.year, today.month, today.day, hour, minute)
+                elif "-" in date_str:
+                    day, month = [int(n) for n in date_str.split("-")]
+                    if hasattr(self, '_date'):
+                        self._date = datetime(self._date.year, month, day)
+                    else:
+                        self._date = datetime(date.today().year, month, day)
+            else:
+                if "Gepubliceerd" in date_str:
+                    self._date = readDate(date_str.split(":")[1])
+                else:
+                    self._date = readDate(date_str)
+            yield a, self._date
+
     def _scrape_unit(self, article): 
         article.prepare(self)
         article.props.last_updated = readDate(article.doc.cssselect("div.meta span.time")[0].text.split(":")[1])
         article.props.intro = article.doc.cssselect("div.intro h2")
         article.props.text = article.doc.cssselect("div.article div.text")[0]
-        article.props.author = article.doc.cssselect("div.metafooter span.author")[0].text.split(":")[1].strip()
+        try:
+            article.props.author = article.doc.cssselect("div.metafooter span.author")[0].text.split(":")[1].strip()
+        except IndexError:
+            pass
         yield article
         
 if __name__ == '__main__':
