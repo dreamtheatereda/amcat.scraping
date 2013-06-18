@@ -6,7 +6,7 @@
 #Mandatory:
 #	PYTHONPATH
 #Recommended:
-#	TOP5_ARTICLESET
+#	teletekst and top5 projects/sets
 #	SCRAPING_CHECK_MAIL
 #	DJANGO_DB_USER
 #	DJANGO_DB_PASSWORD
@@ -16,10 +16,13 @@
 #Optional: Any
 #
 #Defaults are defined below and can be overwritten
+TOP5_PROJECT=10
 TOP5_ARTICLESET=47
+TELETEKST_PROJECT=3
+TELETEKST_ARTICLESET=124
 DJANGO_SETTINGS_MODULE='settings'
 
 30 * * * * . ~/.amcat_crontab; bash $PYTHONPATH/scraping/maintenance/hourly.sh
 0 3 * * * . ~/.amcat_crontab; DJANGO_DISABLE_SENTRY=Y DJANGO_DEBUG=N bash $PYTHONPATH/scraping/maintenance/daily.sh
-0 0,12 * * * . ~/.amcat_crontab; python $PYTHONPATH/scraping/news/top5.py 10 --articleset $TOP5_ARTICLESET
+0 0,12 * * * . ~/.amcat_crontab; python $PYTHONPATH/scraping/news/top5.py $TOP5_PROJECT --articleset $TOP5_ARTICLESET
 0 0 1 * * . ~/.amcat_crontab; python $PYTHONPATH/amcat/scripts/maintenance/generate_expected_articles.py

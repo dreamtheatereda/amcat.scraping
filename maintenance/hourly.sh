@@ -1,7 +1,8 @@
-#!/bin/bash                                                                                           
+#!/bin/bash                                                                                          
+
 DATE=$(date +'%Y-%m-%d')
-python $PYTHONPATH/scraping/teletekst.py --articleset 22842 258 $DATE [] []
+python $PYTHONPATH/scraping/teletekst.py $TELETEKST_PROJECT --articleset $TELETEKST_ARTICLESET $DATE
 wait
-kill `ps -ef |grep _twitter|grep -v grep|awk '{print $2}'`
+kill `ps -ef |grep twitter_statuses_filter|grep -v grep|awk '{print $2}'`
 wait
-python $PYTHONPATH/scraping/social/_twitter.py amcat3 nieuwsmonitor
+python $PYTHONPATH/scraping/social/twitter/twitter_statuses_filter.py $DATE

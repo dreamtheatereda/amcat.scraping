@@ -27,7 +27,7 @@ from datetime import date, datetime
 from lxml import html
 
 class Nieuws_nlScraper(HTTPScraper, DatedScraper):
-    medium_name = "nieuws.nl"
+    medium_name = "Nieuws.nl"
     index_url = "https://www.nieuws.nl"
 
     def _get_units(self):
