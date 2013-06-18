@@ -82,7 +82,7 @@ class Listener(StreamListener):
 
     def on_data(self,data):
         data = self.dict_unicode_to_str(json.loads(data))
-        if data['user']['lang'] != 'nl':
+        if 'user' not in data.keys() or data['user']['lang'] != 'nl':
             return
         log.info("user '{data[user][id]}' said: \"{data[text]}\"".format(**locals()))
         for k,v in data.items():

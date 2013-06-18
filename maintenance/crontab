@@ -15,7 +15,7 @@
 #	DJANGO_DB_HOST
 #Optional: Any
 #
-#Defaults are defined below and can be overwritten
+#Defaults are defined below and can be overwritten in ~/.amcat_crontab
 TOP5_PROJECT=10
 TOP5_ARTICLESET=47
 TELETEKST_PROJECT=3

@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, print_function
 ###########################################################################
@@ -151,16 +152,15 @@ class AD(HTTPScraper):
         article.prepare(self)
         authordate = article.doc.cssselect('span.author')[0].text_content()
         
-        p = "^(Door:? ([a-zA-Z0-9 ]+))?(\n\n([0-9]+\-[0-9]+\-[0-9]+))?"
+        p = "((Bewerkt door)|(Door)):?( |\n)([A-Za-z0-9 ]+)\n\n(([0-9]{1,2}\-){2}[0-9]{1,2})"
         pattern = re.compile(p)
-        match = pattern.match(authordate.strip())
-        article.props.author = match.group(2)
-        article.props.date = readDate(match.group(4))
+        match = pattern.search(authordate.strip())
+        article.props.author = match.group(5)
+        article.props.date = readDate(match.group(6))
         try:
             article.props.source = authordate.split("bron:")[1].strip()
         except IndexError:
             pass
-
         article.props.text = article.doc.cssselect("section#detail_content p.intro,section.clear")
         article.props.headline = article.doc.cssselect("h1")[0].text
 
