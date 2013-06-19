@@ -23,7 +23,7 @@ from amcat.scraping.scraper import HTTPScraper
 from amcat.scraping.document import HTMLDocument 
 from amcat.scraping.htmltools import create_cc_cookies
 from datetime import date
-from amcat.models.medium import get_or_create_medium
+from amcat.models.medium import Medium
 
 from urlparse import urljoin
 from amcat.tools.toolkit import readDate
@@ -194,7 +194,7 @@ class Top5Scraper(HTTPScraper):
     def _scrape_unit(self, unit):
         (scraper, unit, rank) = unit
         for article in scraper._scrape_unit(unit):
-            article.props.medium = get_or_create_medium(scraper.source)
+            article.props.medium = Medium.get_or_create(scraper.source)
             article.props.rank = rank
             for attr in ['headline', 'author', 'text']:
                 if hasattr(article.props, attr):
