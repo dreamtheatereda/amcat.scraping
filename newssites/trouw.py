@@ -20,29 +20,20 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 from amcat.scraping.document import HTMLDocument
-
-#from urllib import urlencode
-#from urlparse import urljoin
 from amcat.tools.toolkit import readDate
-#from amcat.scraping.tools import toolkit
-
 from amcat.scraping.htmltools import create_cc_cookies
-
+from amcat.scraping.scraper import HTTPScraper,DatedScraper
 
 from urllib2 import HTTPError
 import re
 
 INDEX_URL = "http://www.trouw.nl/tr/nl/15/archief/integration/nmc/frameset/archive/archiveDay.dhtml?archiveDay={y:04d}{m:02d}{d:02d}"
 
-
-from amcat.scraping.scraper import HTTPScraper,DatedScraper
-
 class TrouwWebScraper(HTTPScraper, DatedScraper):
-    medium_name = "Trouw.nl"
+    medium_name = "Trouw - website"
     def _set_cookies(self):
         for cookie in create_cc_cookies(".trouw.nl"):
             self.opener.cookiejar.set_cookie(cookie)
-
 
     def _get_units(self):
         self._set_cookies()
@@ -60,18 +51,13 @@ class TrouwWebScraper(HTTPScraper, DatedScraper):
             unit.cssselect('span')[0].drop_tree()
             title = unit.cssselect('a')[0].text_content()
             yield HTMLDocument(url=href, headline = title)
-        
-
 
     def _scrape_unit(self, page): 
         page.prepare(self)
         if page.doc.cssselect("form#_caps_form"):
             return
         header = page.doc.cssselect("div.time_post")[0].text_content()
-
-        
         pattern = re.compile(r'(Bewerkt door:)?([a-zA-Z0-9 ]+)?(\u2212)?\n((\d{2,2}/){2,2}\d{2,2}), \d{2,2}:\d{2,2}\n(\xa0\u2212\xa0bron: ([A-Za-z0-9 ,]+))?')
-
         try:
             groups = pattern.search(header).groups()
         except AttributeError: #rare error where regex fails
@@ -96,12 +82,7 @@ class TrouwWebScraper(HTTPScraper, DatedScraper):
         except IndexError:
             if page.doc.cssselect("div.dos_default h2"):
                 page.props.section = "dossier: {}".format(page.doc.cssselect("div.dos_default h2")[0].text)
-
         yield page
-
-
-
-
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli

@@ -27,7 +27,7 @@ from datetime import date, datetime
 from lxml import html
 
 class Nieuws_nlScraper(HTTPScraper, DatedScraper):
-    medium_name = "nieuws.nl"
+    medium_name = "Nieuws.nl"
     index_url = "https://www.nieuws.nl"
 
     def _get_units(self):
@@ -37,7 +37,11 @@ class Nieuws_nlScraper(HTTPScraper, DatedScraper):
                 article = HTMLDocument(date = _date)
                 article.props.url = a.get('href')
                 article.props.section = article.props.url.split("/")[3]
-                article.props.headline = a.get('title')
+                h3 = a.cssselect("h3")
+                if h3:
+                    article.props.headline = h3[0].text_content()
+                elif a.get('title'):
+                    article.props.headline = a.get('title')
                 if a.cssselect("div.text p"):
                     article.props.thumbnail = a.cssselect("div.text p")
                 yield article
