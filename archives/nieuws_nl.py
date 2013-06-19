@@ -57,7 +57,14 @@ class Nieuws_nlArchiveScraper(Nieuws_nlScraper):
                     data_after = page_doc.cssselect("#nextPage")[0].get('data-after')
                 except IndexError:
                     break
-                page_doc = json.loads(self.open(self.page_url.format(**locals())).read())
+                for x in range(3):
+                    try:
+                        page_doc = json.loads(self.open(self.page_url.format(**locals())).read())
+                    except Exception as e:
+                        print(self.page_url.format(**locals()))
+                        print(e)
+                        
+                    
                 page_doc = html.fromstring(page_doc['content']['div#nextPage'])
 
 if __name__ == "__main__":
