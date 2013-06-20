@@ -28,17 +28,13 @@ import json
 from datetime import timedelta
 
 class WebFDScraper(HTTPScraper, DBScraper):
-    medium_name = "website financieel dagblad"
+    medium_name = "Het Financieele Dagblad - website"
     initial_url = "http://www.fd.nl"
-
-    def __init__(self, *args, **kwargs):
-        super(WebFDScraper, self).__init__(*args, **kwargs)
-        self.open(self.initial_url)
-
 
     login_url = "http://fd.nl/handle_login?{params}" #POST doesn't seem to work
 
     def _login(self, username, password):
+        self.open(self.initial_url)
         login_parameters = {
             'email' : username,
             'password' : password
@@ -107,9 +103,13 @@ class WebFDScraper(HTTPScraper, DBScraper):
         article.props.url = self.get_article_url(row['objectid'])
         article.doc = self.getdoc(article.props.url)
         article.props.text = article.doc.cssselect("div.left span.article")[0]
+        p = "[A-Za-z]+( [A-Za-z]+)+\n\n([A-Z][a-z]+( [A-Za-z]+){0,2})\n\n"
+        match = re.search(p, article.props.text)
+        if match:
+            article.props.dateline = match.group(2)
         for comment in self.get_comments(article.doc):
             comment.is_comment = True
-            comment.parent = article
+            comment.props.parent = article
             yield comment
 
         yield article
