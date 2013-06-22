@@ -59,12 +59,12 @@ class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
         doc.doc = self.getdoc(doc.props.url)
         doc.props.headline = doc.doc.cssselect('#node h1')[0].text_content()
         doc.props.text = doc.doc.cssselect('div.article')[0]
-
+        doc.props.section = doc.props.url.split("/")[4]
         footer = doc.doc.cssselect('div.article-options')[0].text_content().split('|')
         doc.props.author = footer[0].strip()
         doc.props.date = toolkit.readDate(" ".join(footer[1:3]))
         for c in self.comments(doc):
-            c.parent = doc
+            c.props.parent = doc
             c.is_comment = True
             yield c
 
