@@ -80,7 +80,7 @@ class SpitsnieuwsScraper(DatedScraper, HTTPScraper):
             comm.props.headline = "re: {}".format(doc.props.headline)
             comm.props.text = div.cssselect('p')
             comm.props.author = div.cssselect('strong')[0].text
-
+            comm.props.section = doc.props.section
             dt = " ".join(div.cssselect("ul")[0].text_content().split("|")[1:-1])
             comm.props.date = toolkit.readDate(dt)
             yield comm
