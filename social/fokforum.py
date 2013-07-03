@@ -40,7 +40,6 @@ INDEX_URL = "http://forum.fok.nl"
 class FokForumScraper(HTTPScraper, DatedScraper):
     medium_name = "Fok Forum"
 
-
     def start(self, *args, **kwargs):
         """opens some urls to make sure all the right headers are in place, 
         don't do this at __init__ for errors may then crash the whole daily scraping process"""
@@ -51,8 +50,6 @@ class FokForumScraper(HTTPScraper, DatedScraper):
         token = cookie_string.split(";")[0]
         self.opener.opener.addheaders.append(("Cookie",token+"; allowallcookies=1"))
         self.open(INDEX_URL)
-
-
 
     def _get_units(self):
         self.start()
@@ -68,8 +65,6 @@ class FokForumScraper(HTTPScraper, DatedScraper):
 
                 for topic_url in self.get_topics(subsection_url):
                     yield topic_url
-
-
                 
     def get_topics(self, subforum):
         doc = self.getdoc(subforum)
@@ -86,8 +81,6 @@ class FokForumScraper(HTTPScraper, DatedScraper):
                     
                 elif date < self.options['date']:
                     break
-
-
 
     def _scrape_unit(self, topic_url):
         #navigate to last page, then navigate back until comments are no longer recent
@@ -109,7 +102,7 @@ class FokForumScraper(HTTPScraper, DatedScraper):
             parent.props.section = self.current_section
         
         for post in self.get_posts(doc):
-            post.parent = parent
+            post.props.parent = parent
             yield post
 
         if isinstance(parent, Document):
@@ -128,13 +121,11 @@ class FokForumScraper(HTTPScraper, DatedScraper):
             elif date.date() < self.options['date']:
                 break
                                   
-
     def find_substr(self, start, end, text, include_arguments = True):
         if include_arguments:
             start = text.find(start); end = text.find(end, start) + len(end)
         else:
             start = text.find(start) + len(start); end = text.find(end, start)
-
         if start != -1 and end != -1:
             return text[start:end]
         else:
@@ -144,8 +135,7 @@ class FokForumScraper(HTTPScraper, DatedScraper):
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.scraper")
-    amcatlogging.debug_module("amcat.scraping.document")
+    amcatlogging.info_module("amcat.scraping")
     cli.run_cli(FokForumScraper) 
 
 

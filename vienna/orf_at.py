@@ -41,7 +41,7 @@ class OrfAtScraper(HTTPScraper, DatedScraper):
                 if doc:
                     to_add = [urljoin(self.index_url, a.get('href'))
                               for a in doc.cssselect("a")
-                              if "/stories/" in a.get('href')]
+                              if a.get('href') and "/stories/" in a.get('href')]
             urls.update(to_add)
 
         #find more articles by counting up and down the article indices
@@ -91,7 +91,10 @@ class OrfAtScraper(HTTPScraper, DatedScraper):
     def date(self, doc):
         if doc:
             if doc.cssselect("p.date"):
-                date = readDate(doc.cssselect("p.date")[0].text)
+                try:
+                    date = readDate(doc.cssselect("p.date")[0].text)
+                except ValueError:
+                    return
                 if date:
                     return date.date()
 
@@ -101,19 +104,15 @@ class OrfAtScraper(HTTPScraper, DatedScraper):
         except Exception:
             return
         if doc.cssselect("p.date"):
-            print("doc has date")
             date = readDate(doc.cssselect("p.date")[0].text_content())
-            print(date)
             if date and date.date() == self.options['date']:
-                print("is the right date, added to list")
                 self.articles[url] = doc
-                print("list is now {i} items long".format(i = len(self.articles.values())))
         return doc
 
     def _scrape_unit(self, item):
         url, doc = item
         article = HTMLDocument(url = url)
-        article.props.headline = doc.cssselect("h1")[0].text_content()
+        article.props.headline = doc.cssselect("div.storyText h1")[0].text_content()
         article.props.text = doc.cssselect(".storyText")
         article.props.date = self.date(doc)
         yield article
