@@ -25,12 +25,12 @@ from amcat.tools.toolkit import readDate
 class TeletekstScraper(HTTPScraper):
     medium_name = "Teletekst"
     def _get_units(self):
+        self.open("http://nos.nl/")
+        self.open("http://cookies.publiekeomroep.nl/accept/")
         for item in self.getdoc("http://feeds.nos.nl/nosnieuws").cssselect("item"):
             yield HTMLDocument(url = item.cssselect("link")[0].tail, date = readDate(item.cssselect('pubDate')[0].text))
 
     def _scrape_unit(self, article):
-        self.open(article.props.url)        
-        self.open("http://cookies.publiekeomroep.nl/accept/")
         article.prepare(self)
         article.props.text = article.doc.cssselect("#article-content p")
         article.props.headline = article.doc.cssselect("#article h1")[0].text_content().strip()
