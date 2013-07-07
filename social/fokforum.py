@@ -109,7 +109,7 @@ class FokForumScraper(HTTPScraper, DatedScraper):
             parent.props.section = self.current_section
         
         for post in self.get_posts(doc):
-            post.parent = parent
+            post.props.parent = parent
             yield post
 
         if isinstance(parent, Document):
