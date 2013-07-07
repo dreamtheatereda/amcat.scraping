@@ -72,10 +72,6 @@ from lxml import html
 class TwitterPoliticiScraper(HTTPScraper, DBScraper):
     medium_name = "Twitter"
 
-    def __init__(self, *args, **kwargs):
-        super(TwitterPoliticiScraper, self).__init__(*args, **kwargs)
-        self.notfound = open('readme.txt','w')
-
     def _login(self, username, password):
         
         POST_DATA = {
