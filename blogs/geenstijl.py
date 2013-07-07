@@ -58,6 +58,7 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
                 page = self.get_article(page)
                 for comment in self.get_comments(page):
                     comment.is_comment = True
+                    comment.parent = page
                     yield comment
                 yield page
                 
@@ -85,6 +86,5 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.scraper")
-    amcatlogging.debug_module("amcat.scraping.document")
+    amcatlogging.info_module("amcat.scraping")
     cli.run_cli(GeenstijlScraper)
