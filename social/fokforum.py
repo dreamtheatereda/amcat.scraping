@@ -91,7 +91,7 @@ class FokForumScraper(HTTPScraper, DatedScraper):
             parent = Article.objects.get(headline = headline, date = topic_date)
         except Article.MultipleObjectsReturned: #duplicate in 99.99% of the cases
             parents = Article.objects.filter(headline = headline, date = topic_date)
-            min_id = min([parent.id for parent in parents]) #deduplicate always keeps the lowest id
+            min_id = min([parent.id for parent in parents]) #deduplicate usually keeps the lowest id
             parent = parents.get(pk = min_id)
         except Article.DoesNotExist:
             parent = HTMLDocument(url = topic_url)
@@ -103,6 +103,7 @@ class FokForumScraper(HTTPScraper, DatedScraper):
         
         for post in self.get_posts(doc):
             post.props.parent = parent
+            post.props.url = hasattr(parent, 'props') and parent.props.url or parent.url
             yield post
 
         if isinstance(parent, Document):
