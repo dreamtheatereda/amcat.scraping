@@ -20,9 +20,12 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 try:
-    from scraping.newspapers import tubantia
+    from scrapers.newspapers import tubantia
 except ImportError:
-    from amcatscraping.newspapers import tubantia
+    try:
+        from scraping.newspapers import tubantia
+    except ImportError:
+        from amcatscraping.newspapers import tubantia
 
 class GelderlanderScraper(tubantia.TubantiaScraper):
     medium_name = "De Gelderlander"

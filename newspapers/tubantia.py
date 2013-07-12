@@ -46,10 +46,6 @@ class TubantiaScraper(HTTPScraper, DBScraper):
     medium_name = "Dagblad Tubantia/Twentsche Courant"
     paper = "tubantia"
 
-
-    def __init__(self, *args, **kwargs):
-        super(TubantiaScraper, self).__init__(*args, **kwargs)
-
     def _login(self, username, password):
         """log in on the web page
         @param username: username to log in with
@@ -93,7 +89,7 @@ class TubantiaScraper(HTTPScraper, DBScraper):
             args = [arg.strip('"') for arg in index_text[start:end].split(',')]
             pagefile, section, page_str, edition = args[:4]
             url = PAGE_URL.format(paper=self.paper, **locals())
-            yield dict(url = url, edition = edition, page_str = page_str, edition = edition)
+            yield dict(url = url, edition = edition, page_str = page_str)
         
     def _scrape_unit(self, ipage):
         page = ipage
