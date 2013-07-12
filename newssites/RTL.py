@@ -89,12 +89,15 @@ class RTLScraper(HTTPScraper, DatedScraper):
                 continue
             elif tag.cssselect("div.tagline h4"):
                 self.stories.add(urljoin(url, tag.cssselect("h4 a")[0].get('href')))
+                continue
             else:
                 h = tag.cssselect("div.body h3")[0]
                 article.props.type = "article"
                 article.props.headline = h.text_content().strip()
                 if h.cssselect("a"):
                     article.props.url = urljoin(url, h.cssselect("a")[0].get('href'))
+                else:
+                    article.props.url = url
             yield article
 
     def _scrape_unit(self, article):
