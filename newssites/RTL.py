@@ -22,12 +22,11 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 
+from urllib2 import HTTPError
 from urlparse import urljoin
-from lxml import html
+from datetime import datetime
 
-BASE_URL = "http://www.rtl.nl/"
-INDEX_URL = "http://www.rtl.nl/actueel/rtlnieuws/"
-
+INDEX_URL = "http://www.rtlnieuws.nl/"
 
 class RTLScraper(HTTPScraper, DatedScraper):
     medium_name = "RTL Nieuws"
@@ -36,61 +35,79 @@ class RTLScraper(HTTPScraper, DatedScraper):
         self.open(INDEX_URL)
         self.opener.opener.addheaders.append(('Cookie','rtlcookieconsent=yes'))
         index = self.getdoc(INDEX_URL) 
-        
-        units = index.cssselect('div#main_navigation div.nav_item')
-        for article_unit in units[1:6]: #home - opmerkelijk
+        sections = []
+        for li in index.cssselect("#mainNav li.expanded")[:4]:
+            sections.extend(li.cssselect("li.leaf"))
+        self.stories = set([])
+        for li in sections:
+            section_url =  urljoin(INDEX_URL, li.cssselect("a")[0].get('href'))
+            for article in self.getarticles(section_url):
+                article.props.section = li.text_content().strip()
+                yield article
+                
+        for url in self.stories:
+            for article in self.getarticles(url):
+                article.props.section = article.props.url.split("/")[-2]
+                yield article
 
-            href = article_unit.cssselect('a')[0].get('href')
-            url = urljoin(BASE_URL,href)
-            yield url
+    def getarticles(self, url):
+        url += "?page={i}"
+        i = 0
+        _date = self.options['date']
+        while _date >= self.options['date']:
+            articles = list(self.extract_articles(url.format(**locals())))
+            i += 1
+            if not articles:
+                break
+            for article in articles:
+                _date = article.props.date.date()
+                if _date == self.options['date']:
+                    yield article
+                elif _date < self.options['date']:
+                    break
 
-        
-    def _scrape_unit(self, url):
-        doc = self.getdoc(url)
+    def extract_articles(self, url):
+        try:
+            doc = self.getdoc(url)
+        except HTTPError:
+            return
+        for tag in doc.cssselect("#main article.news"):
+            _date = datetime.fromtimestamp(int(tag.get('created')))
+            article = HTMLDocument(date = _date)
+            if tag.cssselect("div.tweet"):
+                article.props.type = "tweet"
+                article.props.text = tag.cssselect("p")[0]
+                article.props.author = article.props.text.cssselect("b a")[0].get('title')
+                article.props.url = url.split("?")[0]
+            elif tag.cssselect("div.quoteBody"):
+                article.props.type = "quote"
+                a = tag.cssselect("div.quoteBody a")[0]
+                article.props.text = a.text_content()
+                article.props.url = urljoin(url, a.get('href'))
+                article.props.author = tag.cssselect("span.author")[0].text.strip()
+            elif tag.cssselect("div.videoContainer") or 'promo' in tag.get('class'):
+                continue
+            elif tag.cssselect("div.tagline h4"):
+                self.stories.add(urljoin(url, tag.cssselect("h4 a")[0].get('href')))
+            else:
+                h = tag.cssselect("div.body h3")[0]
+                article.props.type = "article"
+                article.props.headline = h.text_content().strip()
+                if h.cssselect("a"):
+                    article.props.url = urljoin(url, h.cssselect("a")[0].get('href'))
+            yield article
 
-        articlelinks = []
-        for a in doc.cssselect("div.category_lead_container h3 a"):
-            articlelinks.append(a.get('href'))
-
-        script = "\n".join([s.text_content() for s in doc.cssselect("script")])
-        bits = script.split("var html='")[1:]
-        html_bits = [bit.split("'")[0] for bit in bits]
-        for html_bit in html_bits:
-            href = html.fromstring(html_bit).cssselect("a")[0].get('href')
-            articlelinks.append(href)
-            
-
-
-        for a in articlelinks:
-            
-            url = urljoin(BASE_URL,a)
-            page = HTMLDocument(date = self.options['date'],url=url)
-
-            #check for correct date
-            match_1 = "/{y:04d}/{m:02d}_".format(y=self.options['date'].year,m=self.options['date'].month)
-            match_2 = "/{d:02d}/".format(d=self.options['date'].day)
-            if ((match_1 in page.props.url) and (match_2 in page.props.url)):
-
-                page.prepare(self)
-                page.doc = self.getdoc(page.props.url)
-
-                yield self.get_article(page)
-            
-
-
-    def get_article(self, page):
-        page.props.author = page.doc.cssselect("div.fullarticle_tagline")[0].text.split("|")[0]
-        page.props.headline = page.doc.cssselect("h1.title")[0].text
-        page.props.text = page.doc.cssselect("article")[0]
-        return page
-
-
-
+    def _scrape_unit(self, article):
+        if article.props.type == "article":
+            article.prepare(self)
+            [div.drop_tree() for div in article.doc.cssselect("div.rtldart")]
+            article.props.text = article.doc.cssselect("article.news div.body div.paragraph")
+        print(article)
+        yield article
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.scraper")
-    amcatlogging.debug_module("amcat.scraping.document")
+    amcatlogging.info_module("amcat.scraping")
     cli.run_cli(RTLScraper)
 
