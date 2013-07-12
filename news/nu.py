@@ -69,7 +69,7 @@ class NuScraper(HTTPScraper, DatedScraper):
                 raise Exception("No articles found for given date")
 
         #check back
-        while True:
+        while p >= 0:
             p -= 1
             d, page = self.page_has_articles(p)
             if page:
