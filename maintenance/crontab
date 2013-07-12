@@ -27,8 +27,7 @@ TELETEKST_ARTICLESET=124
 ORF_AT_PROJECT=50
 ORF_AT_ARTICLESET=48
 
-30 * * * * . ~/.amcat_crontab; bash $PYTHONPATH/scraping/maintenance/hourly.sh
-0 3 * * * . ~/.amcat_crontab; DJANGO_DISABLE_SENTRY=Y DJANGO_DEBUG=N bash $PYTHONPATH/scraping/maintenance/daily.sh
-0 0,12 * * * . ~/.amcat_crontab; python $PYTHONPATH/scraping/news/top5.py $TOP5_PROJECT --articleset $TOP5_ARTICLESET
-0 0 * * * . ~/.amcat_crontab; python $PYTHONPATH/scraping/maintenance/orf_at.sh
+30 * * * * . ~/.amcat_crontab; bash $PYTHONPATH/scrapers/maintenance/hourly.sh
+0 3 * * * . ~/.amcat_crontab; DJANGO_DISABLE_SENTRY=Y DJANGO_DEBUG=N bash $PYTHONPATH/scrapers/maintenance/daily.sh
+0 0,12 * * * . ~/.amcat_crontab; python $PYTHONPATH/scrapers/newssites/top5.py $TOP5_PROJECT --articleset $TOP5_ARTICLESET
 0 0 1 * * . ~/.amcat_crontab; python $PYTHONPATH/amcat/scripts/maintenance/generate_expected_articles.py
