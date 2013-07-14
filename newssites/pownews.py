@@ -19,67 +19,76 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.document import Document, HTMLDocument
 
 from urlparse import urljoin
+from urllib2 import HTTPError
+from datetime import date, timedelta
+
+from amcat.scraping.document import Document, HTMLDocument
 from amcat.tools.toolkit import readDate
 
 BASE_URL = "http://www.powned.tv"
-START_URL = "http://www.powned.tv/nieuws/binnenland/"
+ARCHIVE_URL = "http://www.powned.tv/archief/{d.year:04d}/{d.month:02d}/{x:02d}-week/"
 
 from amcat.scraping.scraper import HTTPScraper,DatedScraper
 
 class PownewsScraper(HTTPScraper, DatedScraper):
-    medium_name = "nieuwssite powned"
-
-    def __init__(self, *args, **kwargs):
-        super(PownewsScraper, self).__init__(*args, **kwargs)
-        self.open(BASE_URL)
-        self.open("http://cookies.publiekeomroep.nl/accept/")
+    medium_name = "PowNews"
 
     def _get_units(self):
+        self.open("http://www.powned.tv")
+        self.open("http://cookies.publiekeomroep.nl/accept/")
+        d = self.options['date']
+        #search for the right archive page
+        for x in range(d.day - 7, d.day + 7):
+            archive_url = ARCHIVE_URL.format(**locals())
+            try:
+                documents = [self.getdoc(archive_url)]
+            except HTTPError:
+                pass
+            else:
+                break
 
-        start = self.getdoc(START_URL) 
-        new_url = urljoin(BASE_URL, start.cssselect("a.buttonarrow")[0].get('href'))
-        page = self.getdoc(new_url)
-        year = " "+new_url.split("/")[4]
-                
-        date = readDate(page.cssselect('ul.articlelist li span.t')[0].text[:-5] + year).date()
-        while date >= self.options['date']:
-            year = " "+new_url.split("/")[4]
- 
-            for unit in page.cssselect('ul.articlelist li'):
-                date = readDate(unit.cssselect("span.t")[0].text[:-5] +year).date()
-                if str(self.options['date']) in str(date):
-                    href = unit.cssselect('a')[0].get('href')
-                    yield HTMLDocument(url=href, date=self.options['date'])
-            new_url = page.cssselect("#maincol-large div a.left")[0].get('href')
-            page = self.getdoc(new_url)
+        #get last and next week too
+        page_date = date(self.options['date'].year, self.options['date'].month, x)
+        for d in [page_date - timedelta(days=7), page_date + timedelta(days=7)]:
+            x = d.day
+            url = ARCHIVE_URL.format(**locals())
+            documents.append(self.getdoc(url))
 
+        #find articles with right date and yield
+        for doc in documents:
+            for li in doc.cssselect("ul.articlelist li"):
+                from lxml import html
+                datestr = " ".join(li.cssselect("span.t")[0].text.split()[:2]) + " " + str(self.options['date'].year)
+                _date = readDate(datestr).date()
+                print(_date)
+                print(_date == self.options['date'])
+                if _date == self.options['date']:
+                    article = HTMLDocument(date = _date,
+                                           url = urljoin(archive_url, li.cssselect("a")[0].get('href')))
+                    yield article
 
-
-
-
-        
-    def _scrape_unit(self, page): 
-       
-        page.prepare(self)
-        page.doc = self.getdoc(page.props.url)
-        for comment in self.get_comments(page):
+    def _scrape_unit(self, article):        
+        article.prepare(self)
+        article = self.get_article(article)
+        for comment in self.get_comments(article):
             comment.is_comment = True
             yield comment
-        yield self.get_article(page)
-
+        yield article
 
     def get_article(self, page):
         page.props.author = page.doc.cssselect("#artikel-footer .author-date")[0].text.split("|")[0].strip()
         page.props.headline = page.doc.cssselect("div.acarhead h1")[0].text
         page.props.text = [page.doc.cssselect("div.artikel-intro")[0], page.doc.cssselect("div.artikel-main")[0]]
+        page.props.section = page.props.url.split("/")[4]
         return page
 
     def get_comments(self,page):
         for div in page.doc.cssselect("#comments div.comment"):
-            comment = HTMLDocument(parent=page)
+            comment = HTMLDocument(parent = page)
+            comment.props.section = page.props.section
+            comment.props.url = page.props.url
             comment.props.text = div.cssselect("p")[0]
             footer = div.cssselect("p.footer")[0].text_content().split(" | ")
             comment.props.author = footer[0].strip()
