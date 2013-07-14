@@ -22,7 +22,6 @@ from __future__ import unicode_literals, print_function, absolute_import
 from amcat.scraping.document import Document, HTMLDocument
 from amcat.scraping.scraper import HTTPScraper, DBScraper
 from amcat.tools.toolkit import readDate
-from amcat.models.medium import Medium
 
 #from urllib import urlencode
 #from urlparse import urljoin

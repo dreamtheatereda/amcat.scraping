@@ -26,7 +26,6 @@ from amcat.scraping.scraper import DatedScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 
 from amcat.tools import toolkit
-from amcat.models.medium import Medium
 
 from lxml import html
 from urlparse import urljoin
