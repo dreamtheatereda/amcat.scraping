@@ -39,9 +39,12 @@ access_token="816243289-14u7zplDIiAkTf1fomp9ZUg62eDlzFspXXZv9bty"
 access_token_secret="0FncNCYPgBfQvzwqV0a0kJ7Orr4mQUFsDwkPkrCvo"
 
 try:
-    from amcatscraping.social.twitter.csv_scraper import fields
+    from scrapers.social.twitter.csv_scraper import fields
 except ImportError:
-    from scraping.social.twitter.csv_scraper import fields
+    try:
+        from scraping.social.twitter.csv_scraper import fields
+    except ImportError:
+        from amcatscraping.social.twitter.csv_scraper import fields
 
 
 class TwitterFilterForm(forms.Form):
