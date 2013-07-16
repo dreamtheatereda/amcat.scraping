@@ -18,16 +18,20 @@
 #Defaults are defined below and can be overwritten in ~/.amcat_crontab
 DJANGO_SETTINGS_MODULE='settings'
 
+VIENNA_PROJECT=50
+
+ORF_AT_ARTICLESET=48
+KRONE_ARTICLESET=3363
+KURIER_ARTICLESET=3378
+
 TOP5_PROJECT=10
 TOP5_ARTICLESET=47
 
 TELETEKST_PROJECT=3
 TELETEKST_ARTICLESET=124
 
-ORF_AT_PROJECT=50
-ORF_AT_ARTICLESET=48
-
 30 * * * * . ~/.amcat_crontab; bash $PYTHONPATH/scrapers/maintenance/hourly.sh
 0 3 * * * . ~/.amcat_crontab; DJANGO_DISABLE_SENTRY=Y DJANGO_DEBUG=N bash $PYTHONPATH/scrapers/maintenance/daily.sh
 0 0,12 * * * . ~/.amcat_crontab; python $PYTHONPATH/scrapers/newssites/top5.py $TOP5_PROJECT --articleset $TOP5_ARTICLESET
+1 0 * * * . ~/.amcat_crontab; bash $PYTHONPATH/scrapers/maintenance/midnight.sh
 0 0 1 * * . ~/.amcat_crontab; python $PYTHONPATH/amcat/scripts/maintenance/generate_expected_articles.py
