@@ -40,7 +40,7 @@ class TTScraper(HTTPScraper, DatedScraper):
             article = HTMLDocument(
                 url = url,
                 headline = item.cssselect("title")[0].text,
-                date = readDate(item.cssselect("pubDate")[0].text),
+                date = readDate(item.cssselect("pubdate")[0].text),
                 section = section,
                 externalid = externalid)
             if article.props.date.date() == self.options['date']:
