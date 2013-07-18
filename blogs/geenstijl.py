@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
@@ -29,10 +30,7 @@ import datetime
 INDEX_URL = "http://www.geenstijl.nl/mt/archieven/maandelijks/{y}/{m}/"
 
 class GeenstijlScraper(HTTPScraper, DatedScraper):
-    medium_name = "geenstijl.nl"
-
-    def __init__(self, *args, **kwargs):
-        super(GeenstijlScraper, self).__init__(*args, **kwargs)
+    medium_name = "geenstijl"
 
     def _get_units(self):
         month = self.options['date'].month
@@ -57,10 +55,10 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
                 page = HTMLDocument(url=href, date=self.options['date'])
                 
                 page.prepare(self)
-                page.doc = self.getdoc(href)
                 page = self.get_article(page)
                 for comment in self.get_comments(page):
                     comment.is_comment = True
+                    comment.parent = page
                     yield comment
                 yield page
                 
@@ -78,19 +76,15 @@ class GeenstijlScraper(HTTPScraper, DatedScraper):
 
     def get_comments(self,page):
         for article in page.doc.cssselect("#comments article"):
-            comment = Document(parent=page)
+            comment = HTMLDocument(parent = page)
             footer = article.cssselect("footer")[0].text_content().split(" | ")
             comment.props.date = readDate(footer[1])
             comment.props.author = footer[0]
-            try:
-                comment.props.text = article.cssselect("p")[0]
-            except IndexError: #empty comment
-                continue
+            comment.props.text = article.cssselect("p")
             yield comment
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.scraper")
-    amcatlogging.debug_module("amcat.scraping.document")
+    amcatlogging.info_module("amcat.scraping")
     cli.run_cli(GeenstijlScraper)

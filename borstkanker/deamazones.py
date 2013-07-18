@@ -19,22 +19,11 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.phpbbscraper import PhpBBScraper, DatedPhpBBScraper
-from amcat.tools.toolkit import readDate
+from amcat.tools.scraping.processors import PhpBBScraper
 
 class DeAmazonesScraper(PhpBBScraper):
     index_url = "http://www.de-amazones.nl/phpbbforum/"
-    medium_name = "de-amazones.nl - forum"
-
-
-class DeAmazonesDatedScraper(DatedPhpBBScraper):
-    index_url = "http://www.de-amazones.nl/phpbbforum/"
-    medium_name = "de-amazones.nl - forum"
-
 
 if __name__ == '__main__':
-    from amcat.scripts.tools import cli
-    from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.scraper")
-    amcatlogging.debug_module("amcat.scraping.document")
-    cli.run_cli(DeAmazonesScraper)
+    from amcat.tools.scraping.manager import main
+    main(DeAmazonesScraper)

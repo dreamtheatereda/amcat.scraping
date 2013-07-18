@@ -33,9 +33,6 @@ from amcat.models.article import Article
 from amcat.tools import toolkit
 from amcat.tools.stl import STLtoText
 from amcat.scraping.toolkit import todate
-from amcat.models.medium import get_or_create_medium
-
-
 
 INDEX_URL = "http://zoeken.rechtspraak.nl/ResultPage.aspx?snelzoeken=true&searchtype=kenmerken&datum_tussen_vanaf=%s&datum_tussen_tm=%s&soort_datumzoek=Tussen&veld_datumzoek=datum_gepubliceerd&sortby=rechtsgebied_rechtspraak+asc+ljn"
 

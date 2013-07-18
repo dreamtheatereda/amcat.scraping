@@ -31,6 +31,7 @@ from datetime import date
 import httplib
 import json
 from time import sleep
+import logging; log = logging.getLogger(__name__)
 
 consumer_key="XC92JObeStin0qEHuu08KQ"
 consumer_secret="UkEZhOEPI0Ydft85PDF3S2KLrV2AlhZqXMtGVnNSEAc"
@@ -38,9 +39,12 @@ access_token="816243289-14u7zplDIiAkTf1fomp9ZUg62eDlzFspXXZv9bty"
 access_token_secret="0FncNCYPgBfQvzwqV0a0kJ7Orr4mQUFsDwkPkrCvo"
 
 try:
-    from amcatscraping.social.twitter.csv_scraper import fields
+    from scrapers.social.twitter.csv_scraper import fields
 except ImportError:
-    from scraping.social.twitter.csv_scraper import fields
+    try:
+        from scraping.social.twitter.csv_scraper import fields
+    except ImportError:
+        from amcatscraping.social.twitter.csv_scraper import fields
 
 
 class TwitterFilterForm(forms.Form):
@@ -50,24 +54,20 @@ class TwitterFilterForm(forms.Form):
 class TwitterFilterScript(Script):
     options_form = TwitterFilterForm
 
-    def __init__(self,*args,**kargs):
-        super(TwitterFilterScript, self).__init__(*args, **kargs)
-
     def run(self, _input):
         if not self.options['query_file']:
-            self.options['query_file']= 'filter_query.txt'
-            bla = """'{}amcat/scraping/social/twitter/filter_query.txt'.format(environ.get('PYTHONPATH'))"""
+            self.options['query_file'] = '{}/scraping/social/twitter/filter_query.txt'.format(environ.get('PYTHONPATH'))
         words = []
         word_file = open(self.options['query_file'])
         for l in word_file.readlines():
             if not l.startswith("#"):
                 [words.append(w.strip()) for w in l.strip("\n").split(",") if len(w.strip())>1]
-        print(words)
+        log.info("Starting tweet scraping with the following words:\n{words}".format(**locals()))
+        sleep(2)
         s = self.stream()
         s.retry_time = 5
         s.filter(track = words)
         
-
     def stream(self):
         auth = OAuthHandler(consumer_key,consumer_secret)
         auth.set_access_token(access_token,access_token_secret)
@@ -76,41 +76,38 @@ class TwitterFilterScript(Script):
         l.stream = stream
         return stream
 
-
-
 class Listener(StreamListener):
-    n = 0
     def __init__(self,date, *args, **kwargs):
         super(StreamListener, self).__init__(*args, **kwargs)
         f = "/home/amcat/tweets/{}".format(date.strftime("filter_%Y-%m-%d.csv"))
         outputfile = open(f,'a+')
         self.writer = csv.DictWriter(outputfile,fieldnames=fields)
 
-
     def on_data(self,data):
-        self.n+=1
-        print(data)
-        data = json.loads(data)
-        _data = self.dict_unicode_to_str(data)
-        for k,v in _data.items():
+        data = self.dict_unicode_to_str(json.loads(data))
+        if 'user' not in data.keys() or data['user']['lang'] != 'nl':
+            return
+        log.info("user '{data[user][id]}' said: \"{data[text]}\"".format(**locals()))
+        for k,v in data.items():
             if k=='disconnect':
                 sleep(10*60)
             if k not in fields:
-                return
-        self.writer.writerow(_data)
+                log.warning("'{k}' not in fields:\n{fields}".format(k=k, **globals()))
+                del data[k]
+                sleep(5)
+        
+        self.writer.writerow(data)
         return True
 
     def dict_unicode_to_str(self,data):
         for k,v in data.items():
-            if 'unicode' in str(type(v)):
-            
+            if 'unicode' in str(type(v)):            
                 data[k] = v.encode('utf-8','replace')
             
             elif 'dict' in str(type(v)):
-            
                 data[k] = self.dict_unicode_to_str(v)
-            elif 'list' in str(type(v)):
-            
+
+            elif 'list' in str(type(v)):            
                 data[k] = [str(i).encode('utf-8',errors='replace') for i in v]
            
         return data

@@ -56,7 +56,10 @@ fields = [
     'retweeted_status',
     'possibly_sensitive_editable',
     'limit',
-    'disconnect'
+    'disconnect',
+    'favorite_count',
+    'lang',
+    'filter_level'
     ]
 
 from amcat.tools.toolkit import readDate

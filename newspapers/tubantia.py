@@ -34,7 +34,7 @@ from httplib2 import iri2uri
 
 INDEX_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/load/newspaper.php?pSetup={paper}&userid=NOUSER&date=0@/{paper}/{year}{month}{day}"
 
-PAGE_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/php-script/fullpage.php?pSetup={paper}&file=0@/{paper}/{year}{month}{day}/{pagefile}/&section={section}&edition={edition}&pageNum={pagenum}"
+PAGE_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/php-script/fullpage.php?pSetup={paper}&file=0@/{paper}/{year}{month}{day}/{pagefile}/&section={section}&edition={edition}&pageNum={page_str}"
 
 LOGIN_URL = "http://{paper}.ned.newsmemory.com/eebrowser/frame/develop.4979.enea.3/protection/login.php?pSetup={paper}"
 
@@ -43,12 +43,8 @@ from httplib import BadStatusLine
 from ast import literal_eval
 
 class TubantiaScraper(HTTPScraper, DBScraper):
-    medium_name = "Tubantia"
+    medium_name = "Dagblad Tubantia/Twentsche Courant"
     paper = "tubantia"
-
-
-    def __init__(self, *args, **kwargs):
-        super(TubantiaScraper, self).__init__(*args, **kwargs)
 
     def _login(self, username, password):
         """log in on the web page
@@ -76,9 +72,6 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         page = self.open(url, urlencode(form))
 
     def _get_units(self):
-        """papers are often organised in blocks (pages) of articles, this method gets the blocks, articles are to be gotten later"""
-
-        
         year=self.options['date'].year
         month = self.options['date'].month
         day = self.options['date'].day
@@ -90,24 +83,13 @@ class TubantiaScraper(HTTPScraper, DBScraper):
             
         INDEXURL = INDEX_URL.format(year=year,month=month,day=day,paper=self.paper)
         index_text = unicode(self.getdoc(INDEXURL).text_content())
-        cur = index_text.find("p[i++]")
-        self.page_data = []
-        while index_text.find("p[i++]",cur+1) >= 0:
-            start = cur
-            cur = index_text.find("p[i++]",cur+1) #find next occurrence
-            end = cur
-            start = index_text.find("(",start,end)
-            end = index_text.find(")",start,end)
-            args = index_text[start:end].split('","')
-            pagefile = args[0].strip('("').lower()
-            section = args[1]
-            pagenum = args[2].lstrip("0")
-            edition = args[3]
+        occurrences = [m.start() for m in re.finditer('p[i++]', index_text)]
+        for occ in occurrences:
+            start = index_text.find("(", occ); end = index_text.find("(", start)
+            args = [arg.strip('"') for arg in index_text[start:end].split(',')]
+            pagefile, section, page_str, edition = args[:4]
             url = PAGE_URL.format(paper=self.paper, **locals())
-            self.page_data.append(dict(pagefile=args[0].strip('("'),section=args[1],pagenum=args[2],edition=args[3],url=url))
-        for page in self.page_data:
-            yield page
-
+            yield dict(url = url, edition = edition, page_str = page_str)
         
     def _scrape_unit(self, ipage):
         page = ipage
@@ -115,7 +97,9 @@ class TubantiaScraper(HTTPScraper, DBScraper):
         ipage.doc = self.open(page['url'])
         
         text = wegenertools.clean(ipage.doc.read())
-
+        err_text = "Uw account is niet geregistreerd voor de door u gekozen uitgave."
+        if err_text in text:
+            raise Exception(err_text)
         for article_ids in wegenertools.get_article_ids(text):
             body,headline,byline = wegenertools.get_article(text,article_ids)
             if len(body) >= 300: #filtering non-articles, image links and other html crap
@@ -139,19 +123,21 @@ class TubantiaScraper(HTTPScraper, DBScraper):
                     
                     p = re.compile("[\\\]udc[\w\w]")
                     artpage.props.text = literal_eval(p.sub("",repr(body)))
+                    artpage.props.edition = page['edition']
                     artpage.props.byline = byline
                     artpage.props.section = page['section']
-                    if re.match("[A-Z][0-9]+", page['pagenum']):
-                        artpage.props.section += " - section " + page['pagenum'][0]
-                        artpage.props.pagenr = int(page['pagenum'][1:])
+                    if re.match("[A-Z][0-9]+", page['page_str']):
+                        artpage.props.section += " - section " + page['page_str'][0]
+                        artpage.props.pagenr = int(page['page_str'][1:])
                     else:
-                        artpage.props.pagenr = int(page['pagenum'])
+                        artpage.props.pagenr = int(page['page_str'])
 
                     dateline_pattern = re.compile("(^[^\n]+\n\n([A-Z]+( [A-Z]+)?) -\n)|(([A-Z]+( [A-Z]+)?)\n\n)")
                     match = dateline_pattern.search(artpage.props.text)
                     if match:
                         #dateline and theme have the same syntax and are therefore undistinguishable
                         artpage.props.dateline_or_theme = match.group(2) or match.group(5)
+                    artpage.props.url = page['url']
                     yield artpage
 
 if __name__ == '__main__':

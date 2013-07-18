@@ -1,5 +1,4 @@
-#!/usr/bin/python
-
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 #          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
@@ -20,8 +19,8 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from amcat.scraping.scraper import HTTPScraper
-from amcat.scraping.document import HTMLDocument
+from amcat.tools.scraping.processors import HTTPScraper
+from amcat.tools.scraping.objects import HTMLDocument
 
 from urlparse import urljoin, urlunsplit, parse_qs, urlsplit
 from urllib import urlencode
@@ -31,11 +30,13 @@ from amcat.tools import toolkit
 INDEX_URL = "http://borstkanker.nl/forum/index.php"
 
 class BorstkankerNLScraper(HTTPScraper):
-    medium_name = "Borstkanker.nl - forum"
-    
-    def _get_units(self):
-        
+    def init(self, date=None):
+        """
+        @param date: date to scrape for
+        @type date: None, datetime.date
+        """
         index = self.getdoc(INDEX_URL)
+
         cats = set()
         for a in index.cssselect('a'):
             if 'viewforum.php' in a.get('href'):
@@ -48,46 +49,41 @@ class BorstkankerNLScraper(HTTPScraper):
                     url = urljoin(INDEX_URL, a.get('href'))
                     if not 'viewtopic.php' in url or not a.text:
                         continue
-                    
+
                     yield HTMLDocument(category=cat, url=url, headline=a.text)
-       
+
     def get_pages(self, page):
-        if(page.cssselect('div.topNav')):
-            yield page
-            nav = page.cssselect('div.topNav')[0]
-            if len(nav.cssselect('a')) > 1:
-                # Pagination available
-                try:
-                    pages = int(nav.cssselect('a')[-2].text)
-                except ValueError:
-                    pages = int(nav.cssselect('a')[-1].text)
+        yield page
 
-                spage = nav.cssselect('a')[1].get('href')
+        nav = page.cssselect('div.topNav')[0]
+        if len(nav.cssselect('a')) > 1:
+            # Pagination available
+            try:
+                pages = int(nav.cssselect('a')[-2].text)
+            except ValueError:
+                pages = int(nav.cssselect('a')[-1].text)
 
-                url = list(urlsplit(spage))
-                query = dict([(k, v[-1]) for k,v in parse_qs(url[3]).items()])
-                ppp = int(query['start'])
+            spage = nav.cssselect('a')[1].get('href')
 
-                for pag in range(1, pages):
-                    query['start'] = pag*ppp
-                    url[3] = urlencode(query)
+            url = list(urlsplit(spage))
+            query = dict([(k, v[-1]) for k,v in parse_qs(url[3]).items()])
+            ppp = int(query['start'])
 
-                    yield self.getdoc(urljoin(INDEX_URL, urlunsplit(url)))
+            for pag in range(1, pages):
+                query['start'] = pag*ppp
+                url[3] = urlencode(query)
 
-    def _scrape_unit(self, thread):
+                yield self.getdoc(urljoin(INDEX_URL, urlunsplit(url)))
+
+    def get(self, thread):
         fipo = True
-        thread.doc = self.getdoc(thread.props.url)      
+
         for page in self.get_pages(thread.doc):
             for post in page.cssselect('table.forumIndex > tr')[1:]:
-
                 ca = thread if fipo else thread.copy(parent=thread)
+
                 ca.props.date = toolkit.readDate(post.cssselect('span.bijSchrift')[0].text)
                 ca.props.author = post.cssselect('td.auteur h2')[0].text
-                if fipo:
-                    row = '1'
-                else:
-                    row = '2'
-                ca.props.title = post.cssselect('td.row'+row+' h2')[0].text
 
                 texttd = post.cssselect('td')[0]
                 texttd.cssselect('h2')[0].drop_tree()
@@ -100,14 +96,7 @@ class BorstkankerNLScraper(HTTPScraper):
 
                 fipo = False
         
-'''
+
 if __name__ == '__main__':
     from amcat.tools.scraping.manager import main
-    main(BorstkankerNLScraper)'''
-    
-if __name__ == '__main__':
-    from amcat.scripts.tools import cli
-    from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.scraper")
-    amcatlogging.debug_module("amcat.scraping.document")
-    cli.run_cli(BorstkankerNLScraper)
+    main(BorstkankerNLScraper)

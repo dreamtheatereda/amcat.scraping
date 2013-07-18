@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/python
 from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 #          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
@@ -18,12 +18,28 @@ from __future__ import unicode_literals, print_function, absolute_import
 # You should have received a copy of the GNU Affero General Public        #
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
+from amcat.scraping.scraper import HTTPScraper
+from amcat.scraping.document import HTMLDocument
+from amcat.tools.toolkit import readDate
 
-from amcat.tools.scraping.processors import PhpBBScraper
+from lxml import html
+class TeletekstScraper(HTTPScraper):
+    medium_name = "Teletekst"
+    def _get_units(self):
+        self.open("http://nos.nl/")
+        self.open("http://cookies.publiekeomroep.nl/accept/")
+        for item in self.getdoc("http://feeds.nos.nl/nosnieuws").cssselect("item"):
+            yield HTMLDocument(url = item.cssselect("link")[0].tail, date = readDate((item.cssselect('pubDate') or item.cssselect('pubdate'))[0].text))
 
-class BorstkankerNetScraper(PhpBBScraper):
-    index_url = "http://borstkanker.net/forumpatienten/index.php"
+    def _scrape_unit(self, article):
+        article.prepare(self)
+        article.props.text = article.doc.cssselect("#article-content p")
+        article.props.headline = article.doc.cssselect("#article h1")[0].text_content().strip()
+        yield article
 
 if __name__ == '__main__':
-    from amcat.tools.scraping.manager import main
-    main(BorstkankerNetScraper)
+    from amcat.scripts.tools import cli
+    from amcat.tools import amcatlogging
+    amcatlogging.info_module("amcat.scraping")
+    cli.run_cli(TeletekstScraper)
+
