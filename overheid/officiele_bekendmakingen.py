@@ -82,7 +82,8 @@ class OfficieleBekendmakingenScraper(DatedScraper, HTTPScraper):
             else:
                 try: nootid = noot.find('noot.nr').text_content()
                 except: nootid = noot.get('id').strip('n')
-                notesdict[nootid] = noot.find('noot.al').text_content().strip()
+                try: notesdict[nootid] = noot.find('noot.al').text_content().strip()
+                except: notesdict[nootid] = ''
  
                     
         if printit == True:

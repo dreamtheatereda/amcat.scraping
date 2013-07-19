@@ -67,7 +67,9 @@ class KamervragenAntwoordScraper(OfficieleBekendmakingenScraper):
             if bodypart.tag in ['omschr', 'kamervraagomschrijving']:               
                 body += bodypart.text_content().replace('\n',' ').replace('\r','').strip() + '\n'
             elif bodypart.tag == 'antwoord':
-                body += "\n%s\n" % self.getAntwoord(bodypart, xml)
+                if bodypart.getchildren()[0].tag == 'tussenkop':
+                    body += "\n%s\n" % bodypart.getchildren()[0].text_content()
+                else: body += "\n%s\n" % self.getAntwoord(bodypart, xml)
             elif bodypart.tag in ['toelicht']:
                 body += '\n' + bodypart.text_content().replace('\n',' ').replace('\r','').replace('Toelichting:', 'Toelichting:\n') + '\n'
             elif bodypart.tag == 'al': body += '\n' + bodypart.text_content().replace('\n',' ').replace('\r','') + '\n'
@@ -94,7 +96,7 @@ class KamervragenAntwoordScraper(OfficieleBekendmakingenScraper):
         metadict = self.getMetaDict(xml, printit=False)
 
         if len(metadict) == 0:
-            log.warn("NO METADATA FOR %s. SKIPPING URL" % url) 
+            log.warn("NO METADATA FOR %s. SKIPPING ARTICLE (to be retrieved after officiele bekendmakingen finalizes it)" % url) 
             return
 
         section = self.safeMetaGet(metadict,'OVERHEID.category')
@@ -117,7 +119,8 @@ class KamervragenAntwoordScraper(OfficieleBekendmakingenScraper):
         
         body = "%s\n\n%s" % (aanleiding, self.getBody(xml))
            
-        #print('--------------\n', headline, '\n', body, '\n\n') 
+        #print('--------------\n', headline, '\n', body, '\n\n')
+        print("SAVING: %s" % url)
         yield Article(headline=headline, byline=vraagnummer, text=body, date=date, section=section, url=url)
         #return []
 

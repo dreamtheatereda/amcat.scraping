@@ -46,7 +46,9 @@ class KamervragenVraagScraper(OfficieleBekendmakingenScraper):
 
     def getVraag(self, bodypart, xml):
         try: nr = bodypart.find('nummer').text_content()
-        except: nr = bodypart.find('nr').text_content()
+        except:
+            nr = bodypart.find('nr').text_content()
+
         nr = nr.replace('Vraag', '').strip()
             
         vraag = ' '.join([al.text_content().replace('\n', ' ').replace('\r','').strip() for al in bodypart.cssselect('al')])
@@ -65,7 +67,9 @@ class KamervragenVraagScraper(OfficieleBekendmakingenScraper):
             if bodypart.tag in ['omschr', 'kamervraagomschrijving']:               
                 body += bodypart.text_content().replace('\n',' ').replace('\r','') + '\n'
             elif bodypart.tag == 'vraag':
-                body += "\n%s\n" % self.getVraag(bodypart, xml)
+                if bodypart.getchildren()[0].tag == 'tussenkop':
+                    body += "\n%s\n" % bodypart.getchildren()[0].text_content()
+                else: body += "\n%s\n" % self.getVraag(bodypart, xml)
             elif bodypart.tag in ['toelicht']:
                 body += '\n' + bodypart.text_content().replace('\n',' ').replace('\r','').replace('Toelichting:', 'Toelichting:\n') + '\n'
             elif bodypart.tag == 'kamervraagopmerking': body += '\n' + bodypart.text_content().replace('\n',' ').replace('\r','').replace('Mededeling','Mededeling:\n') + '\n'
@@ -90,7 +94,7 @@ class KamervragenVraagScraper(OfficieleBekendmakingenScraper):
         url = url.replace('.xml','.html')
         metadict = self.getMetaDict(xml, printit=False)
         if len(metadict) == 0:
-            log.warn("NO METADATA FOR %s. SKIPPING URL" % url) 
+            log.warn("NO METADATA FOR %s. SKIPPING ARTICLE (to be retrieved after officiele bekendmakingen finalizes it)" % url) 
             return
             #return []
 
@@ -115,7 +119,8 @@ class KamervragenVraagScraper(OfficieleBekendmakingenScraper):
         except: date = datetime.datetime.strptime(datestring, '%d-%m-%Y')
         
         #print('--------------\n', document_id, typevraag, '\n', body, '\n\n') 
-       
+        print("SAVING: %s" % url)
+
         yield Article(headline=document_id, byline=typevraag, text=body, date=date, section=section, url=url)
         #return []
 

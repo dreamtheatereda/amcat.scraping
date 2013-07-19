@@ -34,7 +34,7 @@ from amcat.tools import toolkit
         
 class HandelingenPerSprekerScraper(OfficieleBekendmakingenScraper):
     doctypelist = ['handelingen']
-    medium_name = "Handelingen 2e kamer"
+    medium_name = "Handelingen"
 
     def _scrape_unit(self, url):
         try: xml = self.getdoc(url)
