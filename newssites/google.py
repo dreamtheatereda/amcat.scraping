@@ -42,12 +42,11 @@ class GoogleNewsScraper(HTTPScraper, DatedScraper):
             rss_url = section_doc.cssselect("div.footer div.bottom div.links a")[0].get('href')
             rss_index = self.getdoc(rss_url)
             for item in rss_index.cssselect("item"):
-                print(item)
                 html_content = html.fromstring(item.cssselect("description")[0].text)
                 all_sources_url = html_content.cssselect("a.p")[-1].get('href')
                 all_sources_doc = self.getdoc(all_sources_url + "&output=rss")
                 for _item in all_sources_doc.cssselect("item"):
-                    date = readDate(_item.cssselect("pubDate")[0].text)
+                    date = readDate(_item.cssselect("pubdate")[0].text)
                     if date.date() == self.options['date']:
                         yield _item
 
@@ -64,7 +63,7 @@ class GoogleNewsScraper(HTTPScraper, DatedScraper):
         article.props.headline = " - ".join(xmlitem.cssselect("title")[0].text.split(" - ")[:-1])
         article.props.medium = Medium.get_or_create(xmlitem.cssselect("title")[0].text.split(" - ")[-1])
         article.props.section = xmlitem.cssselect("category")[0].text
-        article.props.date = readDate(xmlitem.cssselect("pubDate")[0].text)
+        article.props.date = readDate(xmlitem.cssselect("pubdate")[0].text)
         article.props.snippet = html_content.cssselect("div.lh font")[1].text
         try:
             article.prepare(self)
@@ -86,19 +85,18 @@ class GoogleNewsScraper(HTTPScraper, DatedScraper):
             for tag in doc.iter():
                 if tag.text and sentence in tag.text:
                     tags.append(tag)
-        siblings = set([])
+        parents = []
         for tag in tags:
             parent = tag.getparent()
             [tag.drop_tree() for tag in parent.cssselect("script,iframe,div.ads,div.GoogleAdsenseContent")]
-
-            selection = "div,p"
-            if type(tag.tag) == str:
-                selection += ","+ tag.tag
-                
-            siblings.update(parent.cssselect(selection))
-
-        return list(siblings)
-
+            parents.append(parent)
+        most_common_parent = max(set(parents), key=parents.count)
+        ret = [most_common_parent]
+        for tag in tags:
+            if tag not in most_common_parent.getchildren():
+                if tag.tag in ['b','p','div','span','small', 'h1','h2','h3','h4','h5','h6','pre','strong','i']:
+                    ret.append(tag)
+        return ret
             
 if __name__ == '__main__':
     raise Exception("Please inherit from this scraper")
