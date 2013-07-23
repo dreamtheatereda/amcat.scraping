@@ -122,12 +122,10 @@ class Telegraaf(HTTPScraper):
     def _get_units(self):
         index = self.getdoc(self.index_url)
         for a in index.cssselect("#element ul.snelnieuws_list li.item a"):
-            if 'b' in locals().keys():
-                break
             doc = self.getdoc(a.get('href'))
             date = readDate(doc.cssselect("span.datum")[0].text)
             if date.date() < date.today().date():
-                b = True; yield a.get('href'), doc
+                break
             elif date.date() == date.today().date():
                 yield a.get('href'), doc
 
@@ -162,8 +160,12 @@ class Telegraaf(HTTPScraper):
             yield comment
 
 class Trouw(Volkskrant):
-    medium = "Trouw - website"
     index_url = "http://trouw.nl"
+
+    def __init__(self, *args, **kwargs):
+        super(Volkskrant, self).__init__(*args, **kwargs)
+        self.medium = "Trouw - website"
+
 
 class PollScraper(HTTPScraper, DatedScraper):
     def _get_units(self):
@@ -178,7 +180,6 @@ class PollScraper(HTTPScraper, DatedScraper):
                 project = self.options['project'].id,
                 articleset = self.options['articleset'].id
                 )
-
             for unit in s._get_units():
                 yield (s, unit)
 
@@ -186,7 +187,10 @@ class PollScraper(HTTPScraper, DatedScraper):
         (scraper, unit) = unit
         self.medium_name = scraper.medium
         for article in scraper._scrape_unit(unit):
-            article.props.medium = Medium.get_or_create(scraper.medium)
+            if not article.is_comment:
+                article.props.medium = Medium.get_or_create(scraper.medium)
+            else:
+                article.props.medium = Medium.get_or_create(scraper.medium + " - Comments")
             if not hasattr(article.props, 'text'):
                 article.props.text = pformat(article.props.results)
             yield article
