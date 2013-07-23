@@ -72,6 +72,8 @@ class RTLScraper(HTTPScraper, DatedScraper):
         except HTTPError:
             return
         for tag in doc.cssselect("#main article.news"):
+            if 'poll' in tag.get('class'):
+                continue
             _date = datetime.fromtimestamp(int(tag.get('created')))
             article = HTMLDocument(date = _date)
             if tag.cssselect("div.tweet"):

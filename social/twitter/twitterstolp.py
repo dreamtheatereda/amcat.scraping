@@ -37,7 +37,9 @@ import csv
 import os
 
 target = os.environ.get('PYTHONPATH')+"/{scraping_module}/social/twitter/users.csv"
-if os.path.exists(target.format(scraping_module="scraping")):
+if os.path.exists(target.format(scraping_module="scrapers")):
+    CSV_FILE = csv.reader(open(target.format(scraping_module="scrapers")))
+elif os.path.exists(target.format(scraping_module="scraping")):
     CSV_FILE = csv.reader(open(target.format(scraping_module="scraping")))
 elif os.path.exists(target.format(scraping_module="amcatscraping")):
     CSV_FILE = csv.reader(open(target.format(scraping_module="amcatscraping")))
