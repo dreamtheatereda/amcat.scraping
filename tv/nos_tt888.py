@@ -54,7 +54,7 @@ def getUrlsFromSet(setid, check_back=30):
     fromdate = (datetime.date.today() - datetime.timedelta(days = check_back))
     articles = (Article.objects.filter(date__gt = fromdate)
                 .filter(articlesets_set = setid).only("url"))
-    urls = set(a.url.split('/')[-1] for a in articles)
+    urls = set(a.url.split('/')[-1] for a in articles if a.url)
     return urls
             
 class tt888Scraper(DBScraper):
