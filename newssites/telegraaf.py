@@ -77,7 +77,6 @@ class WebTelegraafScraper(HTTPScraper, DatedScraper):
                 continue
 
             ipage = self.getdoc(href)
-            print(href)
             while date >= self.options['date']:
                 for unit in ipage.cssselect('#main ul.snelnieuws_list li.item'):
                     href = unit.cssselect('a')[0].get('href')
