@@ -20,10 +20,13 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 try:
-    from scraping.newssites import nrc_weblogs
+    from scrapers.newssites import nrc_weblogs
 except ImportError:
-    from amcatscraping.newssites import nrc_weblogs
-
+    try:
+        from scraping.newssites import nrc_weblogs
+    except ImportError:
+        from amcatscraping.newssites import nrc_weblogs
+    
 
 class ColumnNRCScraper(nrc_weblogs.WeblogNRCScraper):
     medium_name = "NRC website - blogs"
