@@ -23,7 +23,7 @@ from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import HTMLDocument
 from amcat.scraping import toolkit
 try:
-    from scraping.newspapers import wegenertools
+    from scrapers.newspapers import wegenertools
 except ImportError:
     from amcatscraping.newspapers import wegenertools
 
