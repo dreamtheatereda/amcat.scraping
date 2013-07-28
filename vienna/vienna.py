@@ -22,6 +22,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 from urlparse import urljoin
 import re
 from datetime import datetime
+from urllib2 import HTTPError
 
 from amcat.scraping.document import HTMLDocument
 from amcat.scraping.scraper import HTTPScraper, DatedScraper
@@ -29,7 +30,8 @@ from amcat.tools.toolkit import readDate
 
 class ViennaScraper(HTTPScraper, DatedScraper):
     medium_name = "vienna.at"
-    index_url = "http://www.vienna.at/date/{self.options[date].year}/{self.options[date].month:02d}/page/{pagenr}"
+    website = "vienna.at"
+    index_url = "http://www.{self.website}/date/{self.options[date].year}/{self.options[date].month:02d}/page/{pagenr}"
 
     def _get_units(self):
         index_doc = self.getdoc(self.index_url.format(pagenr = 1, **locals()))
@@ -45,16 +47,20 @@ class ViennaScraper(HTTPScraper, DatedScraper):
                         url = article_url,
                         date = date,
                         headline = div.cssselect("h3.Black a")[0].text,
-                        externalid = article_url.split("/")[-1],
+                        externalid = article_url.split("/")[-1].split("-")[-1],
                         )
                 elif date.date() < self.options['date']:
-                    break
+                    return
 
     def getpages(self, index):
         yield index
-        lastpage = int(index.cssselect("div.Paging div.Direct a")[-1].get('href').split("/")[-1])
-        for pagenr in range(1, lastpage):
-            yield self.getdoc(self.index_url.format(**locals()))
+        pagenr = 1
+        while True:
+            pagenr += 1
+            try:
+                yield self.getdoc(self.index_url.format(**locals()))
+            except HTTPError:
+                break
 
     def _scrape_unit(self, article):
         article.prepare(self)
