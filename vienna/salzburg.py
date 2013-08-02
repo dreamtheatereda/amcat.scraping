@@ -78,17 +78,22 @@ class SalzburgScraper(HTTPScraper, DatedScraper):
         _json = self.open(self.solr_url.format(**locals())).read()
         return json.loads(_json)["response"]
 
+    article_url = "http://www.salzburg.com/nachrichten/id=112&tx_ttnews%5Btt_news%5D={urlid}&cHash=abc"
+
     def _scrape_unit(self, data):
+        urlid = data['uri'].split('-')[-1]
+        article_url = self.article_url.format(**locals())
         yield HTMLDocument(
             date = readDate(data['date']),
             section = ", ".join('ressort' in data.keys() and data['ressort'] or []),
             headline = data['title'],
-            url = data['uri'],
+            url = article_url
             externalid = data['id'],
             text = data['text'],
             author = data['author'],
             tags = 'tag' in data.keys() and data['tag'],
             teaser = 'teaser' in data.keys() and data['teaser'],
+            all_data = data
             )
 
 if __name__ == '__main__':
