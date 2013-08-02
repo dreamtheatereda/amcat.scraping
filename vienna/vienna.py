@@ -54,6 +54,8 @@ class ViennaScraper(HTTPScraper, DatedScraper):
 
     def getpages(self, index):
         yield index
+        #debug
+        return
         pagenr = 1
         while True:
             pagenr += 1
@@ -71,11 +73,15 @@ class ViennaScraper(HTTPScraper, DatedScraper):
             article.props.section = "Bezirk"
         article.props.text = article.doc.cssselect("div.Article #article_lead")
         bodytext = article.doc.cssselect("#BodyText")[0]
-        wrapper = [div for div in bodytext.cssselect("div") if div.get('class') and 'ContentWrapper' in div.get('class')][0]
+        wrapper = bodytext.cssselect("div.SingleContentWrapper-450px")[0]
         for tag in wrapper.iter():
-            #removing html comments
+            #removing html comments and other clutter
             if callable(tag.tag):
                 tag.drop_tree()
+        lastdiv = wrapper.cssselect(".SingleContentWrapper-450px > div")
+        if lastdiv and "zum thema" in lastdiv[0].text_content():
+            lastdiv[0].drop_tree()
+
         article.props.text += wrapper
         yield article
 
