@@ -54,8 +54,6 @@ class ViennaScraper(HTTPScraper, DatedScraper):
 
     def getpages(self, index):
         yield index
-        #debug
-        return
         pagenr = 1
         while True:
             pagenr += 1
