@@ -57,7 +57,7 @@ class NewsAtScraper(HTTPScraper, DatedScraper):
         else:
             article.props.section = subsection and subsection[0].text or None
         article.props.externalid = article.doc.cssselect("#main article")[0].get('data-id')
-        article.props.text = article.doc.cssselect("div.ym-gr")[0].cssselect("p")
+        article.props.text = article.doc.cssselect("div.ym-gr")[0].cssselect("div.ym-gr > p")
         article.props.author = article.doc.cssselect("span.author")
         yield article
             

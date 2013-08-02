@@ -87,7 +87,7 @@ class SalzburgScraper(HTTPScraper, DatedScraper):
             date = readDate(data['date']),
             section = ", ".join('ressort' in data.keys() and data['ressort'] or []),
             headline = data['title'],
-            url = article_url
+            url = article_url,
             externalid = data['id'],
             text = data['text'],
             author = data['author'],
