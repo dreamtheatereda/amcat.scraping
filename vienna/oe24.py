@@ -63,7 +63,8 @@ class Oe24Scraper(HTTPScraper, DatedScraper):
         article.props.kicker = doc.cssselect("h2.preTitle")[0].text
         article.props.headline = doc.cssselect("h1.title,h1.texttitle")[0].text
         [box.drop_tree() for box in doc.cssselect("articleDiashowBox")]
-        article.props.text = doc.cssselect("article p.leadText") + doc.cssselect("article div.bodyText p")
+        
+        article.props.text = doc.cssselect("article p.leadText") + doc.cssselect("article div.bodyText > p")
         yield article
 
 if __name__ == '__main__':
