@@ -21,20 +21,23 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from math import ceil
 import re
+from urlparse import urljoin
+from datetime import timedelta
 
 from amcat.scraping.scraper import HTTPScraper, DatedScraper
 from amcat.scraping.document import HTMLDocument
-from urlparse import urljoin
 from amcat.tools.toolkit import readDate
 
 
 class NuScraper(HTTPScraper, DatedScraper):
     medium_name = "nu.nl - website"
-    search_url = "http://www.nu.nl/zoeken/?q=&limit=50&preview=0&page={p}"
+    search_url = "http://www.nu.nl/zoeken/?q=&limit=50&page={p}"
 
     def _get_units(self):
         initial_url = self.search_url.format(p = 1)
         initial_doc = self.getdoc(initial_url)
+        dates = [readDate(article.cssselect("span.date")[0].text).date() for article in initial_doc.cssselect("div.subarticle")]
+        self.maxdate = max(dates)
         n_results = int(initial_doc.cssselect("#searchlist header h1")[0].text.strip().split(" ")[-1])
         for page in self.pinpoint_pages(n_results):
             for div in page.cssselect("div.subarticle"):
@@ -46,51 +49,56 @@ class NuScraper(HTTPScraper, DatedScraper):
     def pinpoint_pages(self, n_results):
         #loading a single page takes a long time so we're using a smarter algorithm
         n_pages = int(ceil(n_results / 50.))
-        p = n_pages / 2
-        anchor_page = 0
-        jump_distance = n_pages / 4
+        pointer = n_pages / 2.
+        jump_distance = n_pages / 4.
         while True:
+            p = int(pointer)
             print("Inspecting page {p} of search results...".format(**locals()))
             dates, page = self.page_has_articles(p)
             if page:
                 print("Page with correct date found!")
-                yield page
-                anchor_page = p
+                anchor = p
                 break
             elif dates[0] < self.options['date']:
                 #if articles too old, jump a few pages back
-                p -= jump_distance
+                pointer -= jump_distance
             elif dates[0] > self.options['date']:
                 #if articles too young, jump a few pages forward
-                p += jump_distance
-            jump_distance /= 2
+                pointer += jump_distance
+            jump_distance /= 2.
 
-            if jump_distance == 0:
+            if jump_distance < .1:
                 raise Exception("No articles found for given date")
+        if self.options['date'] >= self.maxdate - timedelta(days = 1):
+            raise Exception("Archive not yet filled up")
 
-        #check back
+
+        #check back for first page with given date
+        i = 1
         while p >= 0:
-            p -= 1
+            p -= i
+            i += 1
             d, page = self.page_has_articles(p)
-            if page:
-                yield page
-            else:
+            if not page:
                 break
             
         #check forward
-        p = anchor_page
         while True:
             p += 1
             d, page = self.page_has_articles(p)
             if page:
                 yield page
+            elif p < anchor:
+                pass
             else:
                 break
-        
+
     def page_has_articles(self, p):
         page = self.getdoc(self.search_url.format(**locals()))
         articles = page.cssselect("div.subarticle")
         dates = [readDate(article.cssselect("span.date")[0].text).date() for article in articles]
+        if max(dates) > self.maxdate:
+            self.maxdate = max(dates)
         if any([date == self.options['date'] for date in dates]):
             return dates, page
         else:
