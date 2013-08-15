@@ -19,7 +19,6 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-from scrapers.newssites.google import GoogleNewsScraper
 try:
     from scrapers.newssites.google import GoogleNewsScraper
 except ImportError:
@@ -30,7 +29,6 @@ except ImportError:
 
         
 class GoogleAustriaScraper(GoogleNewsScraper):
-    medium_name = "news.google.at"
     url_gtld = "at"
 
 if __name__ == '__main__':

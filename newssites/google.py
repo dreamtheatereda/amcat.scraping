@@ -31,6 +31,7 @@ class GoogleNewsScraper(HTTPScraper, DatedScraper):
     """To be inherited from. 
     It is advised that this scraper runs hourly, as most articles don't last as long as a day.
     It is also advised that the set be deduplicated after scraping."""
+    medium_name = "Google News"
 
     def __init__(self, *args, **kwargs):
         super(GoogleNewsScraper, self).__init__(*args, **kwargs)
@@ -70,33 +71,8 @@ class GoogleNewsScraper(HTTPScraper, DatedScraper):
         except Exception:
             yield article;return
         article.props.html = html.tostring(article.doc)
-        
-        try:
-            article.props.text = self.find_text(article.doc, article.props.snippet)
-        except Exception:
-            pass
         yield article
-            
-    def find_text(self, doc, snippet):
-        #might miss text or have too much junk, needs review
-        [script.drop_tree() for script in doc.cssselect("script")]
-        tags = []
-        for sentence in [s.strip() for s in snippet.split(".")]:
-            for tag in doc.iter():
-                if tag.text and sentence in tag.text:
-                    tags.append(tag)
-        parents = []
-        for tag in tags:
-            parent = tag.getparent()
-            [tag.drop_tree() for tag in parent.cssselect("script,iframe,div.ads,div.GoogleAdsenseContent")]
-            parents.append(parent)
-        most_common_parent = max(set(parents), key=parents.count)
-        ret = [most_common_parent]
-        for tag in tags:
-            if tag not in most_common_parent.getchildren():
-                if tag.tag in ['b','p','div','span','small', 'h1','h2','h3','h4','h5','h6','pre','strong','i']:
-                    ret.append(tag)
-        return ret
+
             
 if __name__ == '__main__':
     raise Exception("Please inherit from this scraper")
