@@ -24,7 +24,6 @@ from lxml import html
 
 from amcat.scraping.document import HTMLDocument
 from amcat.scraping.scraper import HTTPScraper, DatedScraper
-from amcat.models.medium import Medium
 from amcat.tools.toolkit import readDate
 
 class GoogleNewsScraper(HTTPScraper, DatedScraper):
@@ -62,7 +61,7 @@ class GoogleNewsScraper(HTTPScraper, DatedScraper):
         url = xmlitem.cssselect("link")[0].tail.split("&url=")[-1]
         article = HTMLDocument(url = url)
         article.props.headline = " - ".join(xmlitem.cssselect("title")[0].text.split(" - ")[:-1])
-        article.props.medium = Medium.get_or_create(xmlitem.cssselect("title")[0].text.split(" - ")[-1])
+        article.props.source = xmlitem.cssselect("title")[0].text.split(" - ")[-1]
         article.props.section = xmlitem.cssselect("category")[0].text
         article.props.date = readDate(xmlitem.cssselect("pubdate")[0].text)
         article.props.snippet = html_content.cssselect("div.lh font")[1].text
