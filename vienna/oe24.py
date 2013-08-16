@@ -21,6 +21,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from urlparse import urljoin
 import re
+from datetime import datetime
 
 from amcat.scraping.document import HTMLDocument
 from amcat.scraping.scraper import HTTPScraper, DatedScraper
@@ -37,35 +38,52 @@ class Oe24Scraper(HTTPScraper, DatedScraper):
             article_pattern = "(http://[a-z]+.oe24.at/(([a-z]+/)+)[a-zA-Z0-9\-]+/([0-9]+)|http://www.xn--sterreich-z7a.at/nachrichten/[a-zA-Z0-9\-]+/([0-9]+))"
             for url in set([urljoin(index_url, a.get('href')) for a in index_doc.cssselect("a") if a.get('href')]):
                 match = re.match(article_pattern.format(**locals()), url)
-                if match:
+                if match and not ("/video/" in url or "/slideshow" in url):
                     section = " > ".join((match.group(2) or "").strip("/").split("/"))
                     yield HTMLDocument(url=url,
                                        externalid = match.group(4) or match.group(5),
                                        section = section
                                        )
 
-    german_months = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"]
-
-
     def _scrape_unit(self, article):
         article.prepare(self)
-        doc = (article.doc.cssselect("div.storyBox article") or article.doc.cssselect("div.storybox div.main"))[0]
-        datestr = doc.cssselect("article span.date,div.date")[0].text
-        for m in self.german_months:
-            if m in datestr:
-                month = self.german_months.index(m) + 1
-                day, yt = [s.strip(" .") for s in datestr.split(m)]
-                year, time = yt.split(" ")
-        article.props.date = readDate("{year}-{month}-{day} {time}".format(**locals()))
-        if article.props.date.date() != self.options['date']:
-            return
-
-        article.props.kicker = doc.cssselect("h2.preTitle")[0].text
-        article.props.headline = doc.cssselect("h1.title,h1.texttitle")[0].text
-        [box.drop_tree() for box in doc.cssselect("articleDiashowBox")]
+        articletype = 0
+        if "xn--sterreich-z7a.at" in article.props.url:
+            articletype = 2
+        elif "oe24.at" in article.props.url:
+            articletype = 1
         
-        article.props.text = doc.cssselect("article p.leadText") + doc.cssselect("article,#storymain div.bodyText > p")
+        if articletype == 1:
+            datestr = article.doc.cssselect("#storymain div.date")[0].text
+            article.props.date = self.extract_date(datestr)
+            article.props.headline = article.doc.cssselect("#storymain div.main h1.texttitle")[0].text
+            article.props.kicker = article.doc.cssselect("#storymain div.main h2.preTitle")[0].text.strip()
+            article.props.byline = article.doc.cssselect("#storymain h3.leadText")[0].text
+            article.props.text = [p for p in article.doc.cssselect("#storymain div.bodyText > p") 
+                                  if p.text_content().strip()]
+        elif articletype == 2:
+            datestr = article.doc.cssselect("#page,#Page article span.date")[0].text
+            article.props.date = self.extract_date(datestr)
+            article.props.headline = article.doc.cssselect("#page,#Page article h1.title")[0].text
+            article.props.kicker = article.doc.cssselect("#page,#Page article h2.preTitle")[0].text
+            article.props.byline = article.doc.cssselect("#page,#Page article p.leadText")[0].text
+            article.props.text = [p for p in article.doc.cssselect("#page,#Page article div.bodyText > p")
+                                  if p.text_content().strip()]
+        print(article.props.text)
         yield article
+
+    german_months = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"]
+        
+    def extract_date(self, datestr):
+        for m in self.german_months:
+            if m.lower() in datestr.lower():
+                month = self.german_months.index(m)
+                break
+        day = int(datestr.split(".")[0])
+        year,time = datestr.lower().split(m.lower())[1].strip().split()
+        return datetime(int(year), month+1, day,
+                    int(time.split(":")[0]), int(time.split(":")[1]))
+
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
