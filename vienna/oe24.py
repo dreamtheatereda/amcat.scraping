@@ -69,8 +69,8 @@ class Oe24Scraper(HTTPScraper, DatedScraper):
             article.props.byline = article.doc.cssselect("#page,#Page article p.leadText")[0].text
             article.props.text = [p for p in article.doc.cssselect("#page,#Page article div.bodyText > p")
                                   if p.text_content().strip()]
-        print(article.props.text)
-        yield article
+        if article.props.date.date() == self.options['date']:
+            yield article
 
     german_months = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"]
         
