@@ -39,7 +39,8 @@ class NewsAtScraper(HTTPScraper, DatedScraper):
                     headline = li.cssselect("h3 a")[0].text_content().strip(),
                     byline = li.cssselect("p.intro") and li.cssselect("p.intro")[0].text_content().strip(),
                     date = readDate(li.cssselect("time")[0].get('datetime')))
-                article.props.kicker = li.cssselect("a.toprow")[0].text_content().strip()
+                if li.cssselect("a.toprow"):
+                    article.props.kicker = li.cssselect("a.toprow")[0].text_content().strip()
                 yield article
                     
     def get_pages(self, index):
