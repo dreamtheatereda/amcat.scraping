@@ -70,7 +70,9 @@ class NRCScraper(HTTPScraper, DBScraper):
             page.props.url = urljoin(url, '%s_text.html' % a.get('class'))
 
             page.prepare(self)
-            yield self.get_article(page)
+            article = self.get_article(page)
+            if article:
+                yield article
 
 
     def get_article(self, page):
@@ -82,6 +84,9 @@ class NRCScraper(HTTPScraper, DBScraper):
             page.props.pagenr = int(page.props.pagenr.split("-")[0].strip())
         
         page.props.text = page.doc.cssselect('.column-left')[0]
+
+        if not page.doc.cssselect('h2')[0].text:
+            return
         page.props.headline = page.doc.cssselect('h2')[0].text
         
         intro = page.doc.cssselect('p.intro')
@@ -96,7 +101,6 @@ class NRCScraper(HTTPScraper, DBScraper):
         if strong:
             if p.match(strong[0].text):
                 page.props.dateline = strong[0].text
-        
         return page
 
 
