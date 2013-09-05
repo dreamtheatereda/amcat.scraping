@@ -19,11 +19,8 @@ from __future__ import unicode_literals, print_function, absolute_import
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-
-
 from amcat.scraping.scraper import DBScraper, HTTPScraper
 from amcat.scraping.document import Document, HTMLDocument
-
 
 from urllib import urlencode
 from urllib2 import HTTPError, URLError
@@ -43,7 +40,8 @@ elif os.path.exists(target.format(scraping_module="scraping")):
     CSV_FILE = csv.reader(open(target.format(scraping_module="scraping")))
 elif os.path.exists(target.format(scraping_module="amcatscraping")):
     CSV_FILE = csv.reader(open(target.format(scraping_module="amcatscraping")))
-
+elif os.path.exists("users.csv"):
+    CSV_FILE = csv.reader(open("users.csv"))
 
 INDEX_URL = "https://www.twitter.com"
 DATA_URL = "https://twitter.com/i/profiles/show/{screenname}/timeline/with_replies?include_available_features=1&include_entities=1"
@@ -52,9 +50,6 @@ import oauth2 as oauth
  
 CONSUMER_KEY = 'YLDO7j9C7MigKeGnhcAjbQ'
 CONSUMER_SECRET = 'njXW1bLzPZPBpUswkOhYHbSYl8VQ80paTPtoD6NiJg'
-
-
-
 
 def oauth_req(url, key, secret, http_method="GET",post_body=None,http_headers=None):
     consumer = oauth.Consumer(key=CONSUMER_KEY, secret=CONSUMER_SECRET)
@@ -80,7 +75,7 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
             'email' : username,
             'password' : password
         }
-        self.open(INDEX_URL, urlencode(POST_DATA))
+        self.open(str(INDEX_URL), urlencode(POST_DATA))
 
     def fix_row(self, row):
         #as of 2013-05-28 the csv file has a strange format in an unknown dialect
@@ -125,7 +120,7 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
         
     def _scrape_unit(self, url):
         """gets articles from a page"""
-        _json = self.open(url).read()
+        _json = self.open(str(url)).read()
         data = json.loads(_json)
         done=False
         while data['has_more_items'] and done==False:
@@ -142,7 +137,7 @@ class TwitterPoliticiScraper(HTTPScraper, DBScraper):
                     yield tweet
             if done==False:
                 nexturl = url + "&max_id={}".format(maxid)
-                data = json.loads(self.open(nexturl).read())
+                data = json.loads(self.open(str(nexturl)).read())
 
 
             

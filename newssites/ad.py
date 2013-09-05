@@ -84,8 +84,9 @@ class WebADScraper(HTTPScraper, DatedScraper):
 
         article.props.text = article.doc.cssselect("#detail_content p.intro,#detail_content section.clear > p")
         article.props.headline = article.doc.cssselect("h1")[0].text
-        article.props.section = re.search("ad.nl/ad/nl/[0-9]+/([a-zA-Z\-]+)/article",
+        article.props.section = re.search("ad.nl/ad/nl/[0-9]+/([a-zA-Z0-9\-]+)/article",
                                           article.props.url).group(1)
+            
 
         return article
 

@@ -101,6 +101,12 @@ class KamervragenAntwoordScraper(OfficieleBekendmakingenScraper):
 
         section = self.safeMetaGet(metadict,'OVERHEID.category')
         document_id = metadict['DC.identifier']
+        if document_id.count('-') == 1:
+            #kamer = 'NA'
+            if 'tweede' in  metadict['DC.creator'].lower(): kamer = 'tk'
+            if 'eerste' in  metadict['DC.creator'].lower(): kamer = 'ek'
+            document_id = document_id.replace('-','-%s-' % kamer)   
+        
         author = self.safeMetaGet(metadict,'OVERHEIDop.ontvanger')
         try: archieftype = metadict['OVERHEIDop.ArchiefType']
         except: archieftype = metadict['DC.type']
