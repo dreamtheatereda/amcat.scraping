@@ -91,7 +91,7 @@ class SpitsKrantScraper(HTTPScraper, DatedScraper):
     def get_sections(self, doc):
         sections = {}
         table = doc.cssselect("td.nav table")[0]
-        for tr in table.cssselect("> tr"):
+        for tr in table.cssselect("table > tr"):
             if "Secties" in tr.text_content():
                 html = tr
                 break
