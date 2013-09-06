@@ -35,7 +35,19 @@ from amcat.tools.stl import STLtoText
 from amcat.scraping.toolkit import todate
 from amcat.models.medium import Medium
 
-mediadict = {} #replace by reference to database table
+mediadict = {989900373:77,
+             989900380:87,
+             989900392:96,
+             989900395:163,
+             989900365:479,
+             989900389:490,
+             989900555:999,
+             989900427:81,
+             989900423:269,
+             989900387:78,
+             989900390:271,
+             989900617:113}
+
 HOST = "ftp.tt888.nl"
 
 def getDate(title):
@@ -99,6 +111,9 @@ class tt888Scraper(DBScraper):
 
         if medium == 'nos journaal' and int(format(date, '%H')) == 20 and int(format(date, '%M')) == 0: medium = 'nos journaal 20:00'
         med = Medium.get_or_create(medium)
+        if med.id in mediadict:
+            print("saving %s as %s" % (med.id,mediadict[med.id]))
+            med = Medium.objects.get(id=mediadict[med.id])
         
         art = Article(headline=medium, text=body,
                       medium = med, date=date, url = fn)

@@ -82,8 +82,7 @@ class StemmingenScraper(OfficieleBekendmakingenScraper):
 
         #return []
 
-    def parseSpreker2(self, spreker_element):
-        tekst, moties, otherelements = '', [], []
+    def parseStemronde(self, spreker_element):
         sprekerdict = {}
         for s in spreker_element.getchildren():
             if s.tag == 'tekst':
@@ -104,8 +103,7 @@ class StemmingenScraper(OfficieleBekendmakingenScraper):
         return irrelevant
 
     def getStemmingen(self, xml):
-        if len(xml.cssselect('spreekbeurt')) == 0: # Determines which parseSpreker() should be used for respective xml
-            print('Using parsSpreker1')
+        if len(xml.cssselect('spreekbeurt')) == 0: # Determines which way to parse
             try: sprekerparent = xml.cssselect('spreker')[0].getparent()
             except:
             	try: sprekerparent = xml.cssselect('voorz')[0].getparent()
@@ -129,12 +127,11 @@ class StemmingenScraper(OfficieleBekendmakingenScraper):
                     else: yield ('zonder stemming', draad_text)
                         
                 
-        else:
-            #print('Using alternative')
+        else: # Using alternative
             check_stemming = False
             for par in xml.cssselect('spreekbeurt')[0].getparent():
                 if check_stemming == True:
-                    stemverslag = draad_text + '\n\n' + self.parseSpreker2(par)
+                    stemverslag = draad_text + '\n\n' + self.parseStemronde(par)
                     yield ('met stemming', stemverslag)
                     check_stemming = False
                 if par.tag == 'tekst':

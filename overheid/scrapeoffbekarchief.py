@@ -16,8 +16,8 @@ log = logging.getLogger(__name__)
 
 class RunScraper(Script):  
     def run(self, _input):
-        startdate = datetime.date(2012,1,1)
-        lastdate = datetime.date(2013,7,15)        
+        startdate = datetime.date(2013,7,1)
+        lastdate = datetime.date(2013,8,20)        
         dateinterval = 1
         
     
@@ -26,10 +26,10 @@ class RunScraper(Script):
             print('------------------', date)
            
             scrapers = []
-            #scrapers.append(HandelingenPerSprekerScraper(date=date, articleset=2245, project=34))
+            scrapers.append(HandelingenPerSprekerScraper(date=date, articleset=2245, project=34))
             #scrapers.append(KamervragenVraagScraper(date=date, articleset=414, project=15))
             #scrapers.append(KamervragenAntwoordScraper(date=date, articleset=418, project=15))
-            scrapers.append(StemmingenScraper(date=date, articleset=3447, project=15))
+            #scrapers.append(StemmingenScraper(date=date, articleset=3447, project=15))
 
                                                     
             result = {s : [] for s in scrapers}

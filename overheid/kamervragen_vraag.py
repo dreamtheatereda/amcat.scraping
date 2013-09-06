@@ -47,14 +47,17 @@ class KamervragenVraagScraper(OfficieleBekendmakingenScraper):
     def getVraag(self, bodypart, xml):
         try: nr = bodypart.find('nummer').text_content()
         except:
-            nr = bodypart.find('nr').text_content()
+            try: nr = bodypart.find('nr').text_content()
+            except: nr = 'missing'
 
         nr = nr.replace('Vraag', '').strip()
             
         vraag = ' '.join([al.text_content().replace('\n', ' ').replace('\r','').strip() for al in bodypart.cssselect('al')])
         for nootref in bodypart.cssselect('nootref'):
             vraag += " (Noot %s)" % self.traceNootRefNr(nootref, xml)
-        return "Vraag %s:\n%s" % (nr, vraag)
+            
+        if not nr == 'missing': return "Vraag %s:\n%s" % (nr, vraag)
+        else: return vraag
 
     def getBody(self, xml):
         body = ''
@@ -101,7 +104,11 @@ class KamervragenVraagScraper(OfficieleBekendmakingenScraper):
         section = self.safeMetaGet(metadict,'OVERHEID.category')
 
         document_id = metadict['DC.identifier'].strip()
-        
+        if document_id.count('-') == 1:
+            #kamer = 'NA'
+            if 'tweede' in  metadict['DC.creator'].lower(): kamer = 'tk'
+            if 'eerste' in  metadict['DC.creator'].lower(): kamer = 'ek'
+            document_id = document_id.replace('-','-%s-' % kamer)        
         print('document id:', document_id)
 
         author = self.safeMetaGet(metadict,'OVERHEIDop.indiener')
