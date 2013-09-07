@@ -20,39 +20,55 @@ from __future__ import unicode_literals, print_function, absolute_import
 ###########################################################################
 
 import re
+from datetime import date, datetime, time
+from time import strptime
+from urlparse import urljoin
+from lxml import html
 
 from amcat.scraping.document import HTMLDocument
 from amcat.scraping.scraper import HTTPScraper, DatedScraper
 from amcat.tools.toolkit import readDate
 
+
 class TTScraper(HTTPScraper, DatedScraper):
     medium_name = "Tiroler Tageszeitung"
-    index_url="http://tt.com/tt/rss/tt.xml"
+    index_url="http://tt.com/newsticker/?back={back}"
 
     def _get_units(self):
-        index = self.getdoc(self.index_url)
-        for item in index.cssselect("item"):
-            url = item.cssselect("link")[0].tail
-            section = url.split("/")[3]
-            for word in url.split("/")[4:-1]:
-                section += unicode(re.match('\D+', word) and " > " + word)
-                externalid = re.match('[0-9]+\-[0-9]', word) and int(word.split("-")[0])
+        back = (date.today() - self.options['date']).days
+        index_text = self.open(self.index_url.format(**locals())).read().decode('utf-8')
+        #A character in the header makes the html library fail to parse the page correctly (it silently returns half the page without warning -.-)
+        #The character is located in the class attribute of each article tag that is to be scraped, so we take the article tag's inner wrapper and parse that instead.
+        article = 0
+        arts = []
+        for part in index_text.split("<article"):
+            article = part.split("</article>")[0]
+            arts.append(article)
+
+        for art in set(arts):
+            print(art)
+            item = html.fromstring(art)
+            try:
+                _time = time(*map(int,item.cssselect("div.time")[0].text.split(":")))
+            except IndexError:
+                continue
             article = HTMLDocument(
-                url = url,
-                headline = item.cssselect("title")[0].text,
-                date = readDate(item.cssselect("pubdate")[0].text),
-                section = section,
-                externalid = externalid)
-            if article.props.date.date() == self.options['date']:
-                yield article
-            elif article.props.date.date() < self.options['date']:
-                break
+                date = datetime.combine(self.options['date'], _time),
+                headline = item.cssselect("h2.title")[0].text,
+                url = urljoin(self.index_url.format(**locals()), 
+                              item.cssselect("h2.title")[0].getparent().get('href')),
+                )
+            yield article
 
     def _scrape_unit(self, article):
         article.doc = self.getdoc(article.props.url)
-        article.props.text = article.doc.cssselect("#content div.text,div.BA_Grundtext")
+        page = self.open(article.props.url).read().decode('utf-8')
+        article.props.section = " > ".join([a.text for a in article.doc.cssselect("#breadcrumb a")[:-1]])
+        article.props.externalid = int("".join(article.props.url.split("/")[-2].split("-")))
+        text = page.split("<div class=\"BA_Grundtext\"")[1].split("</div>")[0].split(">")[1]
+        article.props.text = html.fromstring(text)
         yield article
-
+        
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging
