@@ -46,7 +46,6 @@ class TTScraper(HTTPScraper, DatedScraper):
             arts.append(article)
 
         for art in set(arts):
-            print(art)
             item = html.fromstring(art)
             try:
                 _time = time(*map(int,item.cssselect("div.time")[0].text.split(":")))
