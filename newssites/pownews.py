@@ -52,15 +52,17 @@ class PownewsScraper(HTTPScraper, DatedScraper):
         entries = set([])
         for doc in docs:
             for li in doc.cssselect("ul.articlelist li"):
-                entries.add(li)
 
-        for li in entries:
-            datestr = " ".join(li.cssselect("span.t")[0].text.split()[:2]) + " " + str(self.options['date'].year)
-            _date = readDate(datestr).date()
+                _date = readDate(" ".join(li.cssselect("span.t")[0].text.split()[:2]) + " " + str(self.options['date'].year)).date()
+                url = urljoin(archive_url, li.cssselect("a")[0].get('href'))
+                entries.add((_date, url))
+
+        for _date, url in entries:
+
             if _date == self.options['date']:
                 article = HTMLDocument(
                     date = _date,
-                    url = urljoin(archive_url, li.cssselect("a")[0].get('href')))
+                    url = url)
                 yield article
 
     def _scrape_unit(self, article):        
