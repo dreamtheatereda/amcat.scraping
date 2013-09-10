@@ -39,35 +39,29 @@ class PownewsScraper(HTTPScraper, DatedScraper):
         self.open("http://www.powned.tv")
         self.open("http://cookies.publiekeomroep.nl/accept/")
         d = self.options['date']
-        #search for the right archive page
+        docs = []
         for x in range(d.day - 7, d.day + 7):
             archive_url = ARCHIVE_URL.format(**locals())
             try:
-                documents = [self.getdoc(archive_url)]
+                doc = self.getdoc(archive_url)
             except HTTPError:
                 pass
             else:
-                break
+                docs.append(doc)
 
-        #get last and next week too
-        page_date = date(self.options['date'].year, self.options['date'].month, x)
-        for d in [page_date - timedelta(days=7), page_date + timedelta(days=7)]:
-            x = d.day
-            url = ARCHIVE_URL.format(**locals())
-            documents.append(self.getdoc(url))
-
-        #find articles with right date and yield
-        for doc in documents:
+        entries = set([])
+        for doc in docs:
             for li in doc.cssselect("ul.articlelist li"):
-                from lxml import html
-                datestr = " ".join(li.cssselect("span.t")[0].text.split()[:2]) + " " + str(self.options['date'].year)
-                _date = readDate(datestr).date()
-                print(_date)
-                print(_date == self.options['date'])
-                if _date == self.options['date']:
-                    article = HTMLDocument(date = _date,
-                                           url = urljoin(archive_url, li.cssselect("a")[0].get('href')))
-                    yield article
+                entries.add(li)
+
+        for li in entries:
+            datestr = " ".join(li.cssselect("span.t")[0].text.split()[:2]) + " " + str(self.options['date'].year)
+            _date = readDate(datestr).date()
+            if _date == self.options['date']:
+                article = HTMLDocument(
+                    date = _date,
+                    url = urljoin(archive_url, li.cssselect("a")[0].get('href')))
+                yield article
 
     def _scrape_unit(self, article):        
         article.prepare(self)
