@@ -74,7 +74,7 @@ class Nieuws_nlScraper(HTTPScraper, DatedScraper):
 
     def scrape_page(self, page_doc):
         for a in page_doc.cssselect("a.article"):
-            date_str = a.cssselect("div.meta span.time")[0].text.strip()
+            date_str = a.cssselect("div.meta span.time")[0].text_content().strip()
             if len(date_str) == 5:
                 if ":" in date_str:
                     today = date.today()
@@ -95,7 +95,7 @@ class Nieuws_nlScraper(HTTPScraper, DatedScraper):
 
     def _scrape_unit(self, article): 
         article.prepare(self)
-        article.props.last_updated = readDate(article.doc.cssselect("div.meta span.time")[0].text.split(":")[1])
+        article.props.last_updated = readDate(article.doc.cssselect("div.meta span.time")[0].text_content().split(":")[1])
         article.props.intro = article.doc.cssselect("div.intro h2")
         article.props.text = article.doc.cssselect("div.article div.text")[0]
         try:
