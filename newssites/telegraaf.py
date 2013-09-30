@@ -42,6 +42,7 @@ def scrape_unit(scraper, page):
     
     for comment in scrape_comments(scraper, page):
         comment.is_comment = True
+        comment.props.parent = page
         yield comment
    
     yield page
@@ -62,52 +63,41 @@ def scrape_comments(scraper, page):
             comment.props.text = comment.props.text.split(comment.props.author)[1].strip()
 
             comment.props.date = readDate(div.cssselect("div.date")[0].text_content())
-            comment.parent = page
             yield comment
 
 
 class WebTelegraafScraper(HTTPScraper, DatedScraper):
     medium_name = "Telegraaf website"
 
-    def __init__(self, *args, **kwargs):
-        super(WebTelegraafScraper, self).__init__(*args, **kwargs)
-
+    sections = ["binnenland","buitenland"]
+    page_url = "http://www.telegraaf.nl/snelnieuws/index.jsp?sec={section}&pageNumber={page}"
     def _get_units(self):
-        index = self.getdoc(INDEX_URL) 
-        for section in index.cssselect("#main li.naar a"):
-            date = _date.today()
-            href = urljoin("http://www.telegraaf.nl",section.get('href'))
-            if "digitaal/games" in href:
-                continue
+        for section in self.sections:
+            page = 1
+            url = self.page_url.format(**locals())
 
-            ipage = self.getdoc(href)
+            date = _date.today()
+            ipage = self.getdoc(url)
             while date >= self.options['date']:
+                if not ipage.cssselect("#main ul.snelnieuws_list li.item"):
+                    print("\nNo articles found as far back as given date\n")
+                    break
                 for unit in ipage.cssselect('#main ul.snelnieuws_list li.item'):
                     href = unit.cssselect('a')[0].get('href')
                     article = HTMLDocument(url=href)
-                    article.doc = self.getdoc(article.props.url)
-                   
+                    article.prepare(self)
                     try:
                         date = readDate(article.doc.cssselect("span.datum")[0].text).date()
                     except IndexError:
                         continue
-
                     if date == self.options['date']: 
                         yield article
                     elif date < self.options['date']:
                         break 
 
-                try:
-                    nxt = ipage.cssselect("#main li.sn_navigation a")[0]
-                except IndexError:
-                    break
-                if "vorige" in nxt.text:
-                    print("\nNo articles found for given date.\n")
-                elif "games" in href:
-                    break
-                else:
-                    nxt_url = urljoin("http://www.telegraaf.nl",nxt.get('href'))
-                    ipage = self.getdoc(nxt_url)
+                page += 1
+                nxt_url = self.page_url.format(**locals())
+                ipage = self.getdoc(nxt_url)
 
     def _scrape_unit(self, page):
         for unit in scrape_unit(self, page):
