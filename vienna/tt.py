@@ -46,7 +46,6 @@ class TTScraper(HTTPScraper, DatedScraper):
             arts.append(article)
 
         for art in set(arts):
-            print(art)
             item = html.fromstring(art)
             try:
                 _time = time(*map(int,item.cssselect("div.time")[0].text.split(":")))
@@ -63,7 +62,8 @@ class TTScraper(HTTPScraper, DatedScraper):
     def _scrape_unit(self, article):
         article.doc = self.getdoc(article.props.url)
         page = self.open(article.props.url).read().decode('utf-8')
-        article.props.section = " > ".join([a.text for a in article.doc.cssselect("#breadcrumb a")[:-1]])
+
+        article.props.section = " > ".join([a.text_content().strip() for a in article.doc.cssselect("#breadcrumb a")[1:-1]])
         article.props.externalid = int("".join(article.props.url.split("/")[-2].split("-")))
         text = page.split("<div class=\"BA_Grundtext\"")[1].split("</div>")[0].split(">")[1]
         article.props.text = html.fromstring(text)
