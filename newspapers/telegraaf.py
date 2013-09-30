@@ -70,9 +70,12 @@ class TelegraafScraper(HTTPScraper, DBScraper):
 
     def get_categories(self, doc):
         borders = {}
-        from lxml import html
         for a in doc.cssselect("td.nav tr")[1].cssselect("a"):
-            pagenr = int(a.get('href').split("/")[-1])
+            try:
+                pagenr = int(a.get('href').split("/")[-1])
+            except AttributeError:
+                #some html fail
+                continue
             cat = a.text_content()
             borders[pagenr] = cat
 
