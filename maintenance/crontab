@@ -13,7 +13,6 @@
 #	DJANGO_EMAIL_USER
 #	DJANGO_EMAIL_PASSWORD
 #	DJANGO_DB_HOST
-#Optional: Any
 #
 #Defaults are defined below and can be overwritten in ~/.amcat_crontab
 DJANGO_SETTINGS_MODULE='settings'
@@ -35,4 +34,4 @@ TELETEKST_ARTICLESET=124
 0 3 * * * . ~/.amcat_crontab; DJANGO_DISABLE_SENTRY=Y DJANGO_DEBUG=N bash $PYTHONPATH/scrapers/maintenance/daily.sh
 0 0,12 * * * . ~/.amcat_crontab; python $PYTHONPATH/scrapers/newssites/top5.py $TOP5_PROJECT --articleset $TOP5_ARTICLESET
 1 0 * * * . ~/.amcat_crontab; bash $PYTHONPATH/scrapers/maintenance/midnight.sh
-0 0 1 * * . ~/.amcat_crontab; python $PYTHONPATH/amcat/scripts/maintenance/generate_expected_articles.py
+0 0 * * SUN . ~/.amcat_crontab; python $PYTHONPATH/amcat/scripts/maintenance/set_scraper_stats.py
