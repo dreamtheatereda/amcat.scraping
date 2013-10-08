@@ -62,10 +62,9 @@ class TTScraper(HTTPScraper, DatedScraper):
     def _scrape_unit(self, article):
         article.doc = self.getdoc(article.props.url)
         page = self.open(article.props.url).read().decode('utf-8')
-
         article.props.section = " > ".join([a.text_content().strip() for a in article.doc.cssselect("#breadcrumb a")[1:-1]])
         article.props.externalid = int("".join(article.props.url.split("/")[-2].split("-")))
-        text = page.split("<div class=\"BA_Grundtext\"")[1].split("</div>")[0].split(">")[1]
+        text = page.split("<div class=\"BA_Grundtext\"")[1].split("</div>")[0]
         article.props.text = html.fromstring(text)
         yield article
         
