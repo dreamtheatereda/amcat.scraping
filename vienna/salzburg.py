@@ -27,7 +27,7 @@ from amcat.scraping.scraper import HTTPScraper, DatedScraper
 from amcat.tools.toolkit import readDate
 
 class SalzburgScraper(HTTPScraper, DatedScraper):
-    medium_name = "Salzburger Nachrichten"
+    medium_name = "salzburg.com"
     solr_url = "http://search.salzburg.com/news/solr/sn/select?sort=date%20desc&q={{!boost%20b%3D%24dateboost%20v%3D%24qq}}&facet.date.start=1997-01-01T00%3A00%3A00Z%2FDAY&facet.date.end=NOW%2FDAY%2B1DAY&facet.date.gap=%2B1MONTH&qq=*%3A*&wt=json&start={offset}"
 
     def _get_units(self):

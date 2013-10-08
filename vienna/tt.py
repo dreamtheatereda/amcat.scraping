@@ -31,7 +31,7 @@ from amcat.tools.toolkit import readDate
 
 
 class TTScraper(HTTPScraper, DatedScraper):
-    medium_name = "Tiroler Tageszeitung"
+    medium_name = "tt.com"
     index_url="http://tt.com/newsticker/?back={back}"
 
     def _get_units(self):
