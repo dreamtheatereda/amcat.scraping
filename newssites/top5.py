@@ -155,8 +155,11 @@ class AD(HTTPScraper):
         p = "((Bewerkt door)|(Door)):?( |\n)([A-Za-z0-9 ]+)\n\n(([0-9]{1,2}\-){2}[0-9]{1,2})"
         pattern = re.compile(p)
         match = pattern.search(authordate.strip())
-        article.props.author = match.group(5)
-        article.props.date = readDate(match.group(6))
+        if match:
+            article.props.author = match.group(5)
+            article.props.date = readDate(match.group(6))
+        else:
+            article.props.date = date.today()
         try:
             article.props.source = authordate.split("bron:")[1].strip()
         except IndexError:
