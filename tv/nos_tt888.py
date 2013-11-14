@@ -61,12 +61,12 @@ def getDate(title):
     else:
         return datetime.datetime(year,month,day,hour,minute)
 
-def getUrlsFromSet(setid, check_back=30):
+def getUrlsFromSet(setid, check_back=300):
     """Returns list with all URLS of articles in the articleset for the last [check_back] days"""
     fromdate = (datetime.date.today() - datetime.timedelta(days = check_back))
     articles = (Article.objects.filter(date__gt = fromdate)
                 .filter(articlesets_set = setid).only("url"))
-    urls = set(a.url.split('/')[-1] for a in articles if a.url)
+    urls = set(a.url.split('/')[-1].lower() for a in articles if a.url)
     return urls
             
 class tt888Scraper(DBScraper):
@@ -86,12 +86,12 @@ class tt888Scraper(DBScraper):
             self._ftp_lock.release()
         
     def _get_units(self):
-        existing_files = getUrlsFromSet(setid=self.articleset, check_back=30)
+        existing_files = getUrlsFromSet(setid=self.articleset, check_back=300)
         with self.ftp() as ftp:
             files = ftp.nlst()
         for fn in files:
             fn = fn.decode("latin-1")
-            title = fn.split('/')[-1]                
+            title = fn.split('/')[-1].lower()                
             if title in existing_files:
                 print("Already in articleset: %s" % title)
                 continue # Skip if already in database
@@ -114,8 +114,9 @@ class tt888Scraper(DBScraper):
         if med.id in mediadict:
             print("saving %s as %s" % (med.id,mediadict[med.id]))
             med = Medium.objects.get(id=mediadict[med.id])
-        
-        art = Article(headline=medium, text=body,
+
+        headline = "%s (%s)" % (medium, fn.replace('.stl','').strip())
+        art = Article(headline=headline, text=body,
                       medium = med, date=date, url = fn)
         yield art
         

@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 class RunScraper(Script):  
     def run(self, _input):
         startdate = datetime.date(2013,7,1)
-        lastdate = datetime.date(2013,8,20)        
+        lastdate = datetime.date(2013,11,05)        
         dateinterval = 1
         
     

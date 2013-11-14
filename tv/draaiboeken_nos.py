@@ -124,8 +124,9 @@ class DraaiboekenScraper(DBScraper):
         date = getDate(url)    
         medium = title.lower()
         med = Medium.get_or_create(medium)
-    
-        art = Article(headline=medium, text=body,
+
+        headline = "%s (%s)" % (medium, url.split('/')[-1].replace('.stl','').strip())
+        art = Article(headline=headline, text=body,
                       medium = med, date=date, url = url)
         yield art
 
